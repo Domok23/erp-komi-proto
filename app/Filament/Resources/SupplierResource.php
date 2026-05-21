@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\SupplierResource\Pages;
+use App\Filament\Resources\SupplierResource\RelationManagers;
+use App\Models\Supplier;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Schemas\Schema;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Tables\Filters\SelectFilter;
+
+class SupplierResource extends Resource
+{
+    protected static ?string $model = Supplier::class;
+
+
+
+    protected static ?string $navigationLabel = 'Suppliers';
+    protected static ?string $modelLabel = 'Supplier';
+    protected static ?string $pluralModelLabel = 'Suppliers';
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->schema([
+            Forms\Components\Select::make('company_id')
+                ->relationship('company', 'name')
+                ->required(),
+            Forms\Components\TextInput::make('code')
+                ->required()
+                ->maxLength(50),
+            Forms\Components\TextInput::make('name')
+                ->required()
+                ->maxLength(255),
+            Forms\Components\TextInput::make('contact_person')
+                ->maxLength(255),
+            Forms\Components\Textarea::make('address')
+                ->maxLength(65535)
+                ->columnSpanFull(),
+            Forms\Components\TextInput::make('city')
+                ->maxLength(100),
+            Forms\Components\TextInput::make('phone')
+                ->tel()
+                ->maxLength(30),
+            Forms\Components\TextInput::make('email')
+                ->email()
+                ->maxLength(100),
+            Forms\Components\TextInput::make('npwp')
+                ->maxLength(30),
+            Forms\Components\TextInput::make('bank_account')
+                ->maxLength(255),
+            Forms\Components\Toggle::make('is_active')
+                ->default(true),
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->columns([
+            Tables\Columns\TextColumn::make('id')->sortable(),
+            Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('contact_person'),
+            Tables\Columns\TextColumn::make('city'),
+            Tables\Columns\TextColumn::make('phone'),
+            Tables\Columns\TextColumn::make('email')->searchable(),
+            Tables\Columns\IconColumn::make('is_active')->boolean(),
+            Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+        ])
+            ->filters([
+                SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
+                SelectFilter::make('company_id')->relationship('company', 'name'),
+            ])
+            ->actions([EditAction::make(), DeleteAction::make()])
+            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+
+
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-truck';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Master Data';
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\MaterialsRelationManager::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListSuppliers::route('/'),
+            'create' => Pages\CreateSupplier::route('/create'),
+            'edit' => Pages\EditSupplier::route('/{record}/edit'),
+        ];
+    }
+}

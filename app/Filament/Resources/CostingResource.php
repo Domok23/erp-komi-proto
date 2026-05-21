@@ -1,0 +1,228 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\CostingResource\Pages;
+use App\Models\Costing;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Schemas\Schema;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+
+class CostingResource extends Resource
+{
+    protected static ?string $model = Costing::class;
+
+
+
+    
+
+    
+
+    
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema
+            ->schema([
+                Forms\Components\Select::make('company_id')
+                    ->relationship('company', 'name')
+                    ->required(),
+                Forms\Components\Select::make('project_id')
+                    ->relationship('project', 'name')
+                    ->required(),
+                Forms\Components\Select::make('design_id')
+                    ->relationship('design', 'name')
+                    ->nullable(),
+                Forms\Components\TextInput::make('version')
+                    ->required()
+                    ->default('1.0')
+                    ->maxLength(50),
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'draft' => 'Draft',
+                        'calculated' => 'Calculated',
+                        'submitted' => 'Submitted',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->required()
+                    ->default('draft'),
+                Forms\Components\TextInput::make('material_cost')
+                    ->label('Material Cost')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                Forms\Components\TextInput::make('mp_cost')
+                    ->label('Manufacturing Cost (MP)')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                Forms\Components\TextInput::make('overhead_pct')
+                    ->label('Overhead %')
+                    ->numeric()
+                    ->default(15)
+                    ->suffix('%')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                Forms\Components\TextInput::make('overhead_amount')
+                    ->label('Overhead Amount')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->readOnly(),
+                Forms\Components\TextInput::make('shipping_cost')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                Forms\Components\TextInput::make('profit_margin_pct')
+                    ->label('Profit Margin %')
+                    ->numeric()
+                    ->default(20)
+                    ->suffix('%')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                Forms\Components\TextInput::make('profit_margin_amount')
+                    ->label('Profit Margin Amount')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->readOnly(),
+                Forms\Components\TextInput::make('landed_cost')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->readOnly(),
+                Forms\Components\TextInput::make('selling_price')
+                    ->label('Selling Price')
+                    ->numeric()
+                    ->default(0)
+                    ->prefix('$')
+                    ->readOnly(),
+                Forms\Components\TextInput::make('currency')
+                    ->default('USD')
+                    ->maxLength(10),
+                Forms\Components\Textarea::make('notes')
+                    ->maxLength(65535)
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('approved_by')
+                    ->maxLength(255),
+                Forms\Components\DatePicker::make('approved_at'),
+            ]);
+    }
+
+    protected static function recalculate(Get $get, Set $set): void
+    {
+        $materialCost = (float) $get('material_cost') ?: 0;
+        $mpCost = (float) $get('mp_cost') ?: 0;
+        $overheadPct = (float) $get('overhead_pct') ?: 0;
+        $shippingCost = (float) $get('shipping_cost') ?: 0;
+        $profitMarginPct = (float) $get('profit_margin_pct') ?: 0;
+
+        $overheadAmount = ($materialCost + $mpCost) * ($overheadPct / 100);
+        $set('overhead_amount', round($overheadAmount, 2));
+
+        $landedCost = $materialCost + $mpCost + $overheadAmount + $shippingCost;
+        $set('landed_cost', round($landedCost, 2));
+
+        $profitMarginAmount = $landedCost * ($profitMarginPct / 100);
+        $set('profit_margin_amount', round($profitMarginAmount, 2));
+
+        $sellingPrice = $landedCost + $profitMarginAmount;
+        $set('selling_price', round($sellingPrice, 2));
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('project.name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('version')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'calculated' => 'info',
+                        'submitted' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('material_cost')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('selling_price')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('currency')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('approved_by')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'draft' => 'Draft',
+                        'calculated' => 'Calculated',
+                        'submitted' => 'Submitted',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                    ]),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+
+
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-calculator';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Pre-Production';
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListCostings::route('/'),
+            'create' => Pages\CreateCosting::route('/create'),
+            'edit' => Pages\EditCosting::route('/{record}/edit'),
+        ];
+    }
+}
