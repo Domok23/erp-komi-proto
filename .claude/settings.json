@@ -1,0 +1,52 @@
+{
+  "allowed": [
+    {
+      "tool": "Bash",
+      "pattern": "php artisan *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "composer *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "npm *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "./vendor/bin/pint*"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "ls *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "pwd"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "cd *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "cat *"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "git status"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "git diff*"
+    },
+    {
+      "tool": "Bash",
+      "pattern": "git log*"
+    }
+  ],
+  "env": {
+    "APP_ENV": "local",
+    "APP_DEBUG": "true"
+  }
+}

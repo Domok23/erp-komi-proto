@@ -4,30 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ERP Komi Proto** — A Laravel 12 + Filament 4 ERP system prototype for managing projects, production, inventory, and supply chain operations. The admin panel is at `/admin`.
+**ERP Komi Proto** — Laravel 12 + Filament 4 ERP prototype for PT Komitrando Emporio, a manufactured bag industry serving international brands (export to US & Canada).
+
+**Two companies (multi-tenant):**
+- **KMT001** — PT Komitrando Emporio (Main - Production)
+- **KMT002** — PT Komitrando Textile (Branch - Warehouse)
+
+Admin panel at `/admin`. All data is scoped by `company_id`. Full spec: `.claude/SPEC_DOCUMENT_ERP_KOMI.md`
 
 ## Dev Commands
 
 ```bash
-# Full dev environment (serves at localhost:8000)
-composer dev
-
-# Single commands
-php artisan serve              # Laravel server only
-php artisan queue:listen --tries=1 --timeout=0   # Queue worker
-npm run dev                    # Vite dev server
-npm run build                  # Production frontend build
-
-# Tests
-php artisan test               # Run all tests
-php artisan test --filter=User # Run specific test
+composer dev          # Full: Laravel server + queue worker + Vite dev server (localhost:8000)
+php artisan serve     # Laravel server only
+npm run dev           # Vite dev server only
 
 # Database
-php artisan migrate            # Run migrations
-php artisan migrate:fresh --seed   # Reset DB and seed
+php artisan migrate                           # Run migrations
+php artisan migrate:fresh --seed             # Reset DB and seed (for fresh setup)
+php artisan db:seed                           # Seed demo data
+
+# Tests
+php artisan test
+php artisan test --filter=User
 
 # Code quality
-./vendor/bin/pint               # Format code
+./vendor/bin/pint      # Format code
 ```
 
 ## Architecture
@@ -36,42 +38,53 @@ php artisan migrate:fresh --seed   # Reset DB and seed
 
 All admin UI lives in `app/Filament/Resources/`. Each resource follows this structure:
 - `app/Filament/Resources/{Entity}Resource.php` — Form schema + table definition
-- `app/Filament/Resources/{Entity}Resource/Pages/` — List, Create, Edit (and optionally View) pages
+- `app/Filament/Resources/{Entity}Resource/Pages/` — List, Create, Edit pages
 
 The panel is configured in `app/Providers/Filament/AdminPanelProvider.php`:
 - Path: `/admin`
-- Auth: enabled with registration
-- Color theme: Amber primary
-- Dark mode: disabled
-- Top navigation enabled
+- Color theme: Amber primary, dark mode off, top navigation enabled
 
-### Multi-Tenancy
+Filament v4 Schema/Table APIs are used: `Schema::schema([...])`, `Table::columns([...])`.
 
-Most entities have a `company_id` foreign key as the first column after `id`. The `company_id` is the tenant identifier. Always include it in fillables and as the first database index.
+### Multi-Tenancy (company_id)
 
-### Domain Models
+Most entities have a `company_id` foreign key as the first column after `id`. Always include it in fillables, relations, and as the first database index. All Filament resources should scope queries by the selected company.
 
-Core ERP domain entities in `app/Models/`:
-- **Companies** — `Company.php`
-- **Projects** — `Project.php` with types: `proto`, `sample`, `mass` and statuses: `planning` → `completed`
-- **Materials & Products** — `Material.php`, `Product.php`
-- **R&D Design** — `RdDesign.php`
-- **Sales & Purchasing** — `SalesOrder.php`, `PurchaseOrder.php`, `PurchaseReceipt.php`
-- **Inventory** — `Inventory.php`, `InventoryMovement.php`, `GoodsReceipt.php`
-- **Production** — `ProductionOrder.php`, `ProjectBom.php`, `ProjectConsumption.php`
-- **QC** — `QcInspection.php`
-- **Outbound** — `Shipment.php`
-- **Finance** — `Invoice.php`, `InvoiceItem.php`, `Costing.php`
-- **Merchandising** — `Merchandising.php`
-- **Parties** — `Customer.php`, `Supplier.php`, `Subcon.php`
+### Module Phases
 
-### Key Patterns
+**Phase 1 — Pre-Production (Fully Functional, see spec for details):**
+- R&D / Consumption (Design Library, BOM, Consumption Rates)
+- Project Initiation (Proto → Sample → Mass workflow)
+- Merchandising (Material planning, supplier/subcon assignment)
+- Costing / Pricing (Material + Man Power + Overhead + Shipping + Profit)
+- Sales Order, Purchase Order (Supplier + Subcon), Purchase Tracking
+- Goods Receipt, Inventory (stock management, subcon material tracking)
+- Shipment (Packing List, Delivery Order)
+- Invoice (Purchase + Sales with Faktur Pajak / PPN 10%)
 
-1. **Resource definition**: Uses Filament v4 Schema + Table APIs (`Schema::schema([...])`, `Table::columns([...])`)
-2. **Model relations**: Follow Laravel Eloquent conventions with explicit types (`BelongsTo`, `HasMany`)
-3. **Enum fields**: Stored as string columns, cast via `$casts` array in models
-4. **Dates**: Use `date` or `datetime` cast, not Carbon objects directly
+**Phase 2 — Production (Simplified, UI + static data):**
+- Production Order, Job Order (JO), SPP, QC Management, Material Usage Report
+
+**Phase 3 — Finance (Simplified, UI + static data):**
+- Payment Tracking, Chart of Accounts, General Ledger, L/R Report
 
 ### Database
 
-MySQL (`DB_CONNECTION=mysql` in `.env`, database: `erp_komi_proto`). Migrations in `database/migrations/`. Tests use in-memory SQLite (`:memory:`).
+MySQL (`erp_komi_proto`). Migrations in `database/migrations/`. Tests use in-memory SQLite (`:memory:`).
+
+### Key Patterns
+
+- **Enum fields**: Stored as string columns, cast via `$casts` array in models
+- **Dates**: Use `date` or `datetime` cast, not Carbon objects directly
+- **Model relations**: Follow Laravel Eloquent conventions (`BelongsTo`, `HasMany`)
+- **Project types**: `proto` → approved → auto-create `sample` → approved → auto-create `mass`
+
+### Costing / Pricing Config (Static)
+
+**Man Power per Unit:** Cutting Rp 5,000 | Sewing Rp 15,000 | Finishing Rp 8,000 | QC Rp 3,000 | Packing Rp 2,000 | **Total Rp 33,000**
+
+**Shipping per Unit:** Jakarta Rp 5,000 | Jawa non-Jakarta Rp 8,000 | Luar Jawa Rp 12,000 | Export (US/Canada) Rp 35,000
+
+**Overhead 15% | Profit Margin 20%**
+
+**Selling Price** = (Material Cost + MP Cost) × (1 + Overhead%) × (1 + Profit%) + Shipping
