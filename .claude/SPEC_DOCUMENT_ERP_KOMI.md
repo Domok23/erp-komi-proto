@@ -2080,6 +2080,453 @@ Day 10:    Testing, Polish & Demo Ready
 
 ---
 
+## 10. NON-FUNCTIONAL REQUIREMENTS
+
+### 10.1 Performance Requirements
+
+| Metric | Target | Description |
+|--------|--------|-------------|
+| Page Load Time | < 2 seconds | Average response time for all pages |
+| API Response Time | < 500ms | For CRUD operations on individual records |
+| Database Query | < 200ms | For standard filtered queries |
+| Concurrent Users | Up to 50 users | Simultaneous active sessions |
+| File Upload | Up to 10MB | Tech pack and reference images |
+| Report Generation | < 30 seconds | For costing and invoice reports with 100+ records |
+
+### 10.2 Security Requirements
+
+| Aspect | Requirement |
+|--------|-------------|
+| Authentication | Multi-company login with session management |
+| Authorization | All data scoped by company_id (tenant isolation) |
+| Data Protection | Sensitive data not logged or exposed in error messages |
+| Session Management | 8-hour session timeout with automatic logout |
+| Password Policy | Minimum 8 characters, stored as hashed (bcrypt) |
+| CSRF Protection | Laravel built-in CSRF tokens on all forms |
+| SQL Injection | Eloquent ORM parameterized queries |
+| XSS Prevention | Blade template auto-escaping |
+| Audit Trail | Created at / updated at timestamps on all records |
+
+### 10.3 Backup & Recovery Strategy
+
+| Item | Policy |
+|------|--------|
+| Database Backup | Daily automated backup (MySQL) |
+| Backup Retention | 30 days rolling retention |
+| File Backup | Weekly backup of uploaded files (images, tech packs) |
+| Recovery Time Objective (RTO) | < 4 hours |
+| Recovery Point Objective (RPO) | < 24 hours (daily backup) |
+| Backup Location | Local external drive + cloud storage (optional) |
+| Test Restore | Monthly backup restoration test |
+
+### 10.4 Browser Compatibility
+
+| Browser | Minimum Version |
+|---------|----------------|
+| Google Chrome | 90+ |
+| Mozilla Firefox | 88+ |
+| Microsoft Edge | 90+ |
+| Safari | 14+ |
+| Mobile Browser | iOS Safari 14+, Chrome Android 90+ |
+
+---
+
+## 11. ACCEPTANCE CRITERIA
+
+### 11.1 Company Selection Module
+
+**Definition of Done:**
+- [ ] User can login with email/password
+- [ ] User can select company from dropdown after login
+- [ ] All subsequent data is filtered by selected company
+- [ ] Company selection persists throughout session
+- [ ] User can create new company (if admin)
+- [ ] Session expires after 8 hours of inactivity
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-CS-01 | Login with valid credentials | Redirect to company selection page |
+| AC-CS-02 | Login with invalid credentials | Show error message, stay on login page |
+| AC-CS-03 | Select company from dropdown | Navigate to dashboard with company-scoped data |
+| AC-CS-04 | Switch company via dropdown | Reload data for new company, reset all context |
+| AC-CS-05 | Access data without company selection | Redirect to company selection page |
+
+### 11.2 R&D / Consumption Module
+
+**Definition of Done:**
+- [ ] User can create/edit/delete design library entries
+- [ ] User can upload reference images and tech packs
+- [ ] User can create BOM with multiple items
+- [ ] BOM items linked to materials from master data
+- [ ] Wastage percentage calculated in consumption
+- [ ] BOM version control working (draft/active status)
+- [ ] Consumption rate entry per material per design
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-RND-01 | Create new design library entry | Design saved with auto-generated ID |
+| AC-RND-02 | Upload tech pack PDF | File stored, link displayed in design detail |
+| AC-RND-03 | Create BOM with 10 items | All items saved with correct material references |
+| AC-RND-04 | Set wastage 10% on BOM item | Effective consumption = base_qty × 1.10 |
+| AC-RND-05 | Change BOM status from draft to active | BOM locked for editing, cannot revert |
+| AC-RND-06 | Delete BOM with existing references | Show error, prevent deletion |
+
+### 11.3 Project Initiation Module
+
+**Definition of Done:**
+- [ ] Project code auto-generated (PRJ-XXX-YYYY format)
+- [ ] User can select project type (proto/sample/mass)
+- [ ] BOM can be imported from R&D module
+- [ ] Workflow status updates correctly
+- [ ] Approve button auto-creates next project type
+- [ ] Duplicate button copies all data to new project
+- [ ] All data in copied project remains editable
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-PROJ-01 | Create new proto project | PRJ code generated, status = draft |
+| AC-PROJ-02 | Import BOM to project | BOM linked, consumption calculation available |
+| AC-PROJ-03 | Approve proto project | Auto-create sample project, copy all data |
+| AC-PROJ-04 | Approve sample project | Auto-create mass project, include shipment copy |
+| AC-PROJ-05 | Duplicate mass project | New mass project created, all data editable |
+| AC-PROJ-06 | Change project status to completed | Project locked, no further edits allowed |
+
+### 11.4 Merchandising Module
+
+**Definition of Done:**
+- [ ] User can create merchandise planning per project
+- [ ] Material quantities auto-calculated from BOM
+- [ ] Supplier/subcon assignment per material item
+- [ ] Total cost auto-calculated (material + subcon)
+- [ ] Generate PO Supplier from planning
+- [ ] Generate PO Subcon from planning
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-MERCH-01 | Create merchandise planning | Planning saved, linked to project |
+| AC-MERCH-02 | Bom auto-populated | All BOM items added as planning items |
+| AC-MERCH-03 | Assign supplier to item | Supplier ID saved, PO generation enabled |
+| AC-MERCH-04 | Assign subcon to item | Subcon ID saved, PO Subcon generation enabled |
+| AC-MERCH-05 | Generate PO Supplier | PO Supplier created with all supplier items |
+| AC-MERCH-06 | Calculate total cost | Sum of (qty × unit_price) displayed correctly |
+
+### 11.5 Costing / Pricing Module
+
+**Definition of Done:**
+- [ ] Material cost auto-calculated from BOM × unit price
+- [ ] Man power cost calculated from static config per unit
+- [ ] Overhead = (Material + MP) × 15%
+- [ ] Profit margin = subtotal × 20%
+- [ ] Shipping cost based on destination
+- [ ] Selling price formula applied correctly
+- [ ] Multiple version support per project
+- [ ] Price lock for approved costing
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-COST-01 | Calculate material cost | Sum of (consumption × unit_price) for all BOM items |
+| AC-COST-02 | Calculate MP cost | 33,000 per unit × quantity |
+| AC-COST-03 | Calculate overhead | (Material + MP) × 15% |
+| AC-COST-04 | Calculate profit margin | (Material + MP + Overhead) × 20% |
+| AC-COST-05 | Calculate shipping export | 35,000 per unit × quantity |
+| AC-COST-06 | Calculate final selling price | Correct formula applied, all components included |
+| AC-COST-07 | Approve costing version | Costing locked, cannot be edited |
+| AC-COST-08 | Generate new version | Previous version archived, new draft created |
+
+### 11.6 Sales Order Module
+
+**Definition of Done:**
+- [ ] SO number auto-generated (SO-YYYY-XXX format)
+- [ ] Create SO from project + costing
+- [ ] Apply PPN 10% automatically
+- [ ] Add shipping cost to grand total
+- [ ] Update status through workflow
+- [ ] Generate invoice from SO
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-SO-01 | Create SO from project | SO created, costing data populated |
+| AC-SO-02 | Calculate PPN | 10% of product_amount added |
+| AC-SO-03 | Add shipping cost | Grand total = product + shipping + PPN |
+| AC-SO-04 | Update status to confirmed | Status changed, timestamp recorded |
+| AC-SO-05 | Generate invoice from SO | Invoice created with all line items |
+| AC-SO-06 | Cancel SO | SO marked cancelled, linked invoices updated |
+
+### 11.7 Purchase Order Module
+
+**Definition of Done:**
+- [ ] PO Supplier number auto-generated (PO-SUP-YYYY-XXX)
+- [ ] PO Subcon number auto-generated (PO-SUBCON-YYYY-XXX)
+- [ ] Partial receipt tracking per item
+- [ ] PPN 11% calculation for supplier PO
+- [ ] Shipping cost included in PO Subcon
+- [ ] Generate GR from PO
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-PO-01 | Create PO Supplier | PO generated with correct number format |
+| AC-PO-02 | Create PO Subcon | PO Subcon generated, no material cost |
+| AC-PO-03 | Track partial receipt | Qty received updated per item |
+| AC-PO-04 | Generate GR from PO | GR created with all received items |
+| AC-PO-05 | Calculate PPN 11% | PPN added to supplier PO total |
+| AC-PO-06 | PO Subcon shipping included | Outbound + return shipping in total cost |
+
+### 11.8 Goods Receipt Module
+
+**Definition of Done:**
+- [ ] GR number auto-generated (GR-YYYY-XXX)
+- [ ] Receive material against PO
+- [ ] QC check on arrival (good/damaged/rejected)
+- [ ] Update inventory automatically on receipt
+- [ ] Handle returns for damaged items
+- [ ] Track inbound shipping cost
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-GR-01 | Create GR from PO | GR created, all PO items listed |
+| AC-GR-02 | Receive 80 of 100 qty | Partial receipt status, inventory +80 |
+| AC-GR-03 | Mark item as damaged | Damaged qty separated, return initiated |
+| AC-GR-04 | Complete receipt | Inventory updated, PO status updated |
+| AC-GR-05 | Create return record | Return created with reason and quantity |
+| AC-GR-06 | Track inbound shipping | Shipping cost recorded for invoice |
+
+### 11.9 Inventory Module
+
+**Definition of Done:**
+- [ ] View stock per material per warehouse
+- [ ] Low stock alert when below min_stock
+- [ ] Stock movement history recorded
+- [ ] Subcon material OUT tracking
+- [ ] Subcon material IN tracking
+- [ ] Stock opname entry supported
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-INV-01 | View stock levels | All material stocks displayed with current qty |
+| AC-INV-02 | Low stock alert | Materials below min_stock highlighted |
+| AC-INV-03 | View movement history | All transactions for material listed chronologically |
+| AC-INV-04 | Send material to subcon | Subcon OUT created, inventory decreased |
+| AC-INV-05 | Receive from subcon | Subcon IN created, inventory increased |
+| AC-INV-06 | Stock opname entry | Manual adjustment recorded with reason |
+
+### 11.10 Shipment Module
+
+**Definition of Done:**
+- [ ] Create shipment for sample/mass
+- [ ] Generate packing list with box details
+- [ ] Generate DO with shipping details
+- [ ] Track delivery status
+- [ ] Update inventory for shipped goods
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-SHIP-01 | Create shipment | Shipment created linked to SO |
+| AC-SHIP-02 | Generate packing list | Packing list with all box details |
+| AC-SHIP-03 | Generate DO | DO created with tracking info |
+| AC-SHIP-04 | Update to shipped status | Timestamp recorded, inventory adjusted |
+| AC-SHIP-05 | Track delivery | Status updated to delivered when received |
+
+### 11.11 Invoice Module
+
+**Definition of Done:**
+- [ ] Invoice Purchase auto-numbered from PO/GR/Subcon
+- [ ] Invoice Sales auto-numbered from SO/DO
+- [ ] PPN 10% auto-calculated on sales invoice
+- [ ] Payment recording supported
+- [ ] Overdue tracking
+- [ ] Print invoice (PDF) enabled
+
+**Test Scenarios:**
+
+| ID | Scenario | Expected Result |
+|----|----------|----------------|
+| AC-INV-01 | Generate purchase invoice from PO | Invoice created with all PO items |
+| AC-INV-02 | Generate sales invoice from SO | Invoice created, PPN 10% auto-calculated |
+| AC-INV-03 | Record partial payment | Paid amount updated, status = partial_paid |
+| AC-INV-04 | Full payment received | Status = paid, paid_date recorded |
+| AC-INV-05 | Overdue invoice | Status updated to overdue after due date |
+| AC-INV-06 | Print PDF invoice | PDF generated with all invoice details |
+
+---
+
+## 12. STAKEHOLDER ANALYSIS
+
+### 12.1 User Personas
+
+| Persona | Role | Department | Responsibilities |
+|---------|------|------------|------------------|
+| **Andi Santoso** | R&D Manager | R&D | Manage design library, BOM creation, consumption rates |
+| **Budi Prasetyo** | Project Manager | PPIC | Create projects, manage Proto/Sample/Mass workflow, approve projects |
+| **Citra Dewi** | Merchandiser | Merchandising | Material planning, supplier/subcon assignment, PO generation |
+| **Dian Firmansyah** | Costing Staff | Finance | Calculate selling prices, manage costing versions, price lock |
+| **Eko Wijaya** | Sales Admin | Sales | Create sales orders, track shipment, generate invoices |
+| **Fitri Handayani** | Procurement Staff | Procurement | Create POs, track deliveries, receive goods, manage inventory |
+| **Gunawan Hidayat** | Warehouse Staff | Warehouse | Stock management, subcon material tracking, stock opname |
+| **Hendra Kusuma** | Finance Staff | Finance | Payment tracking, invoice management, report generation |
+| **Irma Natalia** | QC Supervisor | Production | Inspect goods receipt, manage QC records |
+| **Joko Rahmadi** | System Admin | IT | User management, company setup, system configuration |
+
+### 12.2 User Access Matrix
+
+| Feature | Admin | PM | Merch | Costing | Sales | Procure | Warehouse | Finance | QC |
+|---------|-------|----|----|---------|-------|---------|-----------|---------|----|
+| **Company Selection** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Design Library** | ✅ | R | R | - | - | - | - | - | - |
+| **BOM Management** | ✅ | R | ✅ | R | - | - | - | - | - |
+| **Project Management** | ✅ | ✅ | R | - | R | - | - | - | - |
+| **Merchandising** | ✅ | R | ✅ | R | - | R | - | - | - |
+| **Costing** | ✅ | R | R | ✅ | R | - | - | R | - |
+| **Sales Order** | ✅ | R | R | - | ✅ | - | - | R | - |
+| **PO Supplier** | ✅ | R | ✅ | R | - | ✅ | - | R | - |
+| **PO Subcon** | ✅ | R | ✅ | R | - | ✅ | - | R | - |
+| **Goods Receipt** | ✅ | R | R | - | - | ✅ | ✅ | R | - |
+| **Inventory** | ✅ | R | R | - | - | R | ✅ | R | - |
+| **Shipment** | ✅ | R | R | - | ✅ | - | R | R | R |
+| **Invoice Purchase** | ✅ | R | R | - | - | R | - | ✅ | - |
+| **Invoice Sales** | ✅ | R | R | - | ✅ | - | - | ✅ | - |
+| **Payment Tracking** | ✅ | - | - | - | R | - | - | ✅ | - |
+| **Reports** | ✅ | R | R | R | R | R | R | ✅ | R |
+
+> **Legend:** ✅ = Full Access (Create/Edit/Delete) | R = Read Only | - = No Access
+
+### 12.3 Key Stakeholders
+
+| Stakeholder | Interest | Influence | Engagement Strategy |
+|------------|----------|-----------|---------------------|
+| **PT Komitrando Emporio (KMT001)** | Main production company, primary user | High | Regular demo, early access to features |
+| **PT Komitrando Textile (KMT002)** | Branch warehouse | High | Parallel testing, feedback session |
+| **Regulux Labs** | Development team | High | Weekly sprint review |
+| **PT Astra International** | Key customer | Medium | End-user acceptance testing |
+| **Export Customers (US/Canada)** | End buyer | Medium | Demo showcase for export workflow |
+| **PT Komitrando Emporio Management** | Project sponsor | High | Monthly progress report, decision milestone |
+
+---
+
+## 13. RISK ASSESSMENT
+
+### 13.1 Technical Risks
+
+| Risk | Severity | Likelihood | Impact | Mitigation |
+|------|----------|------------|--------|-----------|
+| **Data Isolation Breach** | Critical | Low | Customers see each other's data | Middleware enforcement on all queries |
+| **Database Performance Under Load** | High | Medium | Slow page loads, timeouts | Index optimization, query caching |
+| **File Upload Security** | High | Low | Malware upload | File type validation, storage isolation |
+| **Authentication Bypass** | Critical | Low | Unauthorized access | Laravel built-in auth, session hardening |
+| **Data Loss** | Critical | Low | Permanent data deletion | Soft deletes, backup strategy |
+| **Concurrent Edit Conflict** | Medium | Medium | Data overwriting | Optimistic locking, timestamp checks |
+| **Export Function Slow** | Medium | Low | Timeout on large reports | Pagination, background processing |
+
+### 13.2 Business Risks
+
+| Risk | Severity | Likelihood | Impact | Mitigation |
+|------|----------|------------|--------|-----------|
+| **Scope Creep** | High | Medium | Timeline delay, budget overrun | Strict phase gate, change request process |
+| **User Adoption Low** | High | Medium | System underutilized | Training sessions, user involvement in UAT |
+| **Incorrect Costing Calculations** | High | Low | Financial loss, pricing errors | Multiple test scenarios, finance team verification |
+| **Inventory Discrepancy** | Medium | Medium | Stock mismatch, production delay | Barcode scanning, regular stock opname |
+| **Subcon Material Loss** | Medium | Low | Financial loss, project delay | Insurance clause in subcon contract |
+| **Late Payment from Customers** | Medium | Medium | Cash flow impact | Credit control process, overdue alerts |
+| **Export Compliance (CEISA)** | Medium | Low | Customs delays, penalties | Phase 4 integration roadmap, compliance checklist |
+
+### 13.3 Risk Response Strategy
+
+| Priority | Response | Action |
+|----------|----------|--------|
+| **Critical** | Avoid or Transfer | Implement strong controls; involve insurance/legal |
+| **High** | Mitigate | Process controls, monitoring, escalation |
+| **Medium** | Mitigate or Accept | Monitoring dashboards, periodic review |
+| **Low** | Accept | Document in risk register, monitor annually |
+
+---
+
+## 14. SUCCESS METRICS
+
+### 14.1 Key Performance Indicators (KPIs)
+
+| Category | KPI | Target | Measurement |
+|----------|-----|--------|--------------|
+| **Project Delivery** | On-time project completion | ≥ 90% | Completed projects vs target date |
+| **Costing Accuracy** | Cost variance | ≤ 5% | Actual cost vs estimated cost |
+| **PO Cycle Time** | PO Creation to Receipt | ≤ 14 days | Average days from PO to GR |
+| **Inventory Accuracy** | Stock count vs system | ≥ 99% | Stock opname results |
+| **Invoice Collection** | Days Sales Outstanding (DSO) | ≤ 45 days | Average collection period |
+| **System Uptime** | Availability | ≥ 99.5% | Monthly uptime monitoring |
+| **User Adoption** | Active users / Total users | ≥ 85% | Weekly active sessions |
+
+### 14.2 Business Outcome Metrics
+
+| Objective | Metric | Baseline | Target | Timeline |
+|-----------|--------|----------|--------|----------|
+| Reduce manual data entry | Time spent on manual tasks | 8 hrs/day | 2 hrs/day | 3 months |
+| Improve order visibility | Projects with real-time status | 0% | 100% | 1 month |
+| Reduce stock discrepancy | Inventory variance | Rp 10M variance | < Rp 1M | 2 months |
+| Speed up invoice collection | Payment on time | 60% | 85% | 3 months |
+| Reduce approval time | Project approval cycle | 7 days | 2 days | 1 month |
+| Improve supplier delivery | On-time delivery rate | 70% | 90% | 3 months |
+
+### 14.3 System Health Metrics
+
+| Metric | Target | Alert Threshold | Monitoring |
+|--------|--------|-----------------|------------|
+| Average Response Time | < 500ms | > 1000ms | APM monitoring |
+| Error Rate | < 0.1% | > 1% | Log monitoring |
+| Database Query Time | < 200ms | > 500ms | Query analyzer |
+| Session Success Rate | > 99.9% | < 99% | Auth logs |
+| Backup Success Rate | 100% | < 99% | Backup logs |
+| Disk Usage | < 70% | > 85% | Infrastructure monitoring |
+
+### 14.4 User Satisfaction Metrics
+
+| Metric | Measurement Method | Frequency | Target |
+|--------|-------------------|-----------|--------|
+| System Usability Scale (SUS) | Survey | Quarterly | ≥ 70 |
+| Task Completion Rate | Analytics | Monthly | ≥ 95% |
+| Support Ticket Volume | Helpdesk | Monthly | Declining trend |
+| Feature Request Resolution | % Implemented | Quarterly | ≥ 80% |
+| Training Effectiveness | Post-training quiz | Per training | ≥ 85% pass rate |
+
+---
+
+## 15Glossary
+
+| Term | Definition |
+|------|-----------|
+| **BOM** | Bill of Materials - List of raw materials needed for production |
+| **PPN** | Pajak Pertambahan Nilai - Value Added Tax (10% in Indonesia) |
+| **Subcon** | Subcontractor - External vendor providing manufacturing services |
+| **PO** | Purchase Order - Formal order document to suppliers |
+| **GR** | Goods Receipt - Document confirming material receipt |
+| **DO** | Delivery Order - Document for outbound shipment |
+| **SO** | Sales Order - Customer purchase order |
+| **PPIC** | Production Planning Inventory Control |
+| **CEISA** | Indonesia's electronic customs declaration system |
+| **COA** | Chart of Accounts - Account structure for finance |
+| **L/R** | Laba/Rugi - Profit & Loss statement |
+| **JO** | Job Order - Work order for production process |
+| **SPP** | Surat Perintah Produksi - Production work order slip |
+
+---
+
 **Document End**
 
 _Created by Regulux Labs_
