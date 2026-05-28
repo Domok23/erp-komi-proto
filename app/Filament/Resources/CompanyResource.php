@@ -33,7 +33,10 @@ class CompanyResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            TextInput::make('code')->required()->maxLength(50),
+            TextInput::make('code')
+                ->required()
+                ->unique(ignoreRecord: true)
+                ->maxLength(50),
             TextInput::make('name')->required()->maxLength(255),
             Select::make('type')
                 ->required()

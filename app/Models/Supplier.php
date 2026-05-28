@@ -34,18 +34,18 @@ class Supplier extends Model
         return $this->hasMany(Material::class);
     }
 
-    public function purchaseOrders(): HasMany
+    public function poSuppliers(): HasMany
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(PoSupplier::class);
     }
 
     public function goodsReceipts(): HasMany
     {
-        return $this->hasMany(GoodsReceipt::class);
+        return $this->hasMany(GoodsReceipt::class, 'po_id')->where('po_type', 'supplier');
     }
 
-    public function invoices(): HasMany
+    public function invoicePurchases(): HasMany
     {
-        return $this->hasMany(Invoice::class);
+        return $this->hasMany(InvoicePurchase::class, 'reference_id')->where('purchase_type', 'po_supplier');
     }
 }

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
             $table->foreignId('design_id')->nullable()->constrained('rd_designs')->onDelete('set null');
+            $table->date('costing_date')->nullable();
             $table->string('version')->default('1.0');
             $table->enum('status', ['draft', 'approved', 'revised', 'cancelled'])->default('draft');
             $table->decimal('material_cost', 15, 2)->default(0);

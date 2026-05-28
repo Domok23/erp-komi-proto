@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+/**
+ * Company Context Service
+ */
+
 use App\Models\Company;
 use Illuminate\Support\Facades\Session;
 

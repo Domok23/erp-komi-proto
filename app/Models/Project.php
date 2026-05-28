@@ -13,7 +13,7 @@ class Project extends Model
 
     protected $fillable = [
         'company_id',
-        'code',
+        'project_code',
         'name',
         'description',
         'type',
@@ -21,6 +21,10 @@ class Project extends Model
         'customer_id',
         'sales_order_id',
         'design_id',
+        'bom_id',
+        'reference_project_id',
+        'approved_at',
+        'approved_by',
         'start_date',
         'target_date',
         'completed_at',
@@ -32,8 +36,9 @@ class Project extends Model
         'start_date' => 'date',
         'target_date' => 'date',
         'completed_at' => 'datetime',
-        'target_qty' => 'decimal:2',
-        'produced_qty' => 'decimal:2',
+        'approved_at' => 'datetime',
+        'target_qty' => 'integer',
+        'produced_qty' => 'integer',
     ];
 
     public function customer(): BelongsTo
@@ -43,7 +48,7 @@ class Project extends Model
 
     public function salesOrder(): BelongsTo
     {
-        return $this->belongsTo(SalesOrder::class);
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
     }
 
     public function design(): BelongsTo
@@ -51,28 +56,38 @@ class Project extends Model
         return $this->belongsTo(RdDesign::class, 'design_id');
     }
 
-    public function merchandisings(): HasMany
+    public function bom(): BelongsTo
     {
-        return $this->hasMany(Merchandising::class);
+        return $this->belongsTo(Bom::class, 'bom_id');
+    }
+
+    public function referenceProject(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'reference_project_id');
+    }
+
+    public function subProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'reference_project_id');
+    }
+
+    public function approvedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function merchandisePlannings(): HasMany
+    {
+        return $this->hasMany(MerchandisePlanning::class, 'project_id');
     }
 
     public function costings(): HasMany
     {
-        return $this->hasMany(Costing::class);
-    }
-
-    public function projectBoms(): HasMany
-    {
-        return $this->hasMany(ProjectBom::class);
-    }
-
-    public function projectConsumptions(): HasMany
-    {
-        return $this->hasMany(ProjectConsumption::class);
+        return $this->hasMany(Costing::class, 'project_id');
     }
 
     public function productionOrders(): HasMany
     {
-        return $this->hasMany(ProductionOrder::class);
+        return $this->hasMany(ProductionOrder::class, 'project_id');
     }
 }

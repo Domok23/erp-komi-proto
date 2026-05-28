@@ -8,6 +8,11 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 
 class MaterialsRelationManager extends RelationManager
 {
@@ -16,7 +21,9 @@ class MaterialsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->schema([
-            \Filament\Forms\Components\TextInput::make('code')->required(),
+            \Filament\Forms\Components\TextInput::make('code')
+                ->required()
+                ->unique(ignoreRecord: true),
             \Filament\Forms\Components\TextInput::make('name')->required(),
             \Filament\Forms\Components\Select::make('category')
                 ->options([
@@ -46,15 +53,15 @@ class MaterialsRelationManager extends RelationManager
         ])
             ->filters([])
             ->headerActions([
-                \Filament\Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Tables\Actions\EditAction::make(),
-                \Filament\Tables\Actions\DeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
-                \Filament\Tables\Actions\BulkActionGroup::make([
-                    \Filament\Tables\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

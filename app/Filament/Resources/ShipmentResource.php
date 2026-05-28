@@ -37,13 +37,13 @@ class ShipmentResource extends Resource
             Forms\Components\DatePicker::make('shipment_date'),
             Forms\Components\Select::make('status')
                 ->options([
-                    'preparing' => 'Preparing',
+                    'pending' => 'Pending',
                     'in_transit' => 'In Transit',
-                    'arrived' => 'Arrived',
+                    'customs' => 'Customs',
                     'delivered' => 'Delivered',
                     'cancelled' => 'Cancelled',
                 ])
-                ->default('preparing'),
+                ->default('pending'),
             Forms\Components\Select::make('shipping_method')
                 ->options([
                     'sea' => 'Sea',
@@ -96,9 +96,9 @@ class ShipmentResource extends Resource
             Tables\Columns\TextColumn::make('shipment_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
-                    'preparing' => 'gray',
+                    'pending' => 'gray',
                     'in_transit' => 'info',
-                    'arrived' => 'warning',
+                    'customs' => 'warning',
                     'delivered' => 'success',
                     'cancelled' => 'danger',
                     default => 'gray',
@@ -113,7 +113,7 @@ class ShipmentResource extends Resource
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([
-                SelectFilter::make('status')->options(['preparing' => 'Preparing', 'in_transit' => 'In Transit', 'arrived' => 'Arrived', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled']),
+                SelectFilter::make('status')->options(['pending' => 'Pending', 'in_transit' => 'In Transit', 'customs' => 'Customs', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled']),
                 SelectFilter::make('shipping_method')->options(['sea' => 'Sea', 'air' => 'Air', 'land' => 'Land', 'courier' => 'Courier']),
             ])
             ->actions([EditAction::make(), DeleteAction::make()])
@@ -129,7 +129,7 @@ class ShipmentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Sales & Shipping';
+        return 'Sales';
     }
 
     public static function getRelations(): array { return []; }

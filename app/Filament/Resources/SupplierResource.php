@@ -32,6 +32,7 @@ class SupplierResource extends Resource
         return $schema->schema([
             Forms\Components\TextInput::make('code')
                 ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(50),
             Forms\Components\TextInput::make('name')
                 ->required()

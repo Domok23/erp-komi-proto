@@ -1,0 +1,299 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Models\MerchandisePlanning;
+use App\Models\Material;
+use Filament\Forms;
+use Filament\Schemas\Schema;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Tables\Filters\SelectFilter;
+
+class MerchandisePlanningResource extends Resource
+{
+    protected static ?string $model = MerchandisePlanning::class;
+
+    protected static ?string $navigationLabel = 'Merchandise Planning';
+    protected static ?string $modelLabel = 'Merchandise Planning';
+    protected static ?string $pluralModelLabel = 'Merchandise Plannings';
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->schema([
+            Forms\Components\Select::make('project_id')
+                ->relationship('project', 'project_code')
+                ->searchable()
+                ->preload()
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    $project = \App\Models\Project::find($state, ['*']);
+                    if ($project) {
+                        $set('design_id', $project->design_id);
+                    }
+                }),
+            Forms\Components\Select::make('design_id')
+                ->relationship('design', 'name')
+                ->disabled()
+                ->dehydrated()
+                ->required(),
+            Forms\Components\DatePicker::make('planning_date')
+                ->default(now()->toDateString())
+                ->required(),
+            Forms\Components\Select::make('status')
+                ->options([
+                    'preliminary' => 'Preliminary',
+                    'tech_pack' => 'Tech Pack',
+                    'finalised' => 'Finalised',
+                    'cancelled' => 'Cancelled',
+                ])
+                ->default('preliminary')
+                ->required(),
+            
+            Section::make('Planning Costs')
+                ->schema([
+                    Forms\Components\TextInput::make('total_material_cost')
+                        ->numeric()
+                        ->default(0)
+                        ->disabled()
+                        ->dehydrated(),
+                    Forms\Components\TextInput::make('total_subcon_cost')
+                        ->numeric()
+                        ->default(0)
+                        ->disabled()
+                        ->dehydrated(),
+                ])->columns(2),
+
+            Forms\Components\Textarea::make('special_instructions')
+                ->maxLength(65535)
+                ->columnSpanFull(),
+
+            Section::make('Materials & Services Planning')
+                ->schema([
+                    Forms\Components\Repeater::make('items')
+                        ->relationship('items')
+                        ->schema([
+                            Forms\Components\Select::make('material_id')
+                                ->relationship('material', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    $material = Material::find($state, ['*']);
+                                    if ($material) {
+                                        $set('unit', $material->unit);
+                                        $set('unit_price', $material->price);
+                                    }
+                                }),
+                            Forms\Components\Select::make('supplier_id')
+                                ->relationship('supplier', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable(),
+                            Forms\Components\Select::make('subcon_id')
+                                ->relationship('subcon', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable(),
+                            Forms\Components\TextInput::make('planned_qty')
+                                ->numeric()
+                                ->default(1)
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $qty = floatval($state);
+                                    $price = floatval($get('unit_price'));
+                                    $set('total_price', $qty * $price);
+                                }),
+                            Forms\Components\TextInput::make('unit')
+                                ->default('pcs')
+                                ->disabled()
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('unit_price')
+                                ->numeric()
+                                ->default(0)
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $price = floatval($state);
+                                    $qty = floatval($get('planned_qty'));
+                                    $set('total_price', $qty * $price);
+                                }),
+                            Forms\Components\TextInput::make('total_price')
+                                ->numeric()
+                                ->default(0)
+                                ->disabled()
+                                ->dehydrated(),
+                            Forms\Components\Toggle::make('is_subcon')
+                                ->default(false)
+                                ->label('Is Subcon Service'),
+                            Forms\Components\TextInput::make('notes')
+                                ->maxLength(255),
+                        ])
+                        ->columns(3)
+                        ->columnSpanFull()
+                        ->defaultItems(1)
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $totalMat = 0;
+                            $totalSub = 0;
+                            foreach ($state as $item) {
+                                $total = floatval($item['total_price'] ?? 0);
+                                if (!empty($item['is_subcon'])) {
+                                    $totalSub += $total;
+                                } else {
+                                    $totalMat += $total;
+                                }
+                            }
+                            $set('total_material_cost', $totalMat);
+                            $set('total_subcon_cost', $totalSub);
+                        }),
+                ])
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->columns([
+            Tables\Columns\TextColumn::make('id')->sortable(),
+            Tables\Columns\TextColumn::make('project.project_code')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
+            Tables\Columns\BadgeColumn::make('status')
+                ->color(fn (string $state): string => match ($state) {
+                    'preliminary' => 'gray',
+                    'tech_pack' => 'info',
+                    'finalised' => 'success',
+                    'cancelled' => 'danger',
+                    default => 'gray',
+                }),
+            Tables\Columns\TextColumn::make('total_material_cost')->numeric(),
+            Tables\Columns\TextColumn::make('total_subcon_cost')->numeric(),
+        ])
+            ->filters([
+                SelectFilter::make('status')->options([
+                    'preliminary' => 'Preliminary',
+                    'tech_pack' => 'Tech Pack',
+                    'finalised' => 'Finalised',
+                    'cancelled' => 'Cancelled',
+                ]),
+                SelectFilter::make('project_id')->relationship('project', 'project_code'),
+            ])
+            ->actions([
+                Action::make('generatePO')
+                    ->label('Generate POs')
+                    ->icon('heroicon-o-document-plus')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->status === 'finalised')
+                    ->action(function ($record) {
+                        // Group items by supplier for supplier POs
+                        $supplierItems = $record->items->where('is_subcon', false)->groupBy('supplier_id');
+                        foreach ($supplierItems as $supplierId => $items) {
+                            if (!$supplierId) continue;
+                            
+                            $po = \App\Models\PoSupplier::create([
+                                'company_id' => $record->company_id,
+                                'po_number' => \App\Services\CodeGenerator::generatePOSupplierNo(),
+                                'project_id' => $record->project_id,
+                                'supplier_id' => $supplierId,
+                                'po_date' => now()->toDateString(),
+                                'status' => 'draft',
+                            ]);
+                            
+                            $subtotal = 0;
+                            foreach ($items as $item) {
+                                \App\Models\PoSupplierItem::create([
+                                    'po_supplier_id' => $po->id,
+                                    'material_id' => $item->material_id,
+                                    'description' => $item->notes ?? 'Raw material',
+                                    'qty' => $item->planned_qty,
+                                    'unit' => $item->unit ?? 'pcs',
+                                    'unit_price' => $item->unit_price,
+                                    'total_price' => $item->total_price,
+                                    'qty_received' => 0,
+                                ]);
+                                $subtotal += $item->total_price;
+                            }
+                            
+                            $ppn = $subtotal * 0.11; // 11% PPN
+                            $po->update([
+                                'subtotal' => $subtotal,
+                                'ppn_percent' => 11,
+                                'ppn_amount' => $ppn,
+                                'grand_total' => $subtotal + $ppn,
+                            ]);
+                        }
+                        
+                        // Group items by subcon for subcon POs
+                        $subconItems = $record->items->where('is_subcon', true)->groupBy('subcon_id');
+                        foreach ($subconItems as $subconId => $items) {
+                            if (!$subconId) continue;
+                            
+                            $po = \App\Models\PoSubcon::create([
+                                'company_id' => $record->company_id,
+                                'po_number' => \App\Services\CodeGenerator::generatePOSubconNo(),
+                                'project_id' => $record->project_id,
+                                'subcon_id' => $subconId,
+                                'po_date' => now()->toDateString(),
+                                'status' => 'draft',
+                            ]);
+                            
+                            $serviceCost = 0;
+                            foreach ($items as $item) {
+                                \App\Models\PoSubconItem::create([
+                                    'po_subcon_id' => $po->id,
+                                    'description' => $item->notes ?? 'Subcon service',
+                                    'qty' => $item->planned_qty,
+                                    'unit_price' => $item->unit_price,
+                                    'total_price' => $item->total_price,
+                                ]);
+                                $serviceCost += $item->total_price;
+                            }
+                            
+                            $po->update([
+                                'service_cost' => $serviceCost,
+                                'total_cost' => $serviceCost,
+                            ]);
+                        }
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('POs generated successfully!')
+                            ->success()
+                            ->send();
+                    })
+                    ->requiresConfirmation(),
+                EditAction::make(),
+                DeleteAction::make()
+            ])
+            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-shopping-bag';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Project';
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListMerchandisePlannings::route('/'),
+            'create' => Pages\CreateMerchandisePlanning::route('/create'),
+            'edit' => Pages\EditMerchandisePlanning::route('/{record}/edit'),
+        ];
+    }
+}

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PurchaseOrder;
+use App\Models\PoSupplier;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -11,13 +11,13 @@ class RecentPurchaseOrders extends BaseWidget
 {
     protected static ?int $sort = 3;
     protected int | string | array $columnSpan = 2;
-    protected static ?string $heading = 'Recent Purchase Orders';
+    protected static ?string $heading = 'Recent Supplier Purchase Orders';
 
     public function table(Table $table): Table
     {
         return $table
             ->query(
-                PurchaseOrder::query()->latest()->limit(5)
+                PoSupplier::query()->latest()->limit(5)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('po_number')
@@ -25,21 +25,20 @@ class RecentPurchaseOrders extends BaseWidget
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('supplier.name')
-                    ->label('Vendor/Subcon')
-                    ->state(fn ($record) => $record->supplier?->name ?? $record->subcon?->name ?? '-'),
-                Tables\Columns\TextColumn::make('order_date')
+                    ->label('Supplier')
+                    ->state(fn ($record) => $record->supplier?->name ?? '-'),
+                Tables\Columns\TextColumn::make('po_date')
                     ->label('Order Date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total_amount')
+                Tables\Columns\TextColumn::make('grand_total')
                     ->label('Total Amount')
-                    ->money('USD')
+                    ->numeric()
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('status')
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
-                        'sent' => 'info',
-                        'confirmed' => 'primary',
+                        'ordered' => 'info',
                         'partial' => 'warning',
                         'received' => 'success',
                         'cancelled' => 'danger',
