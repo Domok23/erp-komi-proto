@@ -64,7 +64,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
-            ->registration()
-            ->loginRouteRedirect(fn () => redirect()->route('filament.admin.pages.select-company'));
+            ->registration();
     }
 }

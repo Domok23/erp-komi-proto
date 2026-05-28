@@ -6,18 +6,20 @@ use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
-use Filament\Pages\SimplePage;
+use Filament\Schemas\Schema;
+use Filament\Pages\Page;
 
-class SelectCompany extends SimplePage
+class SelectCompany extends Page
 {
-    protected static string $view = 'filament.pages.select-company';
+    protected string $view = 'filament.pages.select-company';
 
     protected static ?string $title = 'Pilih Perusahaan';
 
     protected static ?string $navigationLabel = 'Pilih Perusahaan';
 
     protected static ?string $slug = 'select-company';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public ?string $selectedCompany = null;
 
@@ -31,20 +33,22 @@ class SelectCompany extends SimplePage
     protected function getViewData(): array
     {
         return [
-            'companies' => Company::where('is_active', true)
+            'companies' => Company::query()
+                ->where('is_active', true)
                 ->orderBy('type')
                 ->orderBy('name')
                 ->get(),
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $form): Schema
     {
         return $form->schema([
             Select::make('selectedCompany')
                 ->label('Pilih Perusahaan')
                 ->options(
-                    Company::where('is_active', true)
+                    Company::query()
+                        ->where('is_active', true)
                         ->orderBy('type')
                         ->orderBy('name')
                         ->pluck('name', 'id')
@@ -65,7 +69,7 @@ class SelectCompany extends SimplePage
             'selectedCompany' => ['required', 'exists:companies,id'],
         ]);
 
-        $company = Company::find($this->selectedCompany);
+        $company = Company::query()->find($this->selectedCompany);
         if (! $company) {
             return;
         }

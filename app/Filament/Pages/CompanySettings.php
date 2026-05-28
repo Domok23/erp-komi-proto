@@ -5,23 +5,23 @@ namespace App\Filament\Pages;
 use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 
 class CompanySettings extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
     protected static ?string $navigationLabel = 'Pengaturan Perusahaan';
     protected static ?string $title = 'Pengaturan Perusahaan';
     protected static ?string $slug = 'company-settings';
     protected static ?string $label = 'Pengaturan Perusahaan';
 
-    protected static string $view = 'filament.pages.company-settings';
+    protected string $view = 'filament.pages.company-settings';
 
     public ?array $data = [];
 
@@ -52,7 +52,7 @@ class CompanySettings extends Page
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $form): Schema
     {
         return $form
             ->statePath('data')
