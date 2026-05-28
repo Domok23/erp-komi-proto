@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
-use App\Models\User;
+use App\Filament\Pages\CompanySettings;
+use App\Filament\Pages\SelectCompany;
+use App\Http\Middleware\EnsureCompanySelected;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -27,22 +29,28 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('')
             ->brandName('ERP Komi Proto')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->navigationGroups([
+                'Master Data',
+                'Pre-Production',
+                'Procurement',
+                'Inventory',
+                'Sales & Shipping',
+            ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                SelectCompany::class,
+                CompanySettings::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
-            ])
+            ->widgets([])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -56,6 +64,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureCompanySelected::class,
             ])
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()

@@ -20,7 +20,10 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-
+    public static function canAccess(): bool
+    {
+        return false;
+    }
 
     public static function getNavigationLabel(): string
     {

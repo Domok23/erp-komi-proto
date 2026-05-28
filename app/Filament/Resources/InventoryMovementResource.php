@@ -29,10 +29,7 @@ class InventoryMovementResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\Select::make('movement_type')
+                        Forms\Components\Select::make('movement_type')
                 ->options([
                     'in' => 'In (Masuk)',
                     'out' => 'Out (Keluar)',

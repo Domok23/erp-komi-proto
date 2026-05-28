@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Costing extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'project_id',
@@ -41,11 +44,7 @@ class Costing extends Model
         'approved_at' => 'datetime',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

@@ -29,10 +29,7 @@ class InvoiceResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\TextInput::make('invoice_number')
+                        Forms\Components\TextInput::make('invoice_number')
                 ->maxLength(50),
             Forms\Components\Select::make('type')
                 ->options([

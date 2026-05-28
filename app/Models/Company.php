@@ -23,6 +23,13 @@ class Company extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $appends = ['name_with_code'];
+
+    public function getNameWithCodeAttribute(): string
+    {
+        return "{$this->code} — {$this->name}";
+    }
+
     public function materials(): HasMany
     {
         return $this->hasMany(Material::class);

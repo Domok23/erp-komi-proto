@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProjectBom extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'project_id',
         'material_id',

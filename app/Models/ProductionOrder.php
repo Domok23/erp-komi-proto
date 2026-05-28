@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductionOrder extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'production_number',
@@ -27,11 +30,7 @@ class ProductionOrder extends Model
         'end_date' => 'date',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

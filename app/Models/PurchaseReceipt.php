@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseReceipt extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'receipt_number',
@@ -22,11 +25,7 @@ class PurchaseReceipt extends Model
         'receipt_date' => 'date',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class);

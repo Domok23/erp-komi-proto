@@ -29,10 +29,7 @@ class PurchaseReceiptResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\TextInput::make('pr_number')
+                        Forms\Components\TextInput::make('pr_number')
                 ->maxLength(50),
             Forms\Components\Select::make('purchase_order_id')
                 ->relationship('purchaseOrder', 'po_number')

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'po_number',
@@ -32,11 +35,6 @@ class PurchaseOrder extends Model
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function supplier(): BelongsTo
     {
