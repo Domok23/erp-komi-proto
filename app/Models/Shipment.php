@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shipment extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'shipment_number',
@@ -37,11 +40,6 @@ class Shipment extends Model
         'total_volume_m3' => 'decimal:4',
         'shipping_cost_usd' => 'decimal:2',
     ];
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function salesOrder(): BelongsTo
     {

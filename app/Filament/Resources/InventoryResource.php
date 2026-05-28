@@ -29,10 +29,7 @@ class InventoryResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\Select::make('warehouse_type')
+                        Forms\Components\Select::make('warehouse_type')
                 ->options([
                     'main' => 'Main Warehouse',
                     'branch' => 'Branch',

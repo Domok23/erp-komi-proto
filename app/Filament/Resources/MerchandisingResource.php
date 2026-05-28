@@ -29,10 +29,7 @@ class MerchandisingResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\Select::make('project_id')
+                        Forms\Components\Select::make('project_id')
                 ->relationship('project', 'name')
                 ->nullable(),
             Forms\Components\TextInput::make('code')

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'invoice_number',
@@ -41,11 +44,7 @@ class Invoice extends Model
         'is_tax_invoice' => 'boolean',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class);

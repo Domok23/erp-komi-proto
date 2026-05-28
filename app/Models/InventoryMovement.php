@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryMovement extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'inventory_id',
@@ -27,11 +30,7 @@ class InventoryMovement extends Model
         'after_qty' => 'decimal:2',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function inventory(): BelongsTo
     {
         return $this->belongsTo(Inventory::class);

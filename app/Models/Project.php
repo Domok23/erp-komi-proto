@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'code',
@@ -32,11 +35,6 @@ class Project extends Model
         'target_qty' => 'decimal:2',
         'produced_qty' => 'decimal:2',
     ];
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function customer(): BelongsTo
     {

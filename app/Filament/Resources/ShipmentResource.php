@@ -29,10 +29,7 @@ class ShipmentResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
-            Forms\Components\TextInput::make('shipment_number')
+                        Forms\Components\TextInput::make('shipment_number')
                 ->maxLength(50),
             Forms\Components\Select::make('sales_order_id')
                 ->relationship('salesOrder', 'so_number')

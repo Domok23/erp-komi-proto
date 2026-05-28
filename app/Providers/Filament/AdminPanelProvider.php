@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
-use App\Models\User;
+use App\Filament\Pages\CompanySettings;
+use App\Filament\Pages\SelectCompany;
+use App\Http\Middleware\EnsureCompanySelected;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -37,6 +39,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                SelectCompany::class,
+                CompanySettings::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
@@ -56,9 +60,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureCompanySelected::class,
             ])
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
-            ->registration();
+            ->registration()
+            ->loginRouteRedirect(fn () => redirect()->route('filament.admin.pages.select-company'));
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QcInspection extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'production_order_id',
@@ -26,11 +29,6 @@ class QcInspection extends Model
         'passed_qty' => 'integer',
         'failed_qty' => 'integer',
     ];
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function productionOrder(): BelongsTo
     {

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RdDesign extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'code',
@@ -33,11 +36,7 @@ class RdDesign extends Model
         'estimated_selling_price' => 'decimal:2',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
+    
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'design_id');

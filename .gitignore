@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+.code-review-graph/
+.agents/
+AGENTS.md
+GEMINI.md
+.claude/skills
+skills-lock.json
+.antigravityrules
+CODING_GUIDELINES.md

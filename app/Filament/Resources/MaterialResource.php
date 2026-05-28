@@ -29,9 +29,6 @@ class MaterialResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('company_id')
-                ->relationship('company', 'name')
-                ->required(),
             Forms\Components\TextInput::make('code')
                 ->required()
                 ->maxLength(50),

@@ -29,10 +29,7 @@ class CostingResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Select::make('company_id')
-                    ->relationship('company', 'name')
-                    ->required(),
-                Forms\Components\Select::make('project_id')
+                                Forms\Components\Select::make('project_id')
                     ->relationship('project', 'name')
                     ->required(),
                 Forms\Components\Select::make('design_id')
