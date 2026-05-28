@@ -29,30 +29,35 @@ class MerchandisingResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\Select::make('project_id')
+            Forms\Components\Select::make('project_id')
                 ->relationship('project', 'name')
                 ->nullable(),
-            Forms\Components\TextInput::make('code')
+            Forms\Components\Select::make('design_id')
+                ->relationship('design', 'name')
+                ->nullable(),
+            Forms\Components\TextInput::make('version')
                 ->required()
+                ->default('1.0')
                 ->maxLength(50),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\Textarea::make('description')
-                ->maxLength(65535)
-                ->columnSpanFull(),
             Forms\Components\Select::make('status')
                 ->options([
-                    'planned' => 'Planned',
-                    'in_progress' => 'In Progress',
-                    'completed' => 'Completed',
+                    'preliminary' => 'Preliminary',
+                    'tech_pack' => 'Tech Pack',
+                    'finalised' => 'Finalised',
                     'cancelled' => 'Cancelled',
                 ])
-                ->default('planned'),
-            Forms\Components\DatePicker::make('start_date'),
-            Forms\Components\DatePicker::make('target_date'),
-            Forms\Components\DatePicker::make('completed_at'),
-            Forms\Components\Textarea::make('notes')
+                ->default('preliminary')
+                ->required(),
+            Forms\Components\DatePicker::make('issued_date'),
+            Forms\Components\TextInput::make('issued_by')
+                ->maxLength(255),
+            Forms\Components\KeyValue::make('materials_spec')
+                ->columnSpanFull(),
+            Forms\Components\KeyValue::make('colors')
+                ->columnSpanFull(),
+            Forms\Components\KeyValue::make('measurements')
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('special_instructions')
                 ->maxLength(65535)
                 ->columnSpanFull(),
         ]);
@@ -62,27 +67,26 @@ class MerchandisingResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.name')->searchable(),
+            Tables\Columns\TextColumn::make('project.name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('version')->sortable(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
-                    'planned' => 'gray',
-                    'in_progress' => 'info',
-                    'completed' => 'success',
+                    'preliminary' => 'gray',
+                    'tech_pack' => 'info',
+                    'finalised' => 'success',
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('target_date')->date(),
-            Tables\Columns\TextColumn::make('completed_at')->dateTime(),
+            Tables\Columns\TextColumn::make('issued_date')->date()->sortable(),
+            Tables\Columns\TextColumn::make('issued_by')->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([
                 SelectFilter::make('status')->options([
-                    'planned' => 'Planned',
-                    'in_progress' => 'In Progress',
-                    'completed' => 'Completed',
+                    'preliminary' => 'Preliminary',
+                    'tech_pack' => 'Tech Pack',
+                    'finalised' => 'Finalised',
                     'cancelled' => 'Cancelled',
                 ]),
             ])
