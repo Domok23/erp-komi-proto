@@ -19,13 +19,6 @@ class CompanyContext
         $companyId = Session::get(self::SESSION_KEY);
 
         if (! $companyId) {
-            $user = auth()->user();
-            if ($user?->company_id) {
-                $companyId = $user->company_id;
-            }
-        }
-
-        if (! $companyId) {
             return null;
         }
 
@@ -34,7 +27,7 @@ class CompanyContext
 
     public static function getCompanyId(): ?int
     {
-        return Session::get(self::SESSION_KEY) ?? auth()->user()?->company_id;
+        return Session::get(self::SESSION_KEY);
     }
 
     public static function hasCompany(): bool

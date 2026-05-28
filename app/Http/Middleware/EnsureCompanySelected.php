@@ -12,7 +12,7 @@ class EnsureCompanySelected
     public function handle(Request $request, Closure $next): Response
     {
         // Skip check for the select-company page itself to avoid redirect loop
-        if ($request->is('admin/select-company') || $request->is('admin/login')) {
+        if ($request->is('select-company') || $request->is('login')) {
             return $next($request);
         }
 

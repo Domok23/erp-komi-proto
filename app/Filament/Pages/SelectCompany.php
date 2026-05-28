@@ -13,21 +13,31 @@ class SelectCompany extends Page
 {
     protected string $view = 'filament.pages.select-company';
 
-    protected static ?string $title = 'Pilih Perusahaan';
+    protected static string $layout = 'filament-panels::components.layout.simple';
 
-    protected static ?string $navigationLabel = 'Pilih Perusahaan';
+    protected static ?string $title = 'Select Company';
+
+    protected static ?string $navigationLabel = 'Select Company';
 
     protected static ?string $slug = 'select-company';
 
     protected static bool $shouldRegisterNavigation = false;
-
-    public ?string $selectedCompany = null;
 
     public function mount(): void
     {
         if (CompanyContext::hasCompany()) {
             $this->redirect(Filament::getUrl());
         }
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Select the company you want to access';
+    }
+
+    public function hasLogo(): bool
+    {
+        return true;
     }
 
     protected function getViewData(): array
@@ -41,35 +51,9 @@ class SelectCompany extends Page
         ];
     }
 
-    public function form(Schema $form): Schema
+    public function selectCompany(int $companyId): void
     {
-        return $form->schema([
-            Select::make('selectedCompany')
-                ->label('Pilih Perusahaan')
-                ->options(
-                    Company::query()
-                        ->where('is_active', true)
-                        ->orderBy('type')
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                )
-                ->required()
-                ->placeholder('-- Pilih Perusahaan --'),
-        ]);
-    }
-
-    protected function getActions(): array
-    {
-        return [];
-    }
-
-    public function submit(): void
-    {
-        $this->validate([
-            'selectedCompany' => ['required', 'exists:companies,id'],
-        ]);
-
-        $company = Company::query()->find($this->selectedCompany);
+        $company = Company::query()->find($companyId);
         if (! $company) {
             return;
         }

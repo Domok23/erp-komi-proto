@@ -16,10 +16,10 @@ use Filament\Schemas\Schema;
 class CompanySettings extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
-    protected static ?string $navigationLabel = 'Pengaturan Perusahaan';
-    protected static ?string $title = 'Pengaturan Perusahaan';
+    protected static ?string $navigationLabel = 'Company Settings';
+    protected static ?string $title = 'Company Settings';
     protected static ?string $slug = 'company-settings';
-    protected static ?string $label = 'Pengaturan Perusahaan';
+    protected static ?string $label = 'Company Settings';
 
     protected string $view = 'filament.pages.company-settings';
 
@@ -57,41 +57,41 @@ class CompanySettings extends Page
         return $form
             ->statePath('data')
             ->schema([
-                Section::make('Informasi Perusahaan')
+                Section::make('Company Information')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('code')
-                                    ->label('Kode Perusahaan')
+                                    ->label('Company Code')
                                     ->required()
                                     ->maxLength(20)
                                     ->disabled(),
                                 TextInput::make('name')
-                                    ->label('Nama Perusahaan')
+                                    ->label('Company Name')
                                     ->required()
                                     ->maxLength(255),
                             ]),
                         Grid::make(2)
                             ->schema([
                                 Select::make('type')
-                                    ->label('Tipe')
+                                    ->label('Type')
                                     ->disabled()
                                     ->options([
-                                        'main' => 'Main (Produksi)',
-                                        'branch' => 'Branch (Gudang)',
+                                        'main' => 'Main (Production)',
+                                        'branch' => 'Branch (Warehouse)',
                                     ]),
                                 TextInput::make('city')
-                                    ->label('Kota')
+                                    ->label('City')
                                     ->maxLength(100),
                             ]),
                     ]),
 
-                Section::make('Kontak')
+                Section::make('Contact')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('phone')
-                                    ->label('Telepon')
+                                    ->label('Phone')
                                     ->tel()
                                     ->maxLength(20),
                                 TextInput::make('email')
@@ -100,11 +100,11 @@ class CompanySettings extends Page
                                     ->maxLength(100),
                             ]),
                         TextInput::make('address')
-                            ->label('Alamat')
+                                    ->label('Address')
                             ->columnSpanFull(),
                     ]),
 
-                Section::make('Identitas Pajak')
+                Section::make('Tax Identity')
                     ->schema([
                         TextInput::make('npwp')
                             ->label('NPWP')
@@ -133,8 +133,8 @@ class CompanySettings extends Page
         ]);
 
         Notification::make()
-            ->title('Perubahan disimpan')
-            ->body('Pengaturan perusahaan berhasil diperbarui.')
+            ->title('Changes saved')
+            ->body('Company settings updated successfully.')
             ->success()
             ->send();
     }
@@ -143,7 +143,7 @@ class CompanySettings extends Page
     {
         return [
             Action::make('save')
-                ->label('Simpan Perubahan')
+                ->label('Save Changes')
                 ->button()
                 ->color('primary')
                 ->action('save'),
