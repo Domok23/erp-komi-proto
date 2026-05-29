@@ -64,7 +64,12 @@ class WarehouseResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Inventory';
+        return 'Master Data';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 5;
     }
 
     public static function getPages(): array

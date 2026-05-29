@@ -236,6 +236,11 @@ class PoSupplierResource extends Resource
         return 'Procurement';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
     public static function getPages(): array
     {
         return [

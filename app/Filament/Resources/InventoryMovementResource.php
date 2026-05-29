@@ -119,7 +119,12 @@ class InventoryMovementResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Inventory';
+        return 'Inventory & Subcon';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 4;
     }
 
     public static function getPages(): array

@@ -109,6 +109,11 @@ class SubconResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 4;
+    }
+
     public static function getRelations(): array { return []; }
 
     public static function getPages(): array

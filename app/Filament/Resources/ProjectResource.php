@@ -166,7 +166,12 @@ class ProjectResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Project';
+        return 'Projects';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
     }
 
     public static function getRelations(): array

@@ -196,7 +196,12 @@ class InvoiceSalesResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Finance';
+        return 'Finance & Invoices';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
     }
 
     public static function getPages(): array

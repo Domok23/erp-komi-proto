@@ -87,7 +87,12 @@ class ConsumptionRateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'R&D';
+        return 'R&D & Consumption';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
     }
 
     public static function getPages(): array

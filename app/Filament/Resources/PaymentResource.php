@@ -101,7 +101,12 @@ class PaymentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Finance';
+        return 'Finance & Invoices';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
     }
 
     public static function getPages(): array

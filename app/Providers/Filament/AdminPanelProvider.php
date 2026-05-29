@@ -38,10 +38,14 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->navigationGroups([
                 'Master Data',
-                'Pre-Production',
-                'Procurement',
-                'Inventory',
+                'R&D & Consumption',
+                'Projects',
+                'Merchandising',
+                'Costing & Pricing',
                 'Sales & Shipping',
+                'Procurement',
+                'Inventory & Subcon',
+                'Finance & Invoices',
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

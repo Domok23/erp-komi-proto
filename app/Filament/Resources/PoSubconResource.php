@@ -212,6 +212,11 @@ class PoSubconResource extends Resource
         return 'Procurement';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
     public static function getPages(): array
     {
         return [

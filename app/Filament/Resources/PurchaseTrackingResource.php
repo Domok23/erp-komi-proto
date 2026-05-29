@@ -103,6 +103,11 @@ class PurchaseTrackingResource extends Resource
         return 'Procurement';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
     public static function getPages(): array
     {
         return [

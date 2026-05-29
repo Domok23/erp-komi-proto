@@ -307,7 +307,12 @@ class SalesOrderResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Sales';
+        return 'Sales & Shipping';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
     }
 
     public static function getRelations(): array

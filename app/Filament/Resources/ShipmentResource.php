@@ -129,7 +129,12 @@ class ShipmentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Sales';
+        return 'Sales & Shipping';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
     }
 
     public static function getRelations(): array { return []; }

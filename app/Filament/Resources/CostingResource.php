@@ -220,7 +220,12 @@ class CostingResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Sales';
+        return 'Costing & Pricing';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
     }
 
     public static function getRelations(): array

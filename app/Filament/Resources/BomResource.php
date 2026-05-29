@@ -131,7 +131,12 @@ class BomResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'R&D';
+        return 'R&D & Consumption';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
     }
 
     public static function getPages(): array

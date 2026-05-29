@@ -211,6 +211,11 @@ class GoodsReceiptResource extends Resource
         return 'Procurement';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 4;
+    }
+
     public static function getRelations(): array
     {
         return [];

@@ -92,6 +92,11 @@ class SupplierResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
     public static function getRelations(): array
     {
         return [

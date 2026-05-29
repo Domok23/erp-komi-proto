@@ -108,6 +108,11 @@ class CompanyResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
     public static function getRelations(): array { return []; }
 
     public static function getPages(): array

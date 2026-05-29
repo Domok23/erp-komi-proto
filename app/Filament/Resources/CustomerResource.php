@@ -123,6 +123,11 @@ class CustomerResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
     public static function getRelations(): array
     {
         return [
