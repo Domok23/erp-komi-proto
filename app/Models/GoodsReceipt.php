@@ -36,14 +36,33 @@ class GoodsReceipt extends Model
         static::updated(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
                 \App\Services\InventoryService::receiveGoods($goodsReceipt);
+                self::updatePurchaseTracking($goodsReceipt);
             }
         });
 
         static::created(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified') {
                 \App\Services\InventoryService::receiveGoods($goodsReceipt);
+                self::updatePurchaseTracking($goodsReceipt);
             }
         });
+    }
+
+    protected static function updatePurchaseTracking(GoodsReceipt $goodsReceipt): void
+    {
+        if ($goodsReceipt->po_type && $goodsReceipt->po_id) {
+            $tracking = PurchaseTracking::where('company_id', $goodsReceipt->company_id)
+                ->where('po_type', $goodsReceipt->po_type)
+                ->where('po_id', $goodsReceipt->po_id)
+                ->first();
+
+            if ($tracking) {
+                $tracking->update([
+                    'tracking_status' => 'delivered',
+                    'actual_arrival' => $goodsReceipt->receipt_date,
+                ]);
+            }
+        }
     }
 
     public function po(): MorphTo

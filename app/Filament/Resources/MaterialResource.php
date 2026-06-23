@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialResource\Pages;
+use App\Filament\Resources\MaterialResource\RelationManagers;
 use App\Models\Material;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -120,7 +121,12 @@ class MaterialResource extends Resource
         return 6;
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\InventoryStocksRelationManager::class,
+        ];
+    }
 
     public static function getPages(): array
     {
