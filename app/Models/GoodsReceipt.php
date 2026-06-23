@@ -5,34 +5,69 @@ namespace App\Models;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class GoodsReceipt extends Model
 {
     use BelongsToCompany;
 
+    protected $table = 'goods_receipts';
+
     protected $fillable = [
         'company_id',
         'gr_number',
-        'purchase_receipt_id',
-        'supplier_id',
+        'po_type',
+        'po_id',
+        'warehouse_id',
         'receipt_date',
-        'invoice_number',
-        'notes',
+        'status',
         'received_by',
+        'notes',
     ];
 
     protected $casts = [
         'receipt_date' => 'date',
     ];
 
-    
-    public function purchaseReceipt(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(PurchaseReceipt::class);
+        static::updated(function (GoodsReceipt $goodsReceipt) {
+            if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
+                \App\Services\InventoryService::receiveGoods($goodsReceipt);
+            }
+        });
+
+        static::created(function (GoodsReceipt $goodsReceipt) {
+            if ($goodsReceipt->status === 'verified') {
+                \App\Services\InventoryService::receiveGoods($goodsReceipt);
+            }
+        });
     }
 
-    public function supplier(): BelongsTo
+    public function po(): MorphTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->morphTo(__FUNCTION__, 'po_type', 'po_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class, 'goods_receipt_id');
+    }
+
+    public function shipping(): HasOne
+    {
+        return $this->hasOne(GoodsReceiptShipping::class, 'goods_receipt_id');
+    }
+
+    public function returs(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptRetur::class, 'goods_receipt_id');
     }
 }

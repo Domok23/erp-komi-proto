@@ -14,6 +14,7 @@ class Costing extends Model
         'company_id',
         'project_id',
         'design_id',
+        'costing_date',
         'version',
         'status',
         'material_cost',
@@ -32,6 +33,7 @@ class Costing extends Model
     ];
 
     protected $casts = [
+        'costing_date' => 'date',
         'material_cost' => 'decimal:2',
         'mp_cost' => 'decimal:2',
         'overhead_pct' => 'decimal:2',
@@ -44,7 +46,6 @@ class Costing extends Model
         'approved_at' => 'datetime',
     ];
 
-    
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

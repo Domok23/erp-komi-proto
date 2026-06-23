@@ -38,19 +38,19 @@ class Material extends Model
         return $this->belongsTo(Supplier::class);
     }
 
-    public function inventories(): HasMany
+    public function inventoryStocks(): HasMany
     {
-        return $this->hasMany(Inventory::class);
+        return $this->hasMany(InventoryStock::class);
     }
 
-    public function projectBoms(): HasMany
+    public function bomItems(): HasMany
     {
-        return $this->hasMany(ProjectBom::class);
+        return $this->hasMany(BomItem::class);
     }
 
-    public function projectConsumptions(): HasMany
+    public function consumptionRates(): HasMany
     {
-        return $this->hasMany(ProjectConsumption::class);
+        return $this->hasMany(ConsumptionRate::class);
     }
 
     public function inventoryMovements(): HasMany
@@ -58,8 +58,13 @@ class Material extends Model
         return $this->hasMany(InventoryMovement::class);
     }
 
-    public function invoiceItems(): HasMany
+    public function poSupplierItems(): HasMany
     {
-        return $this->hasMany(InvoiceItem::class);
+        return $this->hasMany(PoSupplierItem::class);
+    }
+
+    public function goodsReceiptItems(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
     }
 }

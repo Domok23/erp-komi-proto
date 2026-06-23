@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('inventory_movements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
-            $table->foreignId('inventory_id')->constrained('inventories')->onDelete('cascade');
+            $table->foreignId('inventory_stock_id')->constrained('inventory_stocks')->onDelete('cascade');
             $table->foreignId('material_id')->constrained('materials')->onDelete('cascade');
             $table->enum('type', ['purchase', 'production_in', 'production_out', 'adjustment', 'shipment', 'return_in', 'return_out', 'transfer_in', 'transfer_out']);
             $table->string('reference_type')->nullable();

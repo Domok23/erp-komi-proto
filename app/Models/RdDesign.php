@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RdDesign extends Model
@@ -16,10 +15,14 @@ class RdDesign extends Model
         'code',
         'name',
         'description',
-        'category',
+        'bag_type',
         'status',
         'sample_photo',
         'tech_drawing',
+        'reference_image',
+        'tech_pack',
+        'brand',
+        'size_range',
         'notes',
         'estimated_material_cost',
         'estimated_mp_cost',
@@ -36,15 +39,24 @@ class RdDesign extends Model
         'estimated_selling_price' => 'decimal:2',
     ];
 
-    
+    public function boms(): HasMany
+    {
+        return $this->hasMany(Bom::class, 'design_id');
+    }
+
+    public function consumptionRates(): HasMany
+    {
+        return $this->hasMany(ConsumptionRate::class, 'design_id');
+    }
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'design_id');
     }
 
-    public function merchandisings(): HasMany
+    public function merchandisePlannings(): HasMany
     {
-        return $this->hasMany(Merchandising::class, 'design_id');
+        return $this->hasMany(MerchandisePlanning::class, 'design_id');
     }
 
     public function costings(): HasMany

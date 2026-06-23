@@ -27,8 +27,8 @@ class Subcon extends Model
         'is_active' => 'boolean',
     ];
 
-    public function purchaseOrders(): HasMany
+    public function poSubcons(): HasMany
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(PoSubcon::class);
     }
 }

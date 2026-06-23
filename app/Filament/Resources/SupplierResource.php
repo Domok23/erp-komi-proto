@@ -32,6 +32,7 @@ class SupplierResource extends Resource
         return $schema->schema([
             Forms\Components\TextInput::make('code')
                 ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(50),
             Forms\Components\TextInput::make('name')
                 ->required()
@@ -89,6 +90,11 @@ class SupplierResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return 'Master Data';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
     }
 
     public static function getRelations(): array

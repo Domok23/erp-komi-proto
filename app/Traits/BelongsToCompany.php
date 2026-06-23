@@ -6,12 +6,18 @@ use App\Services\CompanyContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Model
+ * @method static void creating(callable $callback)
+ * @method static void addGlobalScope(string $name, callable $scope)
+ * @method \Illuminate\Database\Eloquent\Builder newQuery()
+ */
 trait BelongsToCompany
 {
     protected static function bootBelongsToCompany(): void
     {
         static::creating(function (Model $model) {
-            if ($model->company_id === null && auth()->check()) {
+            if ($model->company_id === null && \Illuminate\Support\Facades\Auth::check()) {
                 $model->company_id = CompanyContext::getCompanyId();
             }
         });
@@ -22,6 +28,11 @@ trait BelongsToCompany
                 $builder->where($builder->getModel()->getTable() . '.company_id', $companyId);
             }
         });
+    }
+
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Company::class);
     }
 
     public static function withoutCompanyScope(): Builder

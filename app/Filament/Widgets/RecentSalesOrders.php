@@ -30,9 +30,9 @@ class RecentSalesOrders extends BaseWidget
                     ->label('Order Date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total_amount')
+                Tables\Columns\TextColumn::make('grand_total')
                     ->label('Total Amount')
-                    ->money('USD')
+                    ->numeric()
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('status')
                     ->color(fn (string $state): string => match ($state) {
