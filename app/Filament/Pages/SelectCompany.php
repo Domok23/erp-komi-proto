@@ -25,7 +25,9 @@ class SelectCompany extends Page
 
     public function mount(): void
     {
-        if (CompanyContext::hasCompany()) {
+        if (request()->query('switch') === '1') {
+            CompanyContext::clearCompany();
+        } elseif (CompanyContext::hasCompany()) {
             $this->redirect(Filament::getUrl());
         }
     }

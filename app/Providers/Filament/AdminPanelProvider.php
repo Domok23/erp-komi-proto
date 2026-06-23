@@ -70,6 +70,12 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 EnsureCompanySelected::class,
             ])
+            ->userMenuItems([
+                \Filament\Navigation\MenuItem::make()
+                    ->label('Switch Company')
+                    ->url(fn (): string => '/select-company?switch=1')
+                    ->icon('heroicon-o-arrows-right-left'),
+            ])
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
             ->registration();
