@@ -46,6 +46,13 @@ class InventoryMovementResource extends Resource
                 ->nullable(),
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
+                ->getOptionLabelFromRecordUsing(function ($record) {
+                    $companyId = \App\Services\CompanyContext::getCompanyId();
+                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                        ->where('company_id', $companyId)
+                        ->sum('quantity');
+                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+                })
                 ->required(),
             Forms\Components\TextInput::make('quantity')
                 ->numeric()

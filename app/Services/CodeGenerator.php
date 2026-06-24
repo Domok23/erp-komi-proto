@@ -61,4 +61,11 @@ class CodeGenerator
         $count = InvoiceSales::whereYear('created_at', $year)->count() + 1;
         return sprintf('INV-SALES-%d-%03d', $year, $count);
     }
+
+    public static function generateTransferNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = \App\Models\StockTransfer::whereYear('created_at', $year)->count() + 1;
+        return sprintf('ST-%d-%03d', $year, $count);
+    }
 }
