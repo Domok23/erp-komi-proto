@@ -82,6 +82,7 @@ class ProjectResource extends Resource
                 ->integer()
                 ->default(0),
             Section::make('Approval Details')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\DateTimePicker::make('approved_at')
                         ->disabled(),

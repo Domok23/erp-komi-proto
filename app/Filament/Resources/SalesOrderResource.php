@@ -81,6 +81,7 @@ class SalesOrderResource extends Resource
                 ->required(),
             
             Section::make('Quantities & Unit Cost')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('quantity')
                         ->numeric()
@@ -98,6 +99,7 @@ class SalesOrderResource extends Resource
                 ])->columns(2),
 
             Section::make('Financial Details')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('subtotal')
                         ->numeric()
@@ -132,6 +134,7 @@ class SalesOrderResource extends Resource
                 ])->columns(2),
 
             Section::make('Payment Terms')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('down_payment_pct')
                         ->numeric()
@@ -164,6 +167,7 @@ class SalesOrderResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('Sales Order Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

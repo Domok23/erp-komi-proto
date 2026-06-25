@@ -63,6 +63,7 @@ class PoSupplierResource extends Resource
                 ->required(),
             
             Section::make('Cost & Tax Totals')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('subtotal')
                         ->numeric()
@@ -94,6 +95,7 @@ class PoSupplierResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('PO Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

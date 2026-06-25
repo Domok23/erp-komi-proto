@@ -74,6 +74,7 @@ class BomResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('BOM Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

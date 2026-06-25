@@ -84,6 +84,7 @@ class MerchandisePlanningResource extends Resource
                 ->required(),
             
             Section::make('Planning Costs')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('total_material_cost')
                         ->numeric()
@@ -102,6 +103,7 @@ class MerchandisePlanningResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('Materials & Services Planning')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

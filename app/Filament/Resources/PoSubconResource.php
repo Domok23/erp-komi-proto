@@ -62,6 +62,7 @@ class PoSubconResource extends Resource
                 ->required(),
             
             Section::make('Subcon Costs')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('service_cost')
                         ->numeric()
@@ -93,6 +94,7 @@ class PoSubconResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('PO Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

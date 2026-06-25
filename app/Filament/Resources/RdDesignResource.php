@@ -68,6 +68,7 @@ class RdDesignResource extends Resource
                 ->maxLength(65535)
                 ->columnSpanFull(),
             Section::make('Cost Estimations (Read-Only)')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('estimated_material_cost')
                         ->numeric()

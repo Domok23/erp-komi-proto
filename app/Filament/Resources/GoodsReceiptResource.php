@@ -97,6 +97,7 @@ class GoodsReceiptResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('Received Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -134,6 +135,7 @@ class GoodsReceiptResource extends Resource
                 ]),
 
             Section::make('Shipping Details')
+                ->columnSpanFull()
                 ->relationship('shipping')
                 ->schema([
                     Forms\Components\TextInput::make('carrier'),
@@ -147,6 +149,7 @@ class GoodsReceiptResource extends Resource
                 ])->columns(2),
 
             Section::make('Returns Handling')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('returs')
                         ->relationship('returs')
