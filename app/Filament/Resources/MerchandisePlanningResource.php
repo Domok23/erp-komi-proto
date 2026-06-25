@@ -39,6 +39,30 @@ class MerchandisePlanningResource extends Resource
                     $project = \App\Models\Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
+                        
+                        // Auto-fill planning items from Project's BOM if available
+                        if ($project->bom) {
+                            $items = $project->bom->items->map(function ($bomItem) {
+                                $unitPrice = $bomItem->material?->price ?? 0;
+                                $plannedQty = $bomItem->quantity_per_unit;
+                                return [
+                                    'material_id' => $bomItem->material_id,
+                                    'planned_qty' => $plannedQty,
+                                    'unit' => $bomItem->unit,
+                                    'unit_price' => $unitPrice,
+                                    'total_price' => $plannedQty * $unitPrice,
+                                    'is_subcon' => false,
+                                    'notes' => $bomItem->notes,
+                                ];
+                            })->toArray();
+                            
+                            $set('items', $items);
+                            
+                            // Calculate total planning costs
+                            $totalMat = array_sum(array_column($items, 'total_price'));
+                            $set('total_material_cost', $totalMat);
+                            $set('total_subcon_cost', 0);
+                        }
                     }
                 }),
             Forms\Components\Select::make('design_id')

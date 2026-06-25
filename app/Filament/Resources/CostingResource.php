@@ -35,10 +35,28 @@ class CostingResource extends Resource
                 ->preload()
                 ->required()
                 ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
+                ->afterStateUpdated(function ($state, callable $set, Get $get) {
                     $project = \App\Models\Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
+                        
+                        $design = $project->design;
+                        if ($design) {
+                            if ($design->estimated_material_cost > 0) {
+                                $set('material_cost', $design->estimated_material_cost);
+                            }
+                            if ($design->estimated_mp_cost > 0) {
+                                $set('mp_cost', $design->estimated_mp_cost);
+                            }
+                            if ($design->estimated_overhead_pct > 0) {
+                                $set('overhead_pct', $design->estimated_overhead_pct);
+                            }
+                            if ($design->estimated_profit_margin_pct > 0) {
+                                $set('profit_margin_pct', $design->estimated_profit_margin_pct);
+                            }
+                            
+                            self::recalculate($get, $set);
+                        }
                     }
                 }),
             Forms\Components\Select::make('design_id')

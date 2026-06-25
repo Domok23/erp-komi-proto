@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RdDesignResource\Pages;
+use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
 use Filament\Forms;
 use Filament\Schemas\Schema;
@@ -146,7 +147,9 @@ class RdDesignResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\ConsumptionRatesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

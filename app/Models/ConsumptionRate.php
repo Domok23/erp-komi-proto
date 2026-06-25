@@ -25,6 +25,17 @@ class ConsumptionRate extends Model
         'wastage_rate' => 'decimal:2',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (ConsumptionRate $consumptionRate) {
+            $consumptionRate->design?->recalculateEstimates();
+        });
+
+        static::deleted(function (ConsumptionRate $consumptionRate) {
+            $consumptionRate->design?->recalculateEstimates();
+        });
+    }
+
     public function design(): BelongsTo
     {
         return $this->belongsTo(RdDesign::class, 'design_id');

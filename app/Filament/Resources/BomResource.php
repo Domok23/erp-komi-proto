@@ -32,7 +32,28 @@ class BomResource extends Resource
                 ->relationship('design', 'name')
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    if ($state) {
+                        $rates = \App\Models\ConsumptionRate::where('design_id', $state)->get();
+                        
+                        $items = $rates->map(function ($rate) {
+                            return [
+                                'material_id' => $rate->material_id,
+                                'category' => 'main_material', // default category
+                                'quantity_per_unit' => $rate->standard_rate,
+                                'unit' => $rate->unit,
+                                'wastage_percent' => $rate->wastage_rate,
+                                'notes' => $rate->notes,
+                            ];
+                        })->toArray();
+                        
+                        $set('items', $items);
+                    } else {
+                        $set('items', []);
+                    }
+                }),
             Forms\Components\TextInput::make('name')
                 ->required()
                 ->maxLength(255),
