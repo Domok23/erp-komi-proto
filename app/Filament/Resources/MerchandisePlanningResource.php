@@ -123,23 +123,31 @@ class MerchandisePlanningResource extends Resource
                                 ->preload()
                                 ->nullable()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $material = Material::find($state, ['*']);
                                     if ($material) {
                                         $set('unit', $material->unit);
                                         $set('unit_price', $material->price);
+                                        $set('supplier_id', $material->supplier_id);
+                                        
+                                        $qty = floatval($get('planned_qty') ?? 1);
+                                        $set('total_price', $qty * floatval($material->price));
                                     }
                                 }),
                             Forms\Components\Select::make('supplier_id')
                                 ->relationship('supplier', 'name')
                                 ->searchable()
                                 ->preload()
-                                ->nullable(),
+                                ->nullable()
+                                ->disabled()
+                                ->dehydrated(),
                             Forms\Components\Select::make('subcon_id')
                                 ->relationship('subcon', 'name')
                                 ->searchable()
                                 ->preload()
-                                ->nullable(),
+                                ->nullable()
+                                ->disabled(fn (callable $get) => !$get('is_subcon'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->numeric()
                                 ->default(1)
@@ -158,12 +166,8 @@ class MerchandisePlanningResource extends Resource
                                 ->numeric()
                                 ->default(0)
                                 ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $price = floatval($state);
-                                    $qty = floatval($get('planned_qty'));
-                                    $set('total_price', $qty * $price);
-                                }),
+                                ->disabled()
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('total_price')
                                 ->numeric()
                                 ->default(0)
@@ -171,7 +175,14 @@ class MerchandisePlanningResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\Toggle::make('is_subcon')
                                 ->default(false)
-                                ->label('Is Subcon Service'),
+                                ->label('Is Subcon Service')
+                                ->inline(false)
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if (!$state) {
+                                        $set('subcon_id', null);
+                                    }
+                                }),
                             Forms\Components\TextInput::make('notes')
                                 ->maxLength(255),
                         ])

@@ -37,7 +37,9 @@ class MaterialsRelationManager extends RelationManager
                     'other' => 'Other',
                 ]),
             \Filament\Forms\Components\TextInput::make('unit')->default('pcs'),
-            \Filament\Forms\Components\Toggle::make('is_active')->default(true),
+            \Filament\Forms\Components\Toggle::make('is_active')
+                ->default(true)
+                ->inline(false),
         ]);
     }
 

@@ -93,7 +93,8 @@ class InvoiceSalesResource extends Resource
                 ->default('unpaid')
                 ->required(),
             Forms\Components\Toggle::make('is_tax_invoice')
-                ->default(false),
+                ->default(false)
+                ->inline(false),
             Forms\Components\TextInput::make('tax_invoice_number'),
             Forms\Components\Textarea::make('notes')
                 ->columnSpanFull(),

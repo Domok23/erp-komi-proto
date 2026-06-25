@@ -55,7 +55,8 @@ class SupplierResource extends Resource
             Forms\Components\TextInput::make('bank_account')
                 ->maxLength(255),
             Forms\Components\Toggle::make('is_active')
-                ->default(true),
+                ->default(true)
+                ->inline(false),
         ]);
     }
 
