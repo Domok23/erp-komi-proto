@@ -30,7 +30,9 @@ class MerchandisePlanningResource extends Resource
     {
         return $schema->schema([
             Forms\Components\Select::make('project_id')
-                ->relationship('project', 'project_code')
+                ->relationship('project', 'name')
+                ->allowHtml()
+                ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} <span class='project-code-prefix'>[{$record->project_code}]</span>")
                 ->searchable()
                 ->preload()
                 ->required()
@@ -199,7 +201,13 @@ class MerchandisePlanningResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('project.project_code')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('project.name')
+                ->label('Project')
+                ->sortable()
+                ->searchable()
+                ->extraAttributes(fn ($record) => [
+                    'title' => $record->project?->project_code,
+                ]),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')

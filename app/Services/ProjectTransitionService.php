@@ -32,10 +32,11 @@ class ProjectTransitionService
             ]);
         } elseif ($project->type === 'sample') {
             // Auto-create Mass Production project
+            $nameWithoutSample = str_replace(' - Sample', '', $project->name);
             return Project::create([
                 'company_id' => $project->company_id,
                 'project_code' => CodeGenerator::generateProjectCode(),
-                'name' => $project->name . ' - Mass Production',
+                'name' => $nameWithoutSample . ' - Mass',
                 'description' => $project->description,
                 'type' => 'mass',
                 'status' => 'planning',

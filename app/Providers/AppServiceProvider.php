@@ -56,6 +56,16 @@ class AppServiceProvider extends ServiceProvider
                         display: block !important;
                         max-width: 100% !important;
                     }
+                    /* Hide project code in selected label but show in dropdown options list */
+                    .fi-select-input-value-label .project-code-prefix {
+                        display: none !important;
+                    }
+                    .fi-dropdown-list-item .project-code-prefix,
+                    .fi-select-input-option .project-code-prefix {
+                        display: inline !important;
+                        font-weight: 500 !important;
+                        opacity: 0.6 !important;
+                    }
                     .choices__list--single,
                     .choices__list--single .choices__item,
                     .choices__item--selectable {
