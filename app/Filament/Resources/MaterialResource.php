@@ -47,7 +47,8 @@ class MaterialResource extends Resource
                     'label' => 'Label',
                     'interlining' => 'Interlining',
                     'other' => 'Other',
-                ]),
+                ])
+                ->required(),
             Forms\Components\TextInput::make('unit')
                 ->default('pcs')
                 ->maxLength(20),

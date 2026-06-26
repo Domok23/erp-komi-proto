@@ -29,12 +29,15 @@ class ShipmentResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\TextInput::make('shipment_number')
+            Forms\Components\TextInput::make('shipment_number')
+                ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(50),
             Forms\Components\Select::make('sales_order_id')
                 ->relationship('salesOrder', 'so_number')
                 ->nullable(),
-            Forms\Components\DatePicker::make('shipment_date'),
+            Forms\Components\DatePicker::make('shipment_date')
+                ->required(),
             Forms\Components\Select::make('status')
                 ->options([
                     'pending' => 'Pending',
@@ -43,6 +46,7 @@ class ShipmentResource extends Resource
                     'delivered' => 'Delivered',
                     'cancelled' => 'Cancelled',
                 ])
+                ->required()
                 ->default('pending'),
             Forms\Components\Select::make('shipping_method')
                 ->options([
@@ -50,7 +54,9 @@ class ShipmentResource extends Resource
                     'air' => 'Air',
                     'land' => 'Land',
                     'courier' => 'Courier',
-                ]),
+                ])
+                ->required()
+                ->default('sea'),
             Forms\Components\TextInput::make('container_number')
                 ->maxLength(100),
             Forms\Components\TextInput::make('bl_number')

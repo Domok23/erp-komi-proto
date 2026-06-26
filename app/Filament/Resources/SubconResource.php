@@ -44,7 +44,8 @@ class SubconResource extends Resource
                     'cutting' => 'Cutting',
                     'finishing' => 'Finishing',
                     'other' => 'Other',
-                ]),
+                ])
+                ->required(),
             Forms\Components\TextInput::make('contact_person')
                 ->maxLength(255),
             Forms\Components\Textarea::make('address')

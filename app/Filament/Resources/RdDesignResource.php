@@ -51,7 +51,8 @@ class RdDesignResource extends Resource
                     'approved' => 'Approved',
                     'archived' => 'Archived',
                 ])
-                ->default('draft'),
+                ->default('draft')
+                ->required(),
             Forms\Components\TextInput::make('brand')
                 ->maxLength(255),
             Forms\Components\TextInput::make('size_range')
