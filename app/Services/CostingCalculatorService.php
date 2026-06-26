@@ -7,6 +7,49 @@ use App\Models\Costing;
 
 class CostingCalculatorService
 {
+    /**
+     * Get total MP rate per unit from config.
+     */
+    public static function getMpRatePerUnit(): int
+    {
+        return array_sum(config('costing.man_power'));
+    }
+
+    /**
+     * Calculate MP cost for a given quantity.
+     */
+    public static function calculateMpCost(int $qty): int
+    {
+        return self::getMpRatePerUnit() * $qty;
+    }
+
+    /**
+     * Get default overhead % from config.
+     */
+    public static function getDefaultOverheadPct(): int
+    {
+        return (int) config('costing.overhead_pct', 15);
+    }
+
+    /**
+     * Get default profit margin % from config.
+     */
+    public static function getDefaultProfitMarginPct(): int
+    {
+        return (int) config('costing.profit_margin_pct', 20);
+    }
+
+    /**
+     * Get shipping cost per unit by destination.
+     */
+    public static function getShippingCostPerUnit(string $destination): int
+    {
+        return (int) config("costing.shipping.{$destination}", 0);
+    }
+
+    /**
+     * Calculate material cost from BOM.
+     */
     public static function calculateFromBOM(Project $project): array
     {
         $materialCost = 0;
@@ -16,7 +59,6 @@ class CostingCalculatorService
             foreach ($bom->items as $item) {
                 $material = $item->material;
                 if ($material) {
-                    // Qty per unit adjusted for wastage: qty * (1 + wastage_percent / 100)
                     $wastageMultiplier = 1 + ($item->wastage_percent / 100);
                     $qtyAdjusted = $item->quantity_per_unit * $wastageMultiplier;
                     $materialCost += $qtyAdjusted * $material->price;
@@ -29,8 +71,15 @@ class CostingCalculatorService
         ];
     }
 
+    /**
+     * Recalculate all derived cost fields on a costing.
+     */
     public static function recalculateCosting(Costing $costing): void
     {
+        if ($costing->isLocked()) {
+            return;
+        }
+
         $materialCost = $costing->material_cost;
         $mpCost = $costing->mp_cost;
         $overheadPct = $costing->overhead_pct;

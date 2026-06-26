@@ -243,21 +243,30 @@ class DataSeeder extends Seeder
         ]);
 
         // 10. Seed Costings
+        $admin = \App\Models\User::where('email', 'admin@komi.com')->first();
         $costing = Costing::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
             'design_id' => $designBackpack->id,
             'costing_date' => now()->toDateString(),
             'version' => '1.0',
-            'status' => 'approved',
+            'status' => 'draft',
             'material_cost' => 90000,
-            'mp_cost' => 20000,
+            'mp_cost' => 33000,
             'overhead_pct' => 15,
             'shipping_cost' => 5000,
             'profit_margin_pct' => 20,
             'currency' => 'IDR',
         ]);
+        // Calculate first (while still editable), then approve
         \App\Services\CostingCalculatorService::recalculateCosting($costing);
+        $costing->update([
+            'status' => 'approved',
+            'submitted_by' => $admin->id,
+            'submitted_at' => now()->subHour(),
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
+        ]);
 
         // 11. Seed Sales Orders
         $salesOrder = SalesOrder::create([
