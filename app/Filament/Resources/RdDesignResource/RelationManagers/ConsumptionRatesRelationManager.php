@@ -40,10 +40,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $material = Material::find($state);
-                    if ($material) {
-                        $set('unit', $material->unit);
-                    }
+                    $material = $state ? Material::find($state) : null;
+                    $set('unit', $material?->unit);
                 }),
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()

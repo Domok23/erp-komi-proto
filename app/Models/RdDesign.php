@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\CompanyContext;
+use App\Services\CostingCalculatorService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -76,9 +78,9 @@ class RdDesign extends Model
             }
         }
 
-        $mpCost = 33000;
-        $overheadPct = 15;
-        $profitPct = 20;
+        $mpCost = CostingCalculatorService::getMpRatePerUnit();
+        $overheadPct = CostingCalculatorService::getDefaultOverheadPct();
+        $profitPct = CostingCalculatorService::getDefaultProfitMarginPct();
 
         $subtotal = $materialCost + $mpCost;
         $overheadAmount = $subtotal * ($overheadPct / 100);

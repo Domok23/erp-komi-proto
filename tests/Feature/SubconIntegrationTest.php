@@ -44,6 +44,7 @@ class SubconIntegrationTest extends TestCase
 
         // Raw Material (Fabric)
         $rawMaterial = Material::create([
+            'company_id' => $company->id,
             'code' => 'MAT-RAW-FABRIC',
             'name' => 'Test Raw Fabric',
             'category' => 'fabric',
@@ -54,6 +55,7 @@ class SubconIntegrationTest extends TestCase
 
         // Processed Goods (Sewn Panel)
         $processedGoods = Material::create([
+            'company_id' => $company->id,
             'code' => 'MAT-SEWN-PANEL',
             'name' => 'Test Sewn Panel',
             'category' => 'semi_finished',

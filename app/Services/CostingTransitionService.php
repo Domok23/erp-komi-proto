@@ -16,6 +16,12 @@ class CostingTransitionService
             ]);
         }
 
+        if (! $costing->canTransitionTo('submitted')) {
+            throw ValidationException::withMessages([
+                'status' => "Cannot transition from '{$costing->status}' to 'submitted'.",
+            ]);
+        }
+
         $costing->update([
             'status' => 'submitted',
             'submitted_by' => Auth::id(),
@@ -27,6 +33,12 @@ class CostingTransitionService
 
     public static function approve(Costing $costing): Costing
     {
+        if (! $costing->canTransitionTo('approved')) {
+            throw ValidationException::withMessages([
+                'status' => "Cannot transition from '{$costing->status}' to 'approved'.",
+            ]);
+        }
+
         $costing->update([
             'status' => 'approved',
             'approved_by' => Auth::id(),
@@ -38,6 +50,12 @@ class CostingTransitionService
 
     public static function reject(Costing $costing): Costing
     {
+        if (! $costing->canTransitionTo('rejected')) {
+            throw ValidationException::withMessages([
+                'status' => "Cannot transition from '{$costing->status}' to 'rejected'.",
+            ]);
+        }
+
         $costing->update([
             'status' => 'rejected',
             'rejected_by' => Auth::id(),
@@ -106,29 +124,25 @@ class CostingTransitionService
      */
     public static function getNextVersion(int $projectId): string
     {
-        $maxVersion = Costing::where('project_id', $projectId)
-            ->get()
-            ->map(fn (Costing $c) => $c->version)
-            ->map(fn (string $v) => self::versionToNumber($v))
-            ->max();
+        $versions = Costing::where('project_id', $projectId)
+            ->pluck('version')
+            ->toArray();
 
-        if ($maxVersion === null) {
+        if (empty($versions)) {
             return '1.0';
         }
 
-        $parts = explode('.', (string) $maxVersion);
+        // Sort versions using version_compare
+        usort($versions, function (string $a, string $b) {
+            return version_compare($a, $b);
+        });
+
+        $latestVersion = end($versions);
+
+        $parts = explode('.', $latestVersion);
         $major = (int) ($parts[0] ?? 1);
         $minor = (int) ($parts[1] ?? 0) + 1;
 
         return $major.'.'.$minor;
-    }
-
-    private static function versionToNumber(string $version): float
-    {
-        if (preg_match('/^(\d+)\.(\d+)$/', $version, $matches)) {
-            return (float) ($matches[1].'.'.$matches[2]);
-        }
-
-        return (float) $version;
     }
 }

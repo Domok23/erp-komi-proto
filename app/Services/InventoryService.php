@@ -15,6 +15,14 @@ class InventoryService
 {
     public static function receiveGoods(GoodsReceipt $receipt): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', GoodsReceipt::class)
+            ->where('reference_id', $receipt->id)
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($receipt->items as $item) {
             $stock = InventoryStock::firstOrCreate([
                 'company_id' => $receipt->company_id,
@@ -55,6 +63,14 @@ class InventoryService
 
     public static function sendToSubcon(SubconMaterialOut $out): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', SubconMaterialOut::class)
+            ->where('reference_id', $out->id)
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         // Typically, we send materials out from the main warehouse to subcon
         // Find main warehouse or use the first available warehouse for the company
         $mainWarehouseId = Warehouse::where('company_id', $out->company_id)
@@ -100,6 +116,14 @@ class InventoryService
 
     public static function receiveFromSubcon(SubconMaterialIn $in): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', SubconMaterialIn::class)
+            ->where('reference_id', $in->id)
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         // Receive raw/processed goods back to main warehouse
         $mainWarehouseId = Warehouse::where('company_id', $in->company_id)
             ->where('code', 'WH-MAIN')
@@ -195,6 +219,15 @@ class InventoryService
 
     public static function executeTransferShipment(StockTransfer $transfer): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', StockTransfer::class)
+            ->where('reference_id', $transfer->id)
+            ->where('type', 'transfer_out')
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($transfer->items as $item) {
             $stock = InventoryStock::where('company_id', $transfer->from_company_id)
                 ->where('warehouse_id', $transfer->from_warehouse_id)
@@ -230,6 +263,15 @@ class InventoryService
 
     public static function executeTransferReceipt(StockTransfer $transfer): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', StockTransfer::class)
+            ->where('reference_id', $transfer->id)
+            ->where('type', 'transfer_in')
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($transfer->items as $item) {
             $stock = InventoryStock::firstOrCreate([
                 'company_id' => $transfer->to_company_id,
