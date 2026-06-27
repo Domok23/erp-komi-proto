@@ -69,6 +69,8 @@ class SalesOrderResource extends Resource
                 }),
             Forms\Components\Select::make('customer_id')
                 ->relationship('customer', 'name')
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('order_date')
                 ->default(now()->toDateString())
@@ -291,21 +293,23 @@ class SalesOrderResource extends Resource
                 SelectFilter::make('customer_id')->relationship('customer', 'name'),
             ])
             ->actions([
-                Action::make('generateInvoice')
-                    ->label('Generate Invoice')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'confirmed' || $record->status === 'shipped')
-                    ->action(function ($record) {
-                        InvoiceGeneratorService::generateFromSO($record);
-                        Notification::make()
-                            ->title('Invoice generated successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make(),
+                \Filament\Actions\ActionGroup::make([
+                    Action::make('generateInvoice')
+                        ->label('Generate Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'confirmed' || $record->status === 'shipped')
+                        ->action(function ($record) {
+                            InvoiceGeneratorService::generateFromSO($record);
+                            Notification::make()
+                                ->title('Invoice generated successfully!')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

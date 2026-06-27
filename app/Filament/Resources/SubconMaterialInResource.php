@@ -214,7 +214,12 @@ class SubconMaterialInResource extends Resource
                     'verified' => 'Verified',
                 ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

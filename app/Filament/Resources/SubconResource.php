@@ -93,7 +93,12 @@ class SubconResource extends Resource
                 ]),
                 SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

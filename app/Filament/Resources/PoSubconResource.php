@@ -189,21 +189,23 @@ class PoSubconResource extends Resource
                 SelectFilter::make('subcon_id')->relationship('subcon', 'name'),
             ])
             ->actions([
-                Action::make('generateInvoice')
-                    ->label('Generate Invoice')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
-                    ->action(function ($record) {
-                        InvoiceGeneratorService::generateFromSubconPO($record);
-                        Notification::make()
-                            ->title('Subcon Invoice generated successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make(),
+                \Filament\Actions\ActionGroup::make([
+                    Action::make('generateInvoice')
+                        ->label('Generate Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
+                        ->action(function ($record) {
+                            InvoiceGeneratorService::generateFromSubconPO($record);
+                            Notification::make()
+                                ->title('Subcon Invoice generated successfully!')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

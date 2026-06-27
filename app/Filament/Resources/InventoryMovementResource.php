@@ -58,6 +58,8 @@ class InventoryMovementResource extends Resource
 
                     return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                 })
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\TextInput::make('quantity')
                 ->numeric()
@@ -140,7 +142,12 @@ class InventoryMovementResource extends Resource
                 ]),
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

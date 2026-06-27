@@ -233,21 +233,23 @@ class PoSupplierResource extends Resource
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
             ->actions([
-                Action::make('generateInvoice')
-                    ->label('Generate Invoice')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
-                    ->action(function ($record) {
-                        InvoiceGeneratorService::generateFromPO($record);
-                        Notification::make()
-                            ->title('Purchase Invoice generated successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make(),
+                \Filament\Actions\ActionGroup::make([
+                    Action::make('generateInvoice')
+                        ->label('Generate Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
+                        ->action(function ($record) {
+                            InvoiceGeneratorService::generateFromPO($record);
+                            Notification::make()
+                                ->title('Purchase Invoice generated successfully!')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

@@ -62,6 +62,8 @@ class GoodsReceiptResource extends Resource
 
                     return [];
                 })
+                ->searchable()
+                ->preload()
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -102,6 +104,8 @@ class GoodsReceiptResource extends Resource
                 }),
             Forms\Components\Select::make('warehouse_id')
                 ->relationship('warehouse', 'name')
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('receipt_date')
                 ->default(now()->toDateString())
@@ -275,7 +279,12 @@ class GoodsReceiptResource extends Resource
                 ]),
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

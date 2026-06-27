@@ -52,6 +52,8 @@ class PaymentResource extends Resource
 
                     return [];
                 })
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('payment_date')
                 ->default(now()->toDateString())
@@ -95,7 +97,12 @@ class PaymentResource extends Resource
                     'credit' => 'Credit',
                 ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

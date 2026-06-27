@@ -134,63 +134,65 @@ class InvoiceSalesResource extends Resource
                 ]),
             ])
             ->actions([
-                Action::make('pay')
-                    ->label('Pay')
-                    ->icon('heroicon-o-credit-card')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status !== 'paid')
-                    ->form([
-                        Forms\Components\DatePicker::make('payment_date')
-                            ->default(now()->toDateString())
-                            ->required(),
-                        Forms\Components\TextInput::make('amount')
-                            ->numeric()
-                            ->required()
-                            ->default(fn ($record) => $record->grand_total - $record->paid_amount),
-                        Forms\Components\Select::make('payment_method')
-                            ->options([
-                                'bank_transfer' => 'Bank Transfer',
-                                'cash' => 'Cash',
-                                'check' => 'Check',
-                                'credit' => 'Credit',
-                            ])
-                            ->default('bank_transfer')
-                            ->required(),
-                        Forms\Components\TextInput::make('reference_number'),
-                        Forms\Components\Textarea::make('notes'),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $paymentCount = Payment::count('*') + 1;
-                        Payment::create([
-                            'company_id' => $record->company_id,
-                            'invoice_type' => 'sales',
-                            'invoice_id' => $record->id,
-                            'payment_number' => 'PAY-SALES-'.now()->year.'-'.sprintf('%03d', $paymentCount),
-                            'payment_date' => $data['payment_date'],
-                            'amount' => $data['amount'],
-                            'payment_method' => $data['payment_method'],
-                            'reference_number' => $data['reference_number'],
-                            'notes' => $data['notes'],
-                        ]);
+                \Filament\Actions\ActionGroup::make([
+                    Action::make('pay')
+                        ->label('Pay')
+                        ->icon('heroicon-o-credit-card')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status !== 'paid')
+                        ->form([
+                            Forms\Components\DatePicker::make('payment_date')
+                                ->default(now()->toDateString())
+                                ->required(),
+                            Forms\Components\TextInput::make('amount')
+                                ->numeric()
+                                ->required()
+                                ->default(fn ($record) => $record->grand_total - $record->paid_amount),
+                            Forms\Components\Select::make('payment_method')
+                                ->options([
+                                    'bank_transfer' => 'Bank Transfer',
+                                    'cash' => 'Cash',
+                                    'check' => 'Check',
+                                    'credit' => 'Credit',
+                                ])
+                                ->default('bank_transfer')
+                                ->required(),
+                            Forms\Components\TextInput::make('reference_number'),
+                            Forms\Components\Textarea::make('notes'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $paymentCount = Payment::count('*') + 1;
+                            Payment::create([
+                                'company_id' => $record->company_id,
+                                'invoice_type' => 'sales',
+                                'invoice_id' => $record->id,
+                                'payment_number' => 'PAY-SALES-'.now()->year.'-'.sprintf('%03d', $paymentCount),
+                                'payment_date' => $data['payment_date'],
+                                'amount' => $data['amount'],
+                                'payment_method' => $data['payment_method'],
+                                'reference_number' => $data['reference_number'],
+                                'notes' => $data['notes'],
+                            ]);
 
-                        $newPaidAmount = $record->paid_amount + $data['amount'];
-                        $newStatus = 'partial';
-                        if ($newPaidAmount >= $record->grand_total) {
-                            $newStatus = 'paid';
-                        }
+                            $newPaidAmount = $record->paid_amount + $data['amount'];
+                            $newStatus = 'partial';
+                            if ($newPaidAmount >= $record->grand_total) {
+                                $newStatus = 'paid';
+                            }
 
-                        $record->update([
-                            'paid_amount' => $newPaidAmount,
-                            'status' => $newStatus,
-                        ]);
+                            $record->update([
+                                'paid_amount' => $newPaidAmount,
+                                'status' => $newStatus,
+                            ]);
 
-                        Notification::make()
-                            ->title('Payment recorded successfully!')
-                            ->success()
-                            ->send();
-                    }),
-                EditAction::make(),
-                DeleteAction::make(),
+                            Notification::make()
+                                ->title('Payment recorded successfully!')
+                                ->success()
+                                ->send();
+                        }),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

@@ -64,7 +64,9 @@ class MaterialResource extends Resource
                 ->prefix('$')
                 ->default(0),
             Forms\Components\Select::make('supplier_id')
-                ->relationship('supplier', 'name'),
+                ->relationship('supplier', 'name')
+                ->searchable()
+                ->preload(),
             Forms\Components\Textarea::make('description')
                 ->maxLength(65535)
                 ->columnSpanFull(),
@@ -104,7 +106,12 @@ class MaterialResource extends Resource
                 SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

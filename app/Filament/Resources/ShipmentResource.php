@@ -34,6 +34,8 @@ class ShipmentResource extends Resource
                 ->maxLength(50),
             Forms\Components\Select::make('sales_order_id')
                 ->relationship('salesOrder', 'so_number')
+                ->searchable()
+                ->preload()
                 ->nullable(),
             Forms\Components\DatePicker::make('shipment_date')
                 ->required(),
@@ -121,7 +123,12 @@ class ShipmentResource extends Resource
                 SelectFilter::make('status')->options(['pending' => 'Pending', 'in_transit' => 'In Transit', 'customs' => 'Customs', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled']),
                 SelectFilter::make('shipping_method')->options(['sea' => 'Sea', 'air' => 'Air', 'land' => 'Land', 'courier' => 'Courier']),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

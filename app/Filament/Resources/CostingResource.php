@@ -254,48 +254,50 @@ class CostingResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'project_code'),
             ])
             ->actions([
-                Action::make('importFromBOM')
-                    ->label('Import BOM')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('info')
-                    ->visible(fn (Costing $record): bool => $record->isEditable())
-                    ->action(function (Costing $record) {
-                        if (! $record->project) {
+                \Filament\Actions\ActionGroup::make([
+                    Action::make('importFromBOM')
+                        ->label('Import BOM')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->visible(fn (Costing $record): bool => $record->isEditable())
+                        ->action(function (Costing $record) {
+                            if (! $record->project) {
+                                Notification::make()
+                                    ->title('No project linked')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $result = CostingCalculatorService::calculateFromBOM($record->project);
+                            $record->update(['material_cost' => $result['material_cost']]);
+                            CostingCalculatorService::recalculateCosting($record);
+
                             Notification::make()
-                                ->title('No project linked')
-                                ->danger()
+                                ->title('BOM Cost Imported: IDR '.number_format($result['material_cost'], 2))
+                                ->success()
                                 ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make()
+                        ->visible(fn (Costing $record): bool => $record->isEditable()),
+                    Action::make('duplicate')
+                        ->label('Duplicate')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('gray')
+                        ->action(function (Costing $record) {
+                            $new = CostingTransitionService::duplicate($record);
 
-                            return;
-                        }
-
-                        $result = CostingCalculatorService::calculateFromBOM($record->project);
-                        $record->update(['material_cost' => $result['material_cost']]);
-                        CostingCalculatorService::recalculateCosting($record);
-
-                        Notification::make()
-                            ->title('BOM Cost Imported: IDR '.number_format($result['material_cost'], 2))
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make()
-                    ->visible(fn (Costing $record): bool => $record->isEditable()),
-                Action::make('duplicate')
-                    ->label('Duplicate')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('gray')
-                    ->action(function (Costing $record) {
-                        $new = CostingTransitionService::duplicate($record);
-
-                        Notification::make()
-                            ->title("Duplicated to v{$new->version}")
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                DeleteAction::make()
-                    ->visible(fn (Costing $record): bool => $record->status === 'draft'),
+                            Notification::make()
+                                ->title("Duplicated to v{$new->version}")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    DeleteAction::make()
+                        ->visible(fn (Costing $record): bool => $record->status === 'draft'),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

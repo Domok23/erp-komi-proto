@@ -32,6 +32,8 @@ class InventoryStockResource extends Resource
         return $schema->schema([
             Forms\Components\Select::make('warehouse_id')
                 ->relationship('warehouse', 'name')
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
@@ -101,7 +103,12 @@ class InventoryStockResource extends Resource
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                \Filament\Actions\ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
