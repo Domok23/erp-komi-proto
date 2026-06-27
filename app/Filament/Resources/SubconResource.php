@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconResource\Pages;
 use App\Models\Subcon;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -94,7 +95,7 @@ class SubconResource extends Resource
                 SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

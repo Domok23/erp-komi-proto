@@ -10,6 +10,7 @@ use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -236,7 +237,7 @@ class PoSupplierResource extends Resource
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('generateInvoice')
                         ->label('Generate Invoice')
                         ->icon('heroicon-o-document-text')

@@ -7,6 +7,7 @@ use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -175,7 +176,7 @@ class PurchaseShipmentResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

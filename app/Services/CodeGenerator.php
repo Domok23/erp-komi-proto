@@ -6,6 +6,7 @@ use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptRetur;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
+use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Models\Project;
@@ -135,6 +136,21 @@ class CodeGenerator
             GoodsReceiptRetur::where('retur_number', $number)->exists() ||
             in_array($number, $excludeNumbers)
         );
+
+        return $number;
+    }
+
+    public static function generatePaymentNumber(string $invoiceType): string
+    {
+        $year = Carbon::now()->year;
+        $prefix = $invoiceType === 'sales' ? 'PAY-SALES' : 'PAY-PUR';
+        $count = Payment::where('invoice_type', $invoiceType)
+            ->whereYear('payment_date', $year)
+            ->count() + 1;
+        do {
+            $number = sprintf('%s-%d-%03d', $prefix, $year, $count);
+            $count++;
+        } while (Payment::where('payment_number', $number)->exists());
 
         return $number;
     }

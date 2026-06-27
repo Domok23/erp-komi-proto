@@ -9,6 +9,7 @@ use App\Models\SalesOrder;
 use App\Services\CodeGenerator;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -47,9 +48,12 @@ class SalesOrderResource extends Resource
                 ->relationship('project', 'project_code')
                 ->searchable()
                 ->preload()
-                ->required()
+                ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
+                    if (! $state) {
+                        return;
+                    }
                     $project = Project::find($state, ['*']);
                     if ($project) {
                         $set('customer_id', $project->customer_id);
@@ -293,7 +297,7 @@ class SalesOrderResource extends Resource
                 SelectFilter::make('customer_id')->relationship('customer', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('generateInvoice')
                         ->label('Generate Invoice')
                         ->icon('heroicon-o-document-text')

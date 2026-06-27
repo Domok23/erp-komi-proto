@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MaterialResource\Pages;
 use App\Filament\Resources\MaterialResource\RelationManagers;
 use App\Models\Material;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -107,7 +108,7 @@ class MaterialResource extends Resource
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

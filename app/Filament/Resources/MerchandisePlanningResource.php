@@ -14,6 +14,7 @@ use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -49,11 +50,12 @@ class MerchandisePlanningResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    if (!$state) {
+                    if (! $state) {
                         $set('design_id', null);
                         $set('items', []);
                         $set('total_material_cost', 0);
                         $set('total_subcon_cost', 0);
+
                         return;
                     }
                     $project = Project::find($state, ['*']);
@@ -62,9 +64,11 @@ class MerchandisePlanningResource extends Resource
 
                         // Auto-fill planning items from Project's BOM if available
                         if ($project->bom) {
-                            $items = $project->bom->items->map(function ($bomItem) {
+                            $items = $project->bom->items->map(function ($bomItem) use ($project) {
                                 $unitPrice = $bomItem->material?->price ?? 0;
-                                $plannedQty = $bomItem->quantity_per_unit;
+                                $targetQty = max(1, (int) ($project->target_qty ?? 1));
+                                $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
+                                $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
 
                                 return [
                                     'material_id' => $bomItem->material_id,
@@ -262,7 +266,7 @@ class MerchandisePlanningResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'project_code'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('generatePO')
                         ->label('Generate POs')
                         ->icon('heroicon-o-document-plus')

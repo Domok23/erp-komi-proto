@@ -11,6 +11,7 @@ use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -71,9 +72,10 @@ class GoodsReceiptResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    if (!$state) {
+                    if (! $state) {
                         $set('items', []);
                         $set('shipping', null);
+
                         return;
                     }
                     $type = $get('po_type');
@@ -250,17 +252,17 @@ class GoodsReceiptResource extends Resource
                                         ->rules([
                                             fn ($get) => function (string $attribute, $value, $fail) use ($get) {
                                                 $materialId = $get('material_id');
-                                                if (!$materialId) {
+                                                if (! $materialId) {
                                                     return;
                                                 }
                                                 $grItems = $get('../../../../items') ?? [];
                                                 $matchedItem = collect($grItems)->firstWhere('material_id', $materialId);
                                                 $maxAllowed = $matchedItem ? floatval($matchedItem['qty_received'] ?? 0) : 0;
-                                                
+
                                                 if (floatval($value) > $maxAllowed) {
                                                     $fail("Kuantitas yang diretur ({$value}) tidak boleh melebihi kuantitas yang diterima ({$maxAllowed}).");
                                                 }
-                                            }
+                                            },
                                         ]),
                                     Forms\Components\TextInput::make('reason')
                                         ->required(),
@@ -305,7 +307,7 @@ class GoodsReceiptResource extends Resource
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

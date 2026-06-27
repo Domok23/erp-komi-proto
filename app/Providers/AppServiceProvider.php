@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Models\GoodsReceiptShipping;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
+use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
+use App\Observers\PaymentObserver;
 use Filament\Support\Facades\FilamentView;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\HtmlString;
@@ -36,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
             'purchase' => InvoicePurchase::class,
             'sales' => InvoiceSales::class,
         ]);
+
+        Payment::observe(PaymentObserver::class);
 
         FilamentView::registerRenderHook(
             'panels::head.end',

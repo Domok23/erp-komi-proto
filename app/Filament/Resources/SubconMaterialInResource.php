@@ -9,6 +9,7 @@ use App\Models\PoSubcon;
 use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialOut;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -68,8 +69,9 @@ class SubconMaterialInResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    if (!$state) {
+                    if (! $state) {
                         $set('items', []);
+
                         return;
                     }
                     $out = SubconMaterialOut::with('items')->find($state);
@@ -78,7 +80,7 @@ class SubconMaterialInResource extends Resource
                         $set('po_subcon_id', $out->po_subcon_id);
 
                         $items = [];
-                        
+
                         // 1. Load Processed Goods / Services from PoSubcon
                         if ($out->po_subcon_id) {
                             $po = PoSubcon::with('items')->find($out->po_subcon_id);
@@ -189,28 +191,28 @@ class SubconMaterialInResource extends Resource
                                             return;
                                         }
                                         $materialId = $get('material_id');
-                                        if (!$materialId) {
+                                        if (! $materialId) {
                                             return;
                                         }
                                         $outId = $get('../../subcon_material_out_id');
-                                        if (!$outId) {
+                                        if (! $outId) {
                                             return;
                                         }
                                         $out = SubconMaterialOut::with('items')->find($outId);
-                                        if (!$out) {
+                                        if (! $out) {
                                             return;
                                         }
                                         $outItem = $out->items->firstWhere('material_id', $materialId);
                                         $maxSent = $outItem ? floatval($outItem->qty_sent) : 0;
-                                        
+
                                         $qtyReceived = floatval($value);
                                         $qtyRejected = floatval($get('qty_rejected') ?? 0);
-                                        
+
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
                                             $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
                                         }
-                                    }
-                                 ]),
+                                    },
+                                ]),
                             Forms\Components\TextInput::make('qty_rejected')
                                 ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Bahan Baku Rusak/Reject' : 'Qty Barang Hasil Reject')
                                 ->numeric()
@@ -223,28 +225,28 @@ class SubconMaterialInResource extends Resource
                                             return;
                                         }
                                         $materialId = $get('material_id');
-                                        if (!$materialId) {
+                                        if (! $materialId) {
                                             return;
                                         }
                                         $outId = $get('../../subcon_material_out_id');
-                                        if (!$outId) {
+                                        if (! $outId) {
                                             return;
                                         }
                                         $out = SubconMaterialOut::with('items')->find($outId);
-                                        if (!$out) {
+                                        if (! $out) {
                                             return;
                                         }
                                         $outItem = $out->items->firstWhere('material_id', $materialId);
                                         $maxSent = $outItem ? floatval($outItem->qty_sent) : 0;
-                                        
+
                                         $qtyReceived = floatval($get('qty_received') ?? 0);
                                         $qtyRejected = floatval($value);
-                                        
+
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
                                             $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
                                         }
-                                    }
-                                 ]),
+                                    },
+                                ]),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
                                 ->dehydrated()
@@ -281,7 +283,7 @@ class SubconMaterialInResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

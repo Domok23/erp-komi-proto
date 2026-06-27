@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\SalesOrder;
 use App\Services\CodeGenerator;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -163,7 +164,7 @@ class InvoiceSalesResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('pay')
                         ->label('Pay')
                         ->icon('heroicon-o-credit-card')
@@ -190,12 +191,11 @@ class InvoiceSalesResource extends Resource
                             Forms\Components\Textarea::make('notes'),
                         ])
                         ->action(function ($record, array $data) {
-                            $paymentCount = Payment::count('*') + 1;
                             Payment::create([
                                 'company_id' => $record->company_id,
                                 'invoice_type' => 'sales',
                                 'invoice_id' => $record->id,
-                                'payment_number' => 'PAY-SALES-'.now()->year.'-'.sprintf('%03d', $paymentCount),
+                                'payment_number' => CodeGenerator::generatePaymentNumber('sales'),
                                 'payment_date' => $data['payment_date'],
                                 'amount' => $data['amount'],
                                 'payment_method' => $data['payment_method'],

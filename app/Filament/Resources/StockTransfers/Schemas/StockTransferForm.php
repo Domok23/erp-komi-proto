@@ -48,7 +48,9 @@ class StockTransferForm
                         return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
                     })
                     ->searchable()
-                    ->required(),
+                    ->required()
+                    ->reactive()
+                    ->afterStateUpdated(fn (callable $set) => $set('items', [])),
                 Select::make('to_company_id')
                     ->label('To Company')
                     ->relationship('toCompany', 'name')
@@ -68,7 +70,11 @@ class StockTransferForm
                         return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
                     })
                     ->searchable()
-                    ->required(),
+                    ->required()
+                    ->different('from_warehouse_id')
+                    ->validationMessages([
+                        'different' => 'Destination warehouse must be different from source warehouse.',
+                    ]),
                 Select::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -139,7 +145,25 @@ class StockTransferForm
                                     ->label('Qty Transferred')
                                     ->numeric()
                                     ->default(1)
-                                    ->required(),
+                                    ->required()
+                                    ->rules([
+                                        fn (callable $get) => function (string $attribute, $value, $fail) use ($get) {
+                                            $fromWarehouseId = $get('../../from_warehouse_id');
+                                            $materialId = $get('material_id');
+                                            if (! $fromWarehouseId || ! $materialId) {
+                                                return;
+                                            }
+
+                                            $stock = InventoryStock::withoutGlobalScope('company')
+                                                ->where('warehouse_id', $fromWarehouseId)
+                                                ->where('material_id', $materialId)
+                                                ->first()?->quantity ?? 0;
+
+                                            if ($value > $stock) {
+                                                $fail("Kuantitas transfer ({$value}) melebihi stok yang tersedia ({$stock}).");
+                                            }
+                                        },
+                                    ]),
                                 TextInput::make('unit')
                                     ->disabled()
                                     ->dehydrated()

@@ -7,6 +7,7 @@ use App\Models\PoSubcon;
 use App\Services\CodeGenerator;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -191,7 +192,7 @@ class PoSubconResource extends Resource
                 SelectFilter::make('subcon_id')->relationship('subcon', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('generateInvoice')
                         ->label('Generate Invoice')
                         ->icon('heroicon-o-document-text')

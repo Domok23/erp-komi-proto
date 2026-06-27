@@ -7,6 +7,7 @@ use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -94,7 +95,7 @@ class ConsumptionRateResource extends Resource
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -34,8 +34,7 @@ class EditCosting extends EditRecord
 
                     // Auto-fill MP cost from config if empty
                     if ($record->mp_cost <= 0 && $record->project) {
-                        $targetQty = max(1, (int) $record->project->target_qty);
-                        $mpCost = CostingCalculatorService::calculateMpCost($targetQty);
+                        $mpCost = CostingCalculatorService::getMpRatePerUnit();
                         $record->update(['mp_cost' => $mpCost]);
                     }
 

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RdDesignResource\Pages;
 use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -131,7 +132,7 @@ class RdDesignResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\PoSubcon;
 use App\Models\SubconMaterialOut;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -62,7 +63,6 @@ class SubconMaterialOutResource extends Resource
                 ->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
-                    'received' => 'Received',
                 ])
                 ->default('draft')
                 ->required(),
@@ -101,7 +101,7 @@ class SubconMaterialOutResource extends Resource
                                 ->rules([
                                     fn ($get) => function (string $attribute, $value, $fail) use ($get) {
                                         $materialId = $get('material_id');
-                                        if (!$materialId) {
+                                        if (! $materialId) {
                                             return;
                                         }
                                         $companyId = CompanyContext::getCompanyId();
@@ -111,7 +111,7 @@ class SubconMaterialOutResource extends Resource
                                         if (floatval($value) > $stock) {
                                             $fail("Stok gudang tidak mencukupi. Stok saat ini: {$stock}.");
                                         }
-                                    }
+                                    },
                                 ]),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
@@ -144,11 +144,10 @@ class SubconMaterialOutResource extends Resource
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
-                    'received' => 'Received',
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

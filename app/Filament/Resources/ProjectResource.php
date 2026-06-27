@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\ProjectTransitionService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -150,7 +151,7 @@ class ProjectResource extends Resource
                 SelectFilter::make('customer_id')->relationship('customer', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('approve')
                         ->label('Approve')
                         ->icon('heroicon-o-check-circle')

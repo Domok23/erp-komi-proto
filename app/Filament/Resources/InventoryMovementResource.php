@@ -3,9 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryMovementResource\Pages;
+use App\Filament\Resources\StockTransfers\StockTransferResource;
+use App\Models\GoodsReceipt;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
+use App\Models\StockTransfer;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialOut;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -106,21 +112,23 @@ class InventoryMovementResource extends Resource
             Tables\Columns\TextColumn::make('after_qty')->numeric(),
             Tables\Columns\TextColumn::make('reference_type')
                 ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
-                    \App\Models\StockTransfer::class => 'Stock Transfer',
-                    \App\Models\GoodsReceipt::class => 'Goods Receipt',
-                    \App\Models\SubconMaterialIn::class => 'Subcon Material In',
-                    \App\Models\SubconMaterialOut::class => 'Subcon Material Out',
+                    StockTransfer::class => 'Stock Transfer',
+                    GoodsReceipt::class => 'Goods Receipt',
+                    SubconMaterialIn::class => 'Subcon Material In',
+                    SubconMaterialOut::class => 'Subcon Material Out',
                     default => class_basename($state),
                 } : '-')
                 ->color('primary')
                 ->url(function ($record) {
-                    if (!$record->reference_id || !$record->reference_type) return null;
-                    
+                    if (! $record->reference_id || ! $record->reference_type) {
+                        return null;
+                    }
+
                     return match ($record->reference_type) {
-                        \App\Models\StockTransfer::class => \App\Filament\Resources\StockTransfers\StockTransferResource::getUrl('edit', ['record' => $record->reference_id]),
-                        \App\Models\GoodsReceipt::class => \App\Filament\Resources\GoodsReceiptResource::getUrl('edit', ['record' => $record->reference_id]),
-                        \App\Models\SubconMaterialOut::class => \App\Filament\Resources\SubconMaterialOutResource::getUrl('edit', ['record' => $record->reference_id]),
-                        \App\Models\SubconMaterialIn::class => \App\Filament\Resources\SubconMaterialInResource::getUrl('edit', ['record' => $record->reference_id]),
+                        StockTransfer::class => StockTransferResource::getUrl('edit', ['record' => $record->reference_id]),
+                        GoodsReceipt::class => GoodsReceiptResource::getUrl('edit', ['record' => $record->reference_id]),
+                        SubconMaterialOut::class => SubconMaterialOutResource::getUrl('edit', ['record' => $record->reference_id]),
+                        SubconMaterialIn::class => SubconMaterialInResource::getUrl('edit', ['record' => $record->reference_id]),
                         default => null,
                     };
                 }),
@@ -143,7 +151,7 @@ class InventoryMovementResource extends Resource
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

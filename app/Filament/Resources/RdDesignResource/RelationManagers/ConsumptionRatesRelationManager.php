@@ -5,6 +5,7 @@ namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -75,7 +76,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

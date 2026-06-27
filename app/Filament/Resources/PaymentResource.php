@@ -6,6 +6,8 @@ use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
 use App\Models\Payment;
+use App\Services\CodeGenerator;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -31,6 +33,9 @@ class PaymentResource extends Resource
     {
         return $schema->schema([
             Forms\Components\TextInput::make('payment_number')
+                ->default(fn () => CodeGenerator::generatePaymentNumber('sales'))
+                ->disabled()
+                ->dehydrated()
                 ->required()
                 ->maxLength(50),
             Forms\Components\Select::make('invoice_type')
@@ -39,7 +44,13 @@ class PaymentResource extends Resource
                     'sales' => 'Sales Invoice',
                 ])
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    if ($state) {
+                        $set('payment_number', CodeGenerator::generatePaymentNumber($state));
+                    }
+                    $set('invoice_id', null);
+                }),
             Forms\Components\Select::make('invoice_id')
                 ->label('Invoice')
                 ->options(function (callable $get) {
@@ -98,7 +109,7 @@ class PaymentResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\CompanyContext;
 use App\Services\CostingCalculatorService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;

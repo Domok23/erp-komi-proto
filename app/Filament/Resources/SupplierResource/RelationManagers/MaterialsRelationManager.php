@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierResource\RelationManagers;
 
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -61,7 +62,7 @@ class MaterialsRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ShipmentResource\Pages;
 use App\Models\Shipment;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -124,7 +125,7 @@ class ShipmentResource extends Resource
                 SelectFilter::make('shipping_method')->options(['sea' => 'Sea', 'air' => 'Air', 'land' => 'Land', 'courier' => 'Courier']),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Services\CostingCalculatorService;
 use App\Services\CostingTransitionService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -49,9 +50,8 @@ class CostingResource extends Resource
                     if ($project) {
                         $set('design_id', $project->design_id);
 
-                        // Auto-fill MP cost from config: Rp 33,000/unit × target_qty
-                        $targetQty = max(1, (int) $project->target_qty);
-                        $mpCost = CostingCalculatorService::calculateMpCost($targetQty);
+                        // Auto-fill MP cost from config per unit
+                        $mpCost = CostingCalculatorService::getMpRatePerUnit();
                         $set('mp_cost', $mpCost);
 
                         // Auto-fill overhead & profit from config
@@ -254,7 +254,7 @@ class CostingResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'project_code'),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('importFromBOM')
                         ->label('Import BOM')
                         ->icon('heroicon-o-arrow-down-tray')

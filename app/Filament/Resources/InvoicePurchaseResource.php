@@ -9,6 +9,7 @@ use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Services\CodeGenerator;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -71,10 +72,11 @@ class InvoicePurchaseResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    if (!$state) {
+                    if (! $state) {
                         $set('subtotal', 0);
                         $set('tax_amount', 0);
                         $set('grand_total', 0);
+
                         return;
                     }
                     $type = $get('purchase_type');
@@ -172,7 +174,7 @@ class InvoicePurchaseResource extends Resource
                 ]),
             ])
             ->actions([
-                \Filament\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Action::make('pay')
                         ->label('Pay')
                         ->icon('heroicon-o-credit-card')
@@ -199,12 +201,11 @@ class InvoicePurchaseResource extends Resource
                             Forms\Components\Textarea::make('notes'),
                         ])
                         ->action(function ($record, array $data) {
-                            $paymentCount = Payment::count('*') + 1;
                             Payment::create([
                                 'company_id' => $record->company_id,
                                 'invoice_type' => 'purchase',
                                 'invoice_id' => $record->id,
-                                'payment_number' => 'PAY-PUR-'.now()->year.'-'.sprintf('%03d', $paymentCount),
+                                'payment_number' => CodeGenerator::generatePaymentNumber('purchase'),
                                 'payment_date' => $data['payment_date'],
                                 'amount' => $data['amount'],
                                 'payment_method' => $data['payment_method'],
