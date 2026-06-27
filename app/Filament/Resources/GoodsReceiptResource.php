@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
+use App\Models\Material;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
 use Filament\Forms;
@@ -171,21 +172,17 @@ class GoodsReceiptResource extends Resource
                     Forms\Components\Repeater::make('returs')
                         ->relationship('returs')
                         ->schema([
-                            Forms\Components\TextInput::make('retur_number')->required(),
-                            Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+                            Forms\Components\TextInput::make('retur_number')
+                                ->default(function (callable $get) {
+                                    $existingReturs = $get('../../returs') ?? [];
+                                    $excludeNumbers = collect($existingReturs)
+                                        ->pluck('retur_number')
+                                        ->filter()
+                                        ->toArray();
+                                    return CodeGenerator::generateGRReturNumber($excludeNumbers);
                                 })
-                                ->required(),
-                            Forms\Components\TextInput::make('qty_returned')
-                                ->numeric()
-                                ->required(),
-                            Forms\Components\TextInput::make('reason')
+                                ->reactive()
+                                ->dehydrated()
                                 ->required(),
                             Forms\Components\Select::make('status')
                                 ->options([
@@ -196,9 +193,47 @@ class GoodsReceiptResource extends Resource
                                 ])
                                 ->default('pending')
                                 ->required(),
+                            Forms\Components\Textarea::make('notes')
+                                ->columnSpanFull(),
+                            Forms\Components\Repeater::make('items')
+                                ->relationship('items')
+                                ->label('Return Items')
+                                ->schema([
+                                    Forms\Components\Select::make('material_id')
+                                        ->label('Material')
+                                        ->options(function (callable $get) {
+                                            $grItems = $get('../../../../items') ?? [];
+                                            $materialIds = collect($grItems)
+                                                ->pluck('material_id')
+                                                ->filter()
+                                                ->unique()
+                                                ->values();
+
+                                            if ($materialIds->isEmpty()) {
+                                                return [];
+                                            }
+
+                                            return Material::whereIn('id', $materialIds)
+                                                ->get()
+                                                ->mapWithKeys(fn ($material) => [
+                                                    $material->id => "[{$material->code}] {$material->name}",
+                                                ]);
+                                        })
+                                        ->searchable()
+                                        ->required(),
+                                    Forms\Components\TextInput::make('qty_returned')
+                                        ->numeric()
+                                        ->required(),
+                                    Forms\Components\TextInput::make('reason')
+                                        ->required(),
+                                ])
+                                ->columns(3)
+                                ->columnSpanFull(),
                         ])
-                        ->columns(3)
-                        ->columnSpanFull(),
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string => $state['retur_number'] ?? 'New Return'),
                 ]),
         ]);
     }

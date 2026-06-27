@@ -10,6 +10,7 @@ use App\Models\GoodsReceipt;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
 use App\Models\PurchaseShipment;
+use App\Models\GoodsReceiptRetur;
 use Carbon\Carbon;
 
 class CodeGenerator
@@ -75,5 +76,19 @@ class CodeGenerator
         $year = Carbon::now()->year;
         $count = PurchaseShipment::whereYear('created_at', $year)->count() + 1;
         return sprintf('SHP-PUR-%d-%03d', $year, $count);
+    }
+
+    public static function generateGRReturNumber(array $excludeNumbers = []): string
+    {
+        $year = Carbon::now()->year;
+        $count = GoodsReceiptRetur::whereYear('created_at', $year)->count() + 1;
+        do {
+            $number = sprintf('RET-GR-%d-%03d', $year, $count);
+            $count++;
+        } while (
+            GoodsReceiptRetur::where('retur_number', $number)->exists() ||
+            in_array($number, $excludeNumbers)
+        );
+        return $number;
     }
 }
