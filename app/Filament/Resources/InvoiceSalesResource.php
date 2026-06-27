@@ -13,6 +13,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -45,13 +47,19 @@ class InvoiceSalesResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $so = SalesOrder::find($state, ['*']);
+                    $so = $state ? SalesOrder::find($state, ['*']) : null;
                     if ($so) {
                         $set('subtotal', $so->subtotal);
                         $set('ppn_percent', $so->ppn_percent);
                         $set('ppn_amount', $so->ppn_amount);
                         $set('shipping_cost', $so->shipping_cost);
                         $set('grand_total', $so->grand_total);
+                    } else {
+                        $set('subtotal', 0);
+                        $set('ppn_percent', 11);
+                        $set('ppn_amount', 0);
+                        $set('shipping_cost', 0);
+                        $set('grand_total', 0);
                     }
                 }),
             Forms\Components\DatePicker::make('invoice_date')
@@ -62,26 +70,36 @@ class InvoiceSalesResource extends Resource
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('ppn_percent')
                 ->numeric()
                 ->default(11)
                 ->suffix('%')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('ppn_amount')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
+                ->disabled()
+                ->dehydrated()
                 ->required(),
             Forms\Components\TextInput::make('shipping_cost')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('grand_total')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
+                ->disabled()
+                ->dehydrated()
                 ->required(),
             Forms\Components\TextInput::make('paid_amount')
                 ->numeric()
@@ -104,6 +122,17 @@ class InvoiceSalesResource extends Resource
             Forms\Components\Textarea::make('notes')
                 ->columnSpanFull(),
         ]);
+    }
+
+    protected static function recalculateTotals(Get $get, Set $set): void
+    {
+        $subtotal = floatval($get('subtotal') ?? 0);
+        $ppnPercent = floatval($get('ppn_percent') ?? 0);
+        $shipping = floatval($get('shipping_cost') ?? 0);
+
+        $ppnAmount = $subtotal * ($ppnPercent / 100);
+        $set('ppn_amount', $ppnAmount);
+        $set('grand_total', $subtotal + $ppnAmount + $shipping);
     }
 
     public static function table(Table $table): Table

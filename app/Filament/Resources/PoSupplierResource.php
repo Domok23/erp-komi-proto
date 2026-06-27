@@ -130,17 +130,19 @@ class PoSupplierResource extends Resource
                                 ->preload()
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
-                                    if ($material) {
-                                        $set('unit', $material->unit);
-                                        $set('unit_price', $material->price);
-                                    }
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $material = $state ? Material::find($state, ['*']) : null;
+                                    $set('unit', $material?->unit);
+                                    $price = $material?->price ?? 0;
+                                    $set('unit_price', $price);
+                                    $qty = floatval($get('qty') ?? 1);
+                                    $set('total_price', $qty * $price);
                                 }),
                             Forms\Components\TextInput::make('qty')
                                 ->numeric()
                                 ->default(1)
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
@@ -156,6 +158,7 @@ class PoSupplierResource extends Resource
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);

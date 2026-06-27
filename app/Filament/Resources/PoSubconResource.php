@@ -72,8 +72,8 @@ class PoSubconResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
-                        ->reactive()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('shipping_cost')
                         ->numeric()
                         ->default(0)
@@ -109,6 +109,7 @@ class PoSubconResource extends Resource
                                 ->numeric()
                                 ->default(1)
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
@@ -120,6 +121,7 @@ class PoSubconResource extends Resource
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);

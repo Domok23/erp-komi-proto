@@ -14,6 +14,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -45,7 +47,13 @@ class InvoicePurchaseResource extends Resource
                     'po_subcon' => 'Subcon PO',
                 ])
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(function (callable $set) {
+                    $set('reference_id', null);
+                    $set('subtotal', 0);
+                    $set('tax_amount', 0);
+                    $set('grand_total', 0);
+                }),
             Forms\Components\Select::make('reference_id')
                 ->label('Purchase Order')
                 ->options(function (callable $get) {
@@ -63,6 +71,12 @@ class InvoicePurchaseResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    if (!$state) {
+                        $set('subtotal', 0);
+                        $set('tax_amount', 0);
+                        $set('grand_total', 0);
+                        return;
+                    }
                     $type = $get('purchase_type');
                     if ($type === 'po_supplier') {
                         $po = PoSupplier::find($state, ['*']);
@@ -88,16 +102,22 @@ class InvoicePurchaseResource extends Resource
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('tax_amount')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('grand_total')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
+                ->disabled()
+                ->dehydrated()
                 ->required(),
             Forms\Components\TextInput::make('paid_amount')
                 ->numeric()
@@ -116,6 +136,13 @@ class InvoicePurchaseResource extends Resource
             Forms\Components\Textarea::make('notes')
                 ->columnSpanFull(),
         ]);
+    }
+
+    protected static function recalculateTotals(Get $get, Set $set): void
+    {
+        $subtotal = floatval($get('subtotal') ?? 0);
+        $tax = floatval($get('tax_amount') ?? 0);
+        $set('grand_total', $subtotal + $tax);
     }
 
     public static function table(Table $table): Table

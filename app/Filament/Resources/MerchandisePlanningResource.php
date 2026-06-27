@@ -49,6 +49,13 @@ class MerchandisePlanningResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
+                    if (!$state) {
+                        $set('design_id', null);
+                        $set('items', []);
+                        $set('total_material_cost', 0);
+                        $set('total_subcon_cost', 0);
+                        return;
+                    }
                     $project = Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
@@ -137,15 +144,14 @@ class MerchandisePlanningResource extends Resource
                                 ->nullable()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = Material::find($state, ['*']);
-                                    if ($material) {
-                                        $set('unit', $material->unit);
-                                        $set('unit_price', $material->price);
-                                        $set('supplier_id', $material->supplier_id);
+                                    $material = $state ? Material::find($state, ['*']) : null;
+                                    $set('unit', $material?->unit);
+                                    $price = $material?->price ?? 0;
+                                    $set('unit_price', $price);
+                                    $set('supplier_id', $material?->supplier_id);
 
-                                        $qty = floatval($get('planned_qty') ?? 1);
-                                        $set('total_price', $qty * floatval($material->price));
-                                    }
+                                    $qty = floatval($get('planned_qty') ?? 1);
+                                    $set('total_price', $qty * floatval($price));
                                 }),
                             Forms\Components\Select::make('supplier_id')
                                 ->relationship('supplier', 'name')
@@ -165,6 +171,7 @@ class MerchandisePlanningResource extends Resource
                                 ->numeric()
                                 ->default(1)
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);

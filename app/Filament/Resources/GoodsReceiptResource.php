@@ -49,7 +49,11 @@ class GoodsReceiptResource extends Resource
                 ])
                 ->required()
                 ->reactive()
-                ->afterStateUpdated(fn (callable $set) => $set('po_id', null)),
+                ->afterStateUpdated(function (callable $set) {
+                    $set('po_id', null);
+                    $set('items', []);
+                    $set('shipping', null);
+                }),
             Forms\Components\Select::make('po_id')
                 ->label('Purchase Order')
                 ->options(function (callable $get) {
@@ -67,6 +71,11 @@ class GoodsReceiptResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    if (!$state) {
+                        $set('items', []);
+                        $set('shipping', null);
+                        return;
+                    }
                     $type = $get('po_type');
                     if ($type === 'supplier') {
                         $po = PoSupplier::with('items')->find($state);
@@ -236,7 +245,23 @@ class GoodsReceiptResource extends Resource
                                         ->required(),
                                     Forms\Components\TextInput::make('qty_returned')
                                         ->numeric()
-                                        ->required(),
+                                        ->required()
+                                        ->minValue(0.01)
+                                        ->rules([
+                                            fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                                $materialId = $get('material_id');
+                                                if (!$materialId) {
+                                                    return;
+                                                }
+                                                $grItems = $get('../../../../items') ?? [];
+                                                $matchedItem = collect($grItems)->firstWhere('material_id', $materialId);
+                                                $maxAllowed = $matchedItem ? floatval($matchedItem['qty_received'] ?? 0) : 0;
+                                                
+                                                if (floatval($value) > $maxAllowed) {
+                                                    $fail("Kuantitas yang diretur ({$value}) tidak boleh melebihi kuantitas yang diterima ({$maxAllowed}).");
+                                                }
+                                            }
+                                        ]),
                                     Forms\Components\TextInput::make('reason')
                                         ->required(),
                                 ])

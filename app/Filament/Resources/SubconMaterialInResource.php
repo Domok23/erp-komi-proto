@@ -44,11 +44,14 @@ class SubconMaterialInResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $po = PoSubcon::find($state, ['*']);
+                    $po = $state ? PoSubcon::find($state, ['*']) : null;
                     if ($po) {
                         $set('subcon_id', $po->subcon_id);
+                    } else {
+                        $set('subcon_id', null);
                     }
                     $set('subcon_material_out_id', null);
+                    $set('items', []);
                 }),
             Forms\Components\Select::make('subcon_material_out_id')
                 ->relationship('subconMaterialOut', 'document_number', function ($query, callable $get) {
@@ -65,13 +68,17 @@ class SubconMaterialInResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
+                    if (!$state) {
+                        $set('items', []);
+                        return;
+                    }
                     $out = SubconMaterialOut::with('items')->find($state);
                     if ($out) {
                         $set('subcon_id', $out->subcon_id);
                         $set('po_subcon_id', $out->po_subcon_id);
 
                         $items = [];
-
+                        
                         // 1. Load Processed Goods / Services from PoSubcon
                         if ($out->po_subcon_id) {
                             $po = PoSubcon::with('items')->find($out->po_subcon_id);
@@ -174,11 +181,70 @@ class SubconMaterialInResource extends Resource
                                 ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Sisa Bahan Baku Kembali' : 'Qty Barang Hasil Diterima')
                                 ->numeric()
                                 ->default(1)
-                                ->required(),
+                                ->required()
+                                ->minValue(0.01)
+                                ->rules([
+                                    fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                        if ($get('item_type') !== 'raw_return') {
+                                            return;
+                                        }
+                                        $materialId = $get('material_id');
+                                        if (!$materialId) {
+                                            return;
+                                        }
+                                        $outId = $get('../../subcon_material_out_id');
+                                        if (!$outId) {
+                                            return;
+                                        }
+                                        $out = SubconMaterialOut::with('items')->find($outId);
+                                        if (!$out) {
+                                            return;
+                                        }
+                                        $outItem = $out->items->firstWhere('material_id', $materialId);
+                                        $maxSent = $outItem ? floatval($outItem->qty_sent) : 0;
+                                        
+                                        $qtyReceived = floatval($value);
+                                        $qtyRejected = floatval($get('qty_rejected') ?? 0);
+                                        
+                                        if (($qtyReceived + $qtyRejected) > $maxSent) {
+                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                        }
+                                    }
+                                 ]),
                             Forms\Components\TextInput::make('qty_rejected')
                                 ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Bahan Baku Rusak/Reject' : 'Qty Barang Hasil Reject')
                                 ->numeric()
-                                ->default(0),
+                                ->default(0)
+                                ->required()
+                                ->minValue(0.00)
+                                ->rules([
+                                    fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                        if ($get('item_type') !== 'raw_return') {
+                                            return;
+                                        }
+                                        $materialId = $get('material_id');
+                                        if (!$materialId) {
+                                            return;
+                                        }
+                                        $outId = $get('../../subcon_material_out_id');
+                                        if (!$outId) {
+                                            return;
+                                        }
+                                        $out = SubconMaterialOut::with('items')->find($outId);
+                                        if (!$out) {
+                                            return;
+                                        }
+                                        $outItem = $out->items->firstWhere('material_id', $materialId);
+                                        $maxSent = $outItem ? floatval($outItem->qty_sent) : 0;
+                                        
+                                        $qtyReceived = floatval($get('qty_received') ?? 0);
+                                        $qtyRejected = floatval($value);
+                                        
+                                        if (($qtyReceived + $qtyRejected) > $maxSent) {
+                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                        }
+                                    }
+                                 ]),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
                                 ->dehydrated()

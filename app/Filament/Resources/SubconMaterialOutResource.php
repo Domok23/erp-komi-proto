@@ -43,9 +43,11 @@ class SubconMaterialOutResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $po = PoSubcon::find($state, ['*']);
+                    $po = $state ? PoSubcon::find($state, ['*']) : null;
                     if ($po) {
                         $set('subcon_id', $po->subcon_id);
+                    } else {
+                        $set('subcon_id', null);
                     }
                 }),
             Forms\Components\Select::make('subcon_id')
@@ -88,15 +90,29 @@ class SubconMaterialOutResource extends Resource
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
-                                    if ($material) {
-                                        $set('unit', $material->unit);
-                                    }
+                                    $material = $state ? Material::find($state, ['*']) : null;
+                                    $set('unit', $material?->unit);
                                 }),
                             Forms\Components\TextInput::make('qty_sent')
                                 ->numeric()
                                 ->default(1)
-                                ->required(),
+                                ->required()
+                                ->minValue(0.01)
+                                ->rules([
+                                    fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                        $materialId = $get('material_id');
+                                        if (!$materialId) {
+                                            return;
+                                        }
+                                        $companyId = CompanyContext::getCompanyId();
+                                        $stock = InventoryStock::where('material_id', $materialId)
+                                            ->where('company_id', $companyId)
+                                            ->sum('quantity');
+                                        if (floatval($value) > $stock) {
+                                            $fail("Stok gudang tidak mencukupi. Stok saat ini: {$stock}.");
+                                        }
+                                    }
+                                ]),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
                                 ->dehydrated()

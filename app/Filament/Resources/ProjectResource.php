@@ -89,13 +89,16 @@ class ProjectResource extends Resource
                 ->disabled()
                 ->nullable(),
             Forms\Components\DatePicker::make('start_date'),
-            Forms\Components\DatePicker::make('target_date'),
+            Forms\Components\DatePicker::make('target_date')
+                ->afterOrEqual('start_date'),
             Forms\Components\TextInput::make('target_qty')
                 ->integer()
-                ->default(0),
+                ->default(0)
+                ->minValue(0),
             Forms\Components\TextInput::make('produced_qty')
                 ->integer()
-                ->default(0),
+                ->default(0)
+                ->minValue(0),
             Section::make('Approval Details')
                 ->columnSpanFull()
                 ->schema([

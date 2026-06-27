@@ -95,25 +95,33 @@ class PurchaseShipmentResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\DatePicker::make('etd')->label('ETD'),
-                    Forms\Components\DatePicker::make('eta')->label('ETA'),
-                    Forms\Components\DatePicker::make('actual_arrival')->label('Actual Arrival'),
+                    Forms\Components\DatePicker::make('eta')
+                        ->label('ETA')
+                        ->afterOrEqual('etd'),
+                    Forms\Components\DatePicker::make('actual_arrival')
+                        ->label('Actual Arrival')
+                        ->afterOrEqual('shipment_date'),
                     Forms\Components\TextInput::make('total_packages')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->minValue(0),
                     Forms\Components\TextInput::make('total_gross_weight_kg')
                         ->numeric()
                         ->step(0.01)
                         ->default(0)
-                        ->suffix('kg'),
+                        ->suffix('kg')
+                        ->minValue(0),
                     Forms\Components\TextInput::make('total_volume_m3')
                         ->numeric()
                         ->step(0.01)
                         ->default(0)
-                        ->suffix('m³'),
+                        ->suffix('m³')
+                        ->minValue(0),
                     Forms\Components\TextInput::make('shipping_cost')
                         ->numeric()
                         ->default(0)
-                        ->prefix('IDR'),
+                        ->prefix('IDR')
+                        ->minValue(0),
                 ])->columns(3),
 
             Forms\Components\Textarea::make('notes')
