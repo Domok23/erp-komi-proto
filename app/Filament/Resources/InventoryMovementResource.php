@@ -102,8 +102,28 @@ class InventoryMovementResource extends Resource
             Tables\Columns\TextColumn::make('quantity')->numeric()->sortable(),
             Tables\Columns\TextColumn::make('before_qty')->numeric(),
             Tables\Columns\TextColumn::make('after_qty')->numeric(),
-            Tables\Columns\TextColumn::make('reference_type'),
-            Tables\Columns\TextColumn::make('reference_id'),
+            Tables\Columns\TextColumn::make('reference_type')
+                ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
+                    \App\Models\StockTransfer::class => 'Stock Transfer',
+                    \App\Models\GoodsReceipt::class => 'Goods Receipt',
+                    \App\Models\SubconMaterialIn::class => 'Subcon Material In',
+                    \App\Models\SubconMaterialOut::class => 'Subcon Material Out',
+                    default => class_basename($state),
+                } : '-')
+                ->color('primary')
+                ->url(function ($record) {
+                    if (!$record->reference_id || !$record->reference_type) return null;
+                    
+                    return match ($record->reference_type) {
+                        \App\Models\StockTransfer::class => \App\Filament\Resources\StockTransfers\StockTransferResource::getUrl('edit', ['record' => $record->reference_id]),
+                        \App\Models\GoodsReceipt::class => \App\Filament\Resources\GoodsReceiptResource::getUrl('edit', ['record' => $record->reference_id]),
+                        \App\Models\SubconMaterialOut::class => \App\Filament\Resources\SubconMaterialOutResource::getUrl('edit', ['record' => $record->reference_id]),
+                        \App\Models\SubconMaterialIn::class => \App\Filament\Resources\SubconMaterialInResource::getUrl('edit', ['record' => $record->reference_id]),
+                        default => null,
+                    };
+                }),
+            Tables\Columns\TextColumn::make('reference_id')
+                ->label('Reference ID'),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
         ])
             ->filters([
