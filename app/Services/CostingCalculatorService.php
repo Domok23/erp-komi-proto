@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Project;
 use App\Models\Costing;
+use App\Models\Project;
 
 class CostingCalculatorService
 {

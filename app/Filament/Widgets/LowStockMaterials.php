@@ -10,7 +10,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class LowStockMaterials extends BaseWidget
 {
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 1;
+
+    protected int|string|array $columnSpan = 1;
+
     protected static ?string $heading = 'Low Stock Materials';
 
     public function table(Table $table): Table
@@ -30,11 +32,11 @@ class LowStockMaterials extends BaseWidget
                 Tables\Columns\TextColumn::make('stock')
                     ->label('Stock')
                     ->numeric(2)
-                    ->suffix(fn ($record) => ' ' . $record->unit),
+                    ->suffix(fn ($record) => ' '.$record->unit),
                 Tables\Columns\TextColumn::make('min_stock')
                     ->label('Min')
                     ->numeric(2)
-                    ->suffix(fn ($record) => ' ' . $record->unit),
+                    ->suffix(fn ($record) => ' '.$record->unit),
             ]);
     }
 }

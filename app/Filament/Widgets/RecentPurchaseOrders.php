@@ -10,7 +10,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class RecentPurchaseOrders extends BaseWidget
 {
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 2;
+
+    protected int|string|array $columnSpan = 2;
+
     protected static ?string $heading = 'Recent Supplier Purchase Orders';
 
     public function table(Table $table): Table

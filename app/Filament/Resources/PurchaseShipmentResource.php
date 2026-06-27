@@ -3,28 +3,30 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PurchaseShipmentResource\Pages;
-use App\Models\PurchaseShipment;
-use App\Models\PoSupplier;
 use App\Models\PoSubcon;
+use App\Models\PoSupplier;
+use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PurchaseShipmentResource extends Resource
 {
     protected static ?string $model = PurchaseShipment::class;
 
     protected static ?string $navigationLabel = 'Purchase Shipments';
+
     protected static ?string $modelLabel = 'Purchase Shipment';
+
     protected static ?string $pluralModelLabel = 'Purchase Shipments';
 
     public static function form(Schema $schema): Schema
@@ -53,6 +55,7 @@ class PurchaseShipmentResource extends Resource
                     } elseif ($type === 'subcon') {
                         return PoSubcon::pluck('po_number', 'id');
                     }
+
                     return [];
                 })
                 ->required()

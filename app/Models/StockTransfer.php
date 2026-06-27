@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,19 +32,19 @@ class StockTransfer extends Model
     {
         static::updated(function (StockTransfer $transfer) {
             if ($transfer->status === 'shipped' && $transfer->getOriginal('status') !== 'shipped') {
-                \App\Services\InventoryService::executeTransferShipment($transfer);
+                InventoryService::executeTransferShipment($transfer);
             }
             if ($transfer->status === 'received' && $transfer->getOriginal('status') !== 'received') {
-                \App\Services\InventoryService::executeTransferReceipt($transfer);
+                InventoryService::executeTransferReceipt($transfer);
             }
         });
 
         static::created(function (StockTransfer $transfer) {
             if ($transfer->status === 'shipped') {
-                \App\Services\InventoryService::executeTransferShipment($transfer);
+                InventoryService::executeTransferShipment($transfer);
             }
             if ($transfer->status === 'received') {
-                \App\Services\InventoryService::executeTransferReceipt($transfer);
+                InventoryService::executeTransferReceipt($transfer);
             }
         });
     }

@@ -3,26 +3,31 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialOutResource\Pages;
-use App\Models\SubconMaterialOut;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Models\PoSubcon;
+use App\Models\SubconMaterialOut;
+use App\Services\CompanyContext;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class SubconMaterialOutResource extends Resource
 {
     protected static ?string $model = SubconMaterialOut::class;
 
     protected static ?string $navigationLabel = 'Subcon Material Out';
+
     protected static ?string $modelLabel = 'Subcon Material Out';
+
     protected static ?string $pluralModelLabel = 'Subcon Material Outs';
 
     public static function form(Schema $schema): Schema
@@ -38,7 +43,7 @@ class SubconMaterialOutResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $po = \App\Models\PoSubcon::find($state, ['*']);
+                    $po = PoSubcon::find($state, ['*']);
                     if ($po) {
                         $set('subcon_id', $po->subcon_id);
                     }
@@ -71,11 +76,12 @@ class SubconMaterialOutResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->searchable()
                                 ->preload()
@@ -98,7 +104,7 @@ class SubconMaterialOutResource extends Resource
                         ])
                         ->columns(3)
                         ->columnSpanFull(),
-                ])
+                ]),
         ]);
     }
 

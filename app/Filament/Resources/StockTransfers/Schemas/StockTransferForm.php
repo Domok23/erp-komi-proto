@@ -2,15 +2,17 @@
 
 namespace App\Filament\Resources\StockTransfers\Schemas;
 
-use App\Services\CodeGenerator;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
+use App\Models\Warehouse;
+use App\Services\CodeGenerator;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class StockTransferForm
 {
@@ -39,10 +41,11 @@ class StockTransferForm
                     ->label('From Warehouse')
                     ->options(function (callable $get) {
                         $companyId = $get('from_company_id');
-                        if (!$companyId) {
+                        if (! $companyId) {
                             return [];
                         }
-                        return \App\Models\Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
+
+                        return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
                     })
                     ->searchable()
                     ->required(),
@@ -58,10 +61,11 @@ class StockTransferForm
                     ->label('To Warehouse')
                     ->options(function (callable $get) {
                         $companyId = $get('to_company_id');
-                        if (!$companyId) {
+                        if (! $companyId) {
                             return [];
                         }
-                        return \App\Models\Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
+
+                        return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
                     })
                     ->searchable()
                     ->required(),
@@ -86,14 +90,14 @@ class StockTransferForm
                                 Select::make('material_id')
                                     ->options(function (callable $get) {
                                         $fromWarehouseId = $get('../../from_warehouse_id');
-                                        if (!$fromWarehouseId) {
+                                        if (! $fromWarehouseId) {
                                             return [];
                                         }
 
                                         $currentMaterialId = $get('material_id');
 
                                         // Find materials that have stock > 0 in this warehouse, OR are currently selected
-                                        $stocks = \App\Models\InventoryStock::withoutGlobalScope('company')
+                                        $stocks = InventoryStock::withoutGlobalScope('company')
                                             ->where('warehouse_id', $fromWarehouseId)
                                             ->where(function ($q) use ($currentMaterialId) {
                                                 $q->where('quantity', '>', 0);
@@ -108,12 +112,12 @@ class StockTransferForm
                                             ->unique('id')
                                             ->filter()
                                             ->mapWithKeys(function ($material) use ($fromWarehouseId) {
-                                                $qty = \App\Models\InventoryStock::withoutGlobalScope('company')
+                                                $qty = InventoryStock::withoutGlobalScope('company')
                                                     ->where('warehouse_id', $fromWarehouseId)
                                                     ->where('material_id', $material->id)
                                                     ->first()?->quantity ?? 0;
 
-                                                return [$material->id => "[{$material->code}] {$material->name} (Stock: " . number_format($qty, 2) . " {$material->unit})"];
+                                                return [$material->id => "[{$material->code}] {$material->name} (Stock: ".number_format($qty, 2)." {$material->unit})"];
                                             })
                                             ->toArray();
                                     })
@@ -142,8 +146,8 @@ class StockTransferForm
                                     ->default('pcs'),
                             ])
                             ->columns(4)
-                            ->columnSpanFull()
-                    ])
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 }

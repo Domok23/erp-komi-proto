@@ -3,26 +3,32 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialInResource\Pages;
-use App\Models\SubconMaterialIn;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Models\PoSubcon;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialOut;
+use App\Services\CompanyContext;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class SubconMaterialInResource extends Resource
 {
     protected static ?string $model = SubconMaterialIn::class;
 
     protected static ?string $navigationLabel = 'Subcon Material In';
+
     protected static ?string $modelLabel = 'Subcon Material In';
+
     protected static ?string $pluralModelLabel = 'Subcon Material Ins';
 
     public static function form(Schema $schema): Schema
@@ -38,9 +44,43 @@ class SubconMaterialInResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $po = \App\Models\PoSubcon::find($state, ['*']);
+                    $po = PoSubcon::find($state, ['*']);
                     if ($po) {
                         $set('subcon_id', $po->subcon_id);
+                    }
+                    $set('subcon_material_out_id', null);
+                }),
+            Forms\Components\Select::make('subcon_material_out_id')
+                ->relationship('subconMaterialOut', 'document_number', function ($query, callable $get) {
+                    $poId = $get('po_subcon_id');
+                    if ($poId) {
+                        return $query->where('po_subcon_id', $poId);
+                    }
+
+                    return $query;
+                })
+                ->label('Reference Material Out')
+                ->searchable()
+                ->preload()
+                ->nullable()
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    $out = SubconMaterialOut::with('items')->find($state);
+                    if ($out) {
+                        $set('subcon_id', $out->subcon_id);
+                        $set('po_subcon_id', $out->po_subcon_id);
+
+                        $items = [];
+                        foreach ($out->items as $item) {
+                            $items[] = [
+                                'material_id' => $item->material_id,
+                                'item_type' => 'raw_return',
+                                'qty_received' => 0.00,
+                                'qty_rejected' => 0.00,
+                                'unit' => $item->unit,
+                            ];
+                        }
+                        $set('items', $items);
                     }
                 }),
             Forms\Components\Select::make('subcon_id')
@@ -68,19 +108,42 @@ class SubconMaterialInResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            Forms\Components\Select::make('item_type')
+                                ->options([
+                                    'processed' => 'Barang Hasil Olahan',
+                                    'raw_return' => 'Sisa Bahan Baku/Reject',
+                                ])
+                                ->default('processed')
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    $set('material_id', null);
+                                    $set('unit', 'pcs');
+                                }),
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                                })
+                                ->options(function (callable $get) {
+                                    $type = $get('item_type');
+                                    if ($type === 'processed') {
+                                        return Material::whereIn('category', ['semi_finished', 'finished'])->pluck('name', 'id');
+                                    } else {
+                                        return Material::whereNotIn('category', ['semi_finished', 'finished'])->pluck('name', 'id');
+                                    }
                                 })
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->reactive()
+                                ->disabled(fn (callable $get) => $get('item_type') === 'raw_return' && $get('material_id') !== null)
+                                ->dehydrated()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $material = Material::find($state, ['*']);
                                     if ($material) {
@@ -88,10 +151,12 @@ class SubconMaterialInResource extends Resource
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Sisa Bahan Baku Kembali' : 'Qty Barang Hasil Diterima')
                                 ->numeric()
                                 ->default(1)
                                 ->required(),
                             Forms\Components\TextInput::make('qty_rejected')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Bahan Baku Rusak/Reject' : 'Qty Barang Hasil Reject')
                                 ->numeric()
                                 ->default(0),
                             Forms\Components\TextInput::make('unit')
@@ -101,7 +166,7 @@ class SubconMaterialInResource extends Resource
                         ])
                         ->columns(3)
                         ->columnSpanFull(),
-                ])
+                ]),
         ]);
     }
 
@@ -111,6 +176,7 @@ class SubconMaterialInResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
+            Tables\Columns\TextColumn::make('subconMaterialOut.document_number')->label('Material Out Ref'),
             Tables\Columns\TextColumn::make('subcon.name')->sortable(),
             Tables\Columns\TextColumn::make('receive_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')

@@ -3,27 +3,38 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
-use App\Models\MerchandisePlanning;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
+use App\Models\MerchandisePlanning;
+use App\Models\PoSubcon;
+use App\Models\PoSubconItem;
+use App\Models\PoSupplier;
+use App\Models\PoSupplierItem;
+use App\Models\Project;
+use App\Services\CodeGenerator;
+use App\Services\CompanyContext;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class MerchandisePlanningResource extends Resource
 {
     protected static ?string $model = MerchandisePlanning::class;
 
     protected static ?string $navigationLabel = 'Merchandise Planning';
+
     protected static ?string $modelLabel = 'Merchandise Planning';
+
     protected static ?string $pluralModelLabel = 'Merchandise Plannings';
 
     public static function form(Schema $schema): Schema
@@ -38,15 +49,16 @@ class MerchandisePlanningResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $project = \App\Models\Project::find($state, ['*']);
+                    $project = Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
-                        
+
                         // Auto-fill planning items from Project's BOM if available
                         if ($project->bom) {
                             $items = $project->bom->items->map(function ($bomItem) {
                                 $unitPrice = $bomItem->material?->price ?? 0;
                                 $plannedQty = $bomItem->quantity_per_unit;
+
                                 return [
                                     'material_id' => $bomItem->material_id,
                                     'planned_qty' => $plannedQty,
@@ -57,9 +69,9 @@ class MerchandisePlanningResource extends Resource
                                     'notes' => $bomItem->notes,
                                 ];
                             })->toArray();
-                            
+
                             $set('items', $items);
-                            
+
                             // Calculate total planning costs
                             $totalMat = array_sum(array_column($items, 'total_price'));
                             $set('total_material_cost', $totalMat);
@@ -84,7 +96,7 @@ class MerchandisePlanningResource extends Resource
                 ])
                 ->default('preliminary')
                 ->required(),
-            
+
             Section::make('Planning Costs')
                 ->columnSpanFull()
                 ->schema([
@@ -113,11 +125,12 @@ class MerchandisePlanningResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->searchable()
                                 ->preload()
@@ -129,7 +142,7 @@ class MerchandisePlanningResource extends Resource
                                         $set('unit', $material->unit);
                                         $set('unit_price', $material->price);
                                         $set('supplier_id', $material->supplier_id);
-                                        
+
                                         $qty = floatval($get('planned_qty') ?? 1);
                                         $set('total_price', $qty * floatval($material->price));
                                     }
@@ -146,7 +159,7 @@ class MerchandisePlanningResource extends Resource
                                 ->searchable()
                                 ->preload()
                                 ->nullable()
-                                ->disabled(fn (callable $get) => !$get('is_subcon'))
+                                ->disabled(fn (callable $get) => ! $get('is_subcon'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->numeric()
@@ -179,7 +192,7 @@ class MerchandisePlanningResource extends Resource
                                 ->inline(false)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    if (!$state) {
+                                    if (! $state) {
                                         $set('subcon_id', null);
                                     }
                                 }),
@@ -195,7 +208,7 @@ class MerchandisePlanningResource extends Resource
                             $totalSub = 0;
                             foreach ($state as $item) {
                                 $total = floatval($item['total_price'] ?? 0);
-                                if (!empty($item['is_subcon'])) {
+                                if (! empty($item['is_subcon'])) {
                                     $totalSub += $total;
                                 } else {
                                     $totalMat += $total;
@@ -204,7 +217,7 @@ class MerchandisePlanningResource extends Resource
                             $set('total_material_cost', $totalMat);
                             $set('total_subcon_cost', $totalSub);
                         }),
-                ])
+                ]),
         ]);
     }
 
@@ -251,20 +264,22 @@ class MerchandisePlanningResource extends Resource
                         // Group items by supplier for supplier POs
                         $supplierItems = $record->items->where('is_subcon', false)->groupBy('supplier_id');
                         foreach ($supplierItems as $supplierId => $items) {
-                            if (!$supplierId) continue;
-                            
-                            $po = \App\Models\PoSupplier::create([
+                            if (! $supplierId) {
+                                continue;
+                            }
+
+                            $po = PoSupplier::create([
                                 'company_id' => $record->company_id,
-                                'po_number' => \App\Services\CodeGenerator::generatePOSupplierNo(),
+                                'po_number' => CodeGenerator::generatePOSupplierNo(),
                                 'project_id' => $record->project_id,
                                 'supplier_id' => $supplierId,
                                 'po_date' => now()->toDateString(),
                                 'status' => 'draft',
                             ]);
-                            
+
                             $subtotal = 0;
                             foreach ($items as $item) {
-                                \App\Models\PoSupplierItem::create([
+                                PoSupplierItem::create([
                                     'po_supplier_id' => $po->id,
                                     'material_id' => $item->material_id,
                                     'description' => $item->notes ?? 'Raw material',
@@ -276,7 +291,7 @@ class MerchandisePlanningResource extends Resource
                                 ]);
                                 $subtotal += $item->total_price;
                             }
-                            
+
                             $ppn = $subtotal * 0.11; // 11% PPN
                             $po->update([
                                 'subtotal' => $subtotal,
@@ -285,24 +300,26 @@ class MerchandisePlanningResource extends Resource
                                 'grand_total' => $subtotal + $ppn,
                             ]);
                         }
-                        
+
                         // Group items by subcon for subcon POs
                         $subconItems = $record->items->where('is_subcon', true)->groupBy('subcon_id');
                         foreach ($subconItems as $subconId => $items) {
-                            if (!$subconId) continue;
-                            
-                            $po = \App\Models\PoSubcon::create([
+                            if (! $subconId) {
+                                continue;
+                            }
+
+                            $po = PoSubcon::create([
                                 'company_id' => $record->company_id,
-                                'po_number' => \App\Services\CodeGenerator::generatePOSubconNo(),
+                                'po_number' => CodeGenerator::generatePOSubconNo(),
                                 'project_id' => $record->project_id,
                                 'subcon_id' => $subconId,
                                 'po_date' => now()->toDateString(),
                                 'status' => 'draft',
                             ]);
-                            
+
                             $serviceCost = 0;
                             foreach ($items as $item) {
-                                \App\Models\PoSubconItem::create([
+                                PoSubconItem::create([
                                     'po_subcon_id' => $po->id,
                                     'description' => $item->notes ?? 'Subcon service',
                                     'qty' => $item->planned_qty,
@@ -311,21 +328,21 @@ class MerchandisePlanningResource extends Resource
                                 ]);
                                 $serviceCost += $item->total_price;
                             }
-                            
+
                             $po->update([
                                 'service_cost' => $serviceCost,
                                 'total_cost' => $serviceCost,
                             ]);
                         }
-                        
-                        \Filament\Notifications\Notification::make()
+
+                        Notification::make()
                             ->title('POs generated successfully!')
                             ->success()
                             ->send();
                     })
                     ->requiresConfirmation(),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

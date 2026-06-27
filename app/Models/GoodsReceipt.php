@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,7 +36,7 @@ class GoodsReceipt extends Model
     {
         static::updated(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
-                \App\Services\InventoryService::receiveGoods($goodsReceipt);
+                InventoryService::receiveGoods($goodsReceipt);
                 self::updateShipmentOnReceipt($goodsReceipt);
                 self::syncPoItemReceivedQty($goodsReceipt);
             }
@@ -43,7 +44,7 @@ class GoodsReceipt extends Model
 
         static::created(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified') {
-                \App\Services\InventoryService::receiveGoods($goodsReceipt);
+                InventoryService::receiveGoods($goodsReceipt);
                 self::updateShipmentOnReceipt($goodsReceipt);
                 self::syncPoItemReceivedQty($goodsReceipt);
             }

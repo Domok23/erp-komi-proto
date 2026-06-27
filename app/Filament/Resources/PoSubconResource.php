@@ -5,27 +5,31 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PoSubconResource\Pages;
 use App\Models\PoSubcon;
 use App\Services\CodeGenerator;
+use App\Services\InvoiceGeneratorService;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PoSubconResource extends Resource
 {
     protected static ?string $model = PoSubcon::class;
 
     protected static ?string $navigationLabel = 'PO Subcons';
+
     protected static ?string $modelLabel = 'PO Subcon';
+
     protected static ?string $pluralModelLabel = 'PO Subcons';
 
     public static function form(Schema $schema): Schema
@@ -60,7 +64,7 @@ class PoSubconResource extends Resource
                 ])
                 ->default('draft')
                 ->required(),
-            
+
             Section::make('Subcon Costs')
                 ->columnSpanFull()
                 ->schema([
@@ -138,12 +142,12 @@ class PoSubconResource extends Resource
                                 $subtotal += floatval($item['total_price'] ?? 0);
                             }
                             $set('service_cost', $subtotal);
-                            
+
                             $shipping = floatval($get('shipping_cost') ?? 0);
                             $shippingReturn = floatval($get('shipping_return_cost') ?? 0);
                             $set('total_cost', $subtotal + $shipping + $shippingReturn);
                         }),
-                ])
+                ]),
         ]);
     }
 
@@ -191,15 +195,15 @@ class PoSubconResource extends Resource
                     ->color('success')
                     ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
                     ->action(function ($record) {
-                        \App\Services\InvoiceGeneratorService::generateFromSubconPO($record);
-                        \Filament\Notifications\Notification::make()
+                        InvoiceGeneratorService::generateFromSubconPO($record);
+                        Notification::make()
                             ->title('Subcon Invoice generated successfully!')
                             ->success()
                             ->send();
                     })
                     ->requiresConfirmation(),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

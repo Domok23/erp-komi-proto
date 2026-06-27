@@ -56,23 +56,23 @@ class CostingTransitionService
         $newVersion = self::getNextVersion($costing->project_id);
 
         return Costing::create([
-            'company_id'          => $costing->company_id,
-            'project_id'          => $costing->project_id,
-            'design_id'           => $costing->design_id,
-            'costing_date'        => now()->toDateString(),
-            'version'             => $newVersion,
-            'status'              => 'draft',
-            'material_cost'       => $costing->material_cost,
-            'mp_cost'             => $costing->mp_cost,
-            'overhead_pct'        => $costing->overhead_pct,
-            'overhead_amount'     => $costing->overhead_amount,
-            'shipping_cost'       => $costing->shipping_cost,
-            'profit_margin_pct'   => $costing->profit_margin_pct,
-            'profit_margin_amount'=> $costing->profit_margin_amount,
-            'landed_cost'         => $costing->landed_cost,
-            'selling_price'       => $costing->selling_price,
-            'currency'            => $costing->currency,
-            'notes'               => $costing->notes,
+            'company_id' => $costing->company_id,
+            'project_id' => $costing->project_id,
+            'design_id' => $costing->design_id,
+            'costing_date' => now()->toDateString(),
+            'version' => $newVersion,
+            'status' => 'draft',
+            'material_cost' => $costing->material_cost,
+            'mp_cost' => $costing->mp_cost,
+            'overhead_pct' => $costing->overhead_pct,
+            'overhead_amount' => $costing->overhead_amount,
+            'shipping_cost' => $costing->shipping_cost,
+            'profit_margin_pct' => $costing->profit_margin_pct,
+            'profit_margin_amount' => $costing->profit_margin_amount,
+            'landed_cost' => $costing->landed_cost,
+            'selling_price' => $costing->selling_price,
+            'currency' => $costing->currency,
+            'notes' => $costing->notes,
         ]);
     }
 
@@ -81,23 +81,23 @@ class CostingTransitionService
         $newVersion = self::getNextVersion($costing->project_id);
 
         return Costing::create([
-            'company_id'          => $costing->company_id,
-            'project_id'          => $costing->project_id,
-            'design_id'           => $costing->design_id,
-            'costing_date'        => now()->toDateString(),
-            'version'             => $newVersion,
-            'status'              => 'draft',
-            'material_cost'       => $costing->material_cost,
-            'mp_cost'             => $costing->mp_cost,
-            'overhead_pct'        => $costing->overhead_pct,
-            'overhead_amount'     => $costing->overhead_amount,
-            'shipping_cost'       => $costing->shipping_cost,
-            'profit_margin_pct'   => $costing->profit_margin_pct,
-            'profit_margin_amount'=> $costing->profit_margin_amount,
-            'landed_cost'         => $costing->landed_cost,
-            'selling_price'       => $costing->selling_price,
-            'currency'            => $costing->currency,
-            'notes'               => $costing->notes,
+            'company_id' => $costing->company_id,
+            'project_id' => $costing->project_id,
+            'design_id' => $costing->design_id,
+            'costing_date' => now()->toDateString(),
+            'version' => $newVersion,
+            'status' => 'draft',
+            'material_cost' => $costing->material_cost,
+            'mp_cost' => $costing->mp_cost,
+            'overhead_pct' => $costing->overhead_pct,
+            'overhead_amount' => $costing->overhead_amount,
+            'shipping_cost' => $costing->shipping_cost,
+            'profit_margin_pct' => $costing->profit_margin_pct,
+            'profit_margin_amount' => $costing->profit_margin_amount,
+            'landed_cost' => $costing->landed_cost,
+            'selling_price' => $costing->selling_price,
+            'currency' => $costing->currency,
+            'notes' => $costing->notes,
         ]);
     }
 
@@ -120,13 +120,13 @@ class CostingTransitionService
         $major = (int) ($parts[0] ?? 1);
         $minor = (int) ($parts[1] ?? 0) + 1;
 
-        return $major . '.' . $minor;
+        return $major.'.'.$minor;
     }
 
     private static function versionToNumber(string $version): float
     {
         if (preg_match('/^(\d+)\.(\d+)$/', $version, $matches)) {
-            return (float) ($matches[1] . '.' . $matches[2]);
+            return (float) ($matches[1].'.'.$matches[2]);
         }
 
         return (float) $version;

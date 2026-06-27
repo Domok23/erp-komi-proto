@@ -12,6 +12,7 @@ class SubconMaterialInItem extends Model
     protected $fillable = [
         'subcon_material_in_id',
         'material_id',
+        'item_type',
         'qty_received',
         'qty_rejected',
         'unit',

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\Company;
-use App\Models\RdDesign;
-use App\Models\Material;
 use App\Models\ConsumptionRate;
+use App\Models\Material;
+use App\Models\RdDesign;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ConsumptionRatesTest extends TestCase
 {
@@ -20,7 +20,7 @@ class ConsumptionRatesTest extends TestCase
             'code' => 'TEST',
             'address' => 'Test Address',
         ]);
-        
+
         $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DES-001',
@@ -28,7 +28,7 @@ class ConsumptionRatesTest extends TestCase
             'bag_type' => 'backpack',
             'status' => 'draft',
         ]);
-        
+
         $material = Material::create([
             'company_id' => $company->id,
             'code' => 'MAT-001',
@@ -38,7 +38,7 @@ class ConsumptionRatesTest extends TestCase
             'price' => 1000,
             'stock' => 0,
         ]);
-        
+
         $rate = ConsumptionRate::create([
             'company_id' => $company->id,
             'design_id' => $design->id,
@@ -48,13 +48,13 @@ class ConsumptionRatesTest extends TestCase
             'wastage_rate' => 10,
             'notes' => 'Test Notes',
         ]);
-        
+
         $this->assertEquals($design->id, $rate->design_id);
         $this->assertEquals($material->id, $rate->material_id);
         $this->assertEquals(2.5, $rate->standard_rate);
         $this->assertEquals('yard', $rate->unit);
         $this->assertEquals(10, $rate->wastage_rate);
-        
+
         // Assert relationships
         $this->assertCount(1, $design->consumptionRates);
         $this->assertEquals($rate->id, $design->consumptionRates->first()->id);
@@ -67,7 +67,7 @@ class ConsumptionRatesTest extends TestCase
             'code' => 'TEST',
             'address' => 'Test Address',
         ]);
-        
+
         $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DES-001',
@@ -75,7 +75,7 @@ class ConsumptionRatesTest extends TestCase
             'bag_type' => 'backpack',
             'status' => 'draft',
         ]);
-        
+
         $material = Material::create([
             'company_id' => $company->id,
             'code' => 'MAT-001',
@@ -85,7 +85,7 @@ class ConsumptionRatesTest extends TestCase
             'price' => 1000,
             'stock' => 0,
         ]);
-        
+
         ConsumptionRate::create([
             'company_id' => $company->id,
             'design_id' => $design->id,
@@ -125,7 +125,7 @@ class ConsumptionRatesTest extends TestCase
             'code' => 'TEST',
             'address' => 'Test Address',
         ]);
-        
+
         $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DES-001',
@@ -133,7 +133,7 @@ class ConsumptionRatesTest extends TestCase
             'bag_type' => 'backpack',
             'status' => 'draft',
         ]);
-        
+
         $material = Material::create([
             'company_id' => $company->id,
             'code' => 'MAT-001',

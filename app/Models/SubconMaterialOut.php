@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,13 +32,13 @@ class SubconMaterialOut extends Model
     {
         static::updated(function (SubconMaterialOut $out) {
             if ($out->status === 'sent' && $out->getOriginal('status') !== 'sent') {
-                \App\Services\InventoryService::sendToSubcon($out);
+                InventoryService::sendToSubcon($out);
             }
         });
 
         static::created(function (SubconMaterialOut $out) {
             if ($out->status === 'sent') {
-                \App\Services\InventoryService::sendToSubcon($out);
+                InventoryService::sendToSubcon($out);
             }
         });
     }

@@ -9,11 +9,11 @@ return [
     | Static rates for each production process, per unit.
     */
     'man_power' => [
-        'cutting'   => 5000,
-        'sewing'    => 15000,
+        'cutting' => 5000,
+        'sewing' => 15000,
         'finishing' => 8000,
-        'qc'        => 3000,
-        'packing'   => 2000,
+        'qc' => 3000,
+        'packing' => 2000,
     ],
 
     /*
@@ -21,7 +21,7 @@ return [
     | Overhead & Profit Margins
     |--------------------------------------------------------------------------
     */
-    'overhead_pct'      => 15,
+    'overhead_pct' => 15,
     'profit_margin_pct' => 20,
 
     /*
@@ -30,10 +30,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'shipping' => [
-        'jakarta'     => 5000,
-        'jawa'        => 8000,
-        'luar_jawa'   => 12000,
-        'export'      => 35000,
+        'jakarta' => 5000,
+        'jawa' => 8000,
+        'luar_jawa' => 12000,
+        'export' => 35000,
     ],
 
 ];

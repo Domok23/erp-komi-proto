@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class SubconMaterialIn extends Model
     protected $fillable = [
         'company_id',
         'po_subcon_id',
+        'subcon_material_out_id',
         'subcon_id',
         'document_number',
         'receive_date',
@@ -31,13 +33,13 @@ class SubconMaterialIn extends Model
     {
         static::updated(function (SubconMaterialIn $in) {
             if ($in->status === 'verified' && $in->getOriginal('status') !== 'verified') {
-                \App\Services\InventoryService::receiveFromSubcon($in);
+                InventoryService::receiveFromSubcon($in);
             }
         });
 
         static::created(function (SubconMaterialIn $in) {
             if ($in->status === 'verified') {
-                \App\Services\InventoryService::receiveFromSubcon($in);
+                InventoryService::receiveFromSubcon($in);
             }
         });
     }
@@ -45,6 +47,11 @@ class SubconMaterialIn extends Model
     public function poSubcon(): BelongsTo
     {
         return $this->belongsTo(PoSubcon::class, 'po_subcon_id');
+    }
+
+    public function subconMaterialOut(): BelongsTo
+    {
+        return $this->belongsTo(SubconMaterialOut::class, 'subcon_material_out_id');
     }
 
     public function subcon(): BelongsTo

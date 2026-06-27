@@ -9,7 +9,6 @@ use App\Services\CostingTransitionService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Validation\ValidationException;
 
 class EditCosting extends EditRecord
 {
@@ -48,6 +47,7 @@ class EditCosting extends EditRecord
                             ->title('Cannot calculate: project has no BOM and MP cost is 0')
                             ->danger()
                             ->send();
+
                         return;
                     }
 
@@ -58,9 +58,9 @@ class EditCosting extends EditRecord
                     $this->refreshFormData(['status', 'material_cost', 'mp_cost']);
 
                     Notification::make()
-                        ->title('Calculated — Material: IDR ' . number_format($record->material_cost, 0, ',', '.')
-                            . ', MP: IDR ' . number_format($record->mp_cost, 0, ',', '.')
-                            . ', Selling: IDR ' . number_format($record->selling_price, 0, ',', '.'))
+                        ->title('Calculated — Material: IDR '.number_format($record->material_cost, 0, ',', '.')
+                            .', MP: IDR '.number_format($record->mp_cost, 0, ',', '.')
+                            .', Selling: IDR '.number_format($record->selling_price, 0, ',', '.'))
                         ->success()
                         ->send();
                 }),

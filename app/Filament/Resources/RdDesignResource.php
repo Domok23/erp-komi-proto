@@ -5,24 +5,26 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RdDesignResource\Pages;
 use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class RdDesignResource extends Resource
 {
     protected static ?string $model = RdDesign::class;
 
     protected static ?string $navigationLabel = 'R&D Design';
+
     protected static ?string $modelLabel = 'R&D Design';
+
     protected static ?string $pluralModelLabel = 'R&D Designs';
 
     public static function form(Schema $schema): Schema

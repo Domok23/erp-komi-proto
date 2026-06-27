@@ -4,25 +4,30 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoiceSalesResource\Pages;
 use App\Models\InvoiceSales;
+use App\Models\Payment;
+use App\Models\SalesOrder;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class InvoiceSalesResource extends Resource
 {
     protected static ?string $model = InvoiceSales::class;
 
     protected static ?string $navigationLabel = 'Invoice Sales';
+
     protected static ?string $modelLabel = 'Invoice Sales';
+
     protected static ?string $pluralModelLabel = 'Invoice Sales';
 
     public static function form(Schema $schema): Schema
@@ -40,7 +45,7 @@ class InvoiceSalesResource extends Resource
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $so = \App\Models\SalesOrder::find($state, ['*']);
+                    $so = SalesOrder::find($state, ['*']);
                     if ($so) {
                         $set('subtotal', $so->subtotal);
                         $set('ppn_percent', $so->ppn_percent);
@@ -155,12 +160,12 @@ class InvoiceSalesResource extends Resource
                         Forms\Components\Textarea::make('notes'),
                     ])
                     ->action(function ($record, array $data) {
-                        $paymentCount = \App\Models\Payment::count('*') + 1;
-                        \App\Models\Payment::create([
+                        $paymentCount = Payment::count('*') + 1;
+                        Payment::create([
                             'company_id' => $record->company_id,
                             'invoice_type' => 'sales',
                             'invoice_id' => $record->id,
-                            'payment_number' => 'PAY-SALES-' . now()->year . '-' . sprintf('%03d', $paymentCount),
+                            'payment_number' => 'PAY-SALES-'.now()->year.'-'.sprintf('%03d', $paymentCount),
                             'payment_date' => $data['payment_date'],
                             'amount' => $data['amount'],
                             'payment_method' => $data['payment_method'],
@@ -173,19 +178,19 @@ class InvoiceSalesResource extends Resource
                         if ($newPaidAmount >= $record->grand_total) {
                             $newStatus = 'paid';
                         }
-                        
+
                         $record->update([
                             'paid_amount' => $newPaidAmount,
                             'status' => $newStatus,
                         ]);
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Payment recorded successfully!')
                             ->success()
                             ->send();
                     }),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

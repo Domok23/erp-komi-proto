@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
 class Costing extends Model
@@ -13,11 +12,11 @@ class Costing extends Model
     use BelongsToCompany;
 
     private const STATUS_TRANSITIONS = [
-        'draft'      => ['calculated'],
+        'draft' => ['calculated'],
         'calculated' => ['draft', 'submitted'],
-        'submitted'  => ['draft', 'approved', 'rejected'],
-        'approved'   => [],
-        'rejected'   => [],
+        'submitted' => ['draft', 'approved', 'rejected'],
+        'approved' => [],
+        'rejected' => [],
     ];
 
     protected $fillable = [

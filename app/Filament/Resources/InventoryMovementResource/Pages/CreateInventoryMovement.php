@@ -1,6 +1,7 @@
 <?php
+
 namespace App\Filament\Resources\InventoryMovementResource\Pages;
-use App\Filament\Resources\InventoryMovementResource;
+
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateInventoryMovement extends CreateRecord

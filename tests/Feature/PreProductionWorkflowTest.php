@@ -2,37 +2,35 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Company;
-use App\Models\Customer;
-use App\Models\Supplier;
-use App\Models\Subcon;
-use App\Models\Material;
-use App\Models\Warehouse;
-use App\Models\RdDesign;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Project;
+use App\Models\Company;
 use App\Models\Costing;
-use App\Models\MerchandisePlanning;
-use App\Models\MerchandisePlanningItem;
-use App\Models\PoSupplier;
-use App\Models\PoSubcon;
+use App\Models\Customer;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
-use App\Models\InventoryStock;
 use App\Models\InventoryMovement;
-use App\Models\SalesOrder;
-use App\Models\InvoiceSales;
+use App\Models\InventoryStock;
 use App\Models\InvoicePurchase;
+use App\Models\Material;
+use App\Models\MerchandisePlanning;
+use App\Models\MerchandisePlanningItem;
 use App\Models\Payment;
-use App\Services\ProjectTransitionService;
-use App\Services\InventoryService;
-use App\Services\InvoiceGeneratorService;
-use App\Services\CostingCalculatorService;
+use App\Models\PoSupplier;
+use App\Models\PoSupplierItem;
+use App\Models\Project;
+use App\Models\RdDesign;
+use App\Models\SalesOrder;
+use App\Models\Subcon;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\CodeGenerator;
+use App\Services\CostingCalculatorService;
+use App\Services\InvoiceGeneratorService;
+use App\Services\ProjectTransitionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class PreProductionWorkflowTest extends TestCase
 {
@@ -42,7 +40,7 @@ class PreProductionWorkflowTest extends TestCase
     {
         // 1. Setup Base Data
         $user = User::factory()->create();
-        
+
         $company = Company::create([
             'name' => 'PT Komitrando Emporio Test',
             'code' => 'KOMI-TEST',
@@ -255,10 +253,10 @@ class PreProductionWorkflowTest extends TestCase
                 'po_date' => now()->toDateString(),
                 'status' => 'draft',
             ]);
-            
+
             $subtotal = 0;
             foreach ($items as $item) {
-                \App\Models\PoSupplierItem::create([
+                PoSupplierItem::create([
                     'po_supplier_id' => $po->id,
                     'material_id' => $item->material_id,
                     'description' => 'Blue Fabric',
@@ -270,7 +268,7 @@ class PreProductionWorkflowTest extends TestCase
                 ]);
                 $subtotal += $item->total_price;
             }
-            
+
             $ppn = $subtotal * 0.11;
             $po->update([
                 'subtotal' => $subtotal,
@@ -298,7 +296,7 @@ class PreProductionWorkflowTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $grItem = \App\Models\GoodsReceiptItem::create([
+        $grItem = GoodsReceiptItem::create([
             'goods_receipt_id' => $goodsReceipt->id,
             'material_id' => $material->id,
             'qty_ordered' => 275,

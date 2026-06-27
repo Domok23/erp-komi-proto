@@ -4,27 +4,33 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
+use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Services\CompanyContext;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class GoodsReceiptResource extends Resource
 {
     protected static ?string $model = GoodsReceipt::class;
 
     protected static ?string $navigationLabel = 'Goods Receipt';
+
     protected static ?string $modelLabel = 'Goods Receipt';
+
     protected static ?string $pluralModelLabel = 'Goods Receipts';
 
     public static function form(Schema $schema): Schema
@@ -49,10 +55,11 @@ class GoodsReceiptResource extends Resource
                 ->options(function (callable $get) {
                     $type = $get('po_type');
                     if ($type === 'supplier') {
-                        return \App\Models\PoSupplier::pluck('po_number', 'id');
+                        return PoSupplier::pluck('po_number', 'id');
                     } elseif ($type === 'subcon') {
-                        return \App\Models\PoSubcon::pluck('po_number', 'id');
+                        return PoSubcon::pluck('po_number', 'id');
                     }
+
                     return [];
                 })
                 ->required()
@@ -60,7 +67,7 @@ class GoodsReceiptResource extends Resource
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                     $type = $get('po_type');
                     if ($type === 'supplier') {
-                        $po = \App\Models\PoSupplier::with('items')->find($state);
+                        $po = PoSupplier::with('items')->find($state);
                         if ($po) {
                             $items = [];
                             foreach ($po->items as $item) {
@@ -89,7 +96,7 @@ class GoodsReceiptResource extends Resource
                             'tracking_number' => $latestShipment->tracking_number,
                             'shipping_cost' => $latestShipment->shipping_cost,
                             'received_condition' => 'good',
-                            'notes' => 'Auto-populated from ' . $latestShipment->shipment_number,
+                            'notes' => 'Auto-populated from '.$latestShipment->shipment_number,
                         ]);
                     }
                 }),
@@ -123,11 +130,12 @@ class GoodsReceiptResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->disabled()
                                 ->dehydrated()
@@ -179,6 +187,7 @@ class GoodsReceiptResource extends Resource
                                         ->pluck('retur_number')
                                         ->filter()
                                         ->toArray();
+
                                     return CodeGenerator::generateGRReturNumber($excludeNumbers);
                                 })
                                 ->reactive()

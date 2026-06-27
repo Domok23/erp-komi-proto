@@ -4,25 +4,31 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoicePurchaseResource\Pages;
 use App\Models\InvoicePurchase;
+use App\Models\Payment;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class InvoicePurchaseResource extends Resource
 {
     protected static ?string $model = InvoicePurchase::class;
 
     protected static ?string $navigationLabel = 'Invoice Purchase';
+
     protected static ?string $modelLabel = 'Invoice Purchase';
+
     protected static ?string $pluralModelLabel = 'Invoice Purchases';
 
     public static function form(Schema $schema): Schema
@@ -45,10 +51,11 @@ class InvoicePurchaseResource extends Resource
                 ->options(function (callable $get) {
                     $type = $get('purchase_type');
                     if ($type === 'po_supplier') {
-                        return \App\Models\PoSupplier::pluck('po_number', 'id');
+                        return PoSupplier::pluck('po_number', 'id');
                     } elseif ($type === 'po_subcon') {
-                        return \App\Models\PoSubcon::pluck('po_number', 'id');
+                        return PoSubcon::pluck('po_number', 'id');
                     }
+
                     return [];
                 })
                 ->required()
@@ -56,14 +63,14 @@ class InvoicePurchaseResource extends Resource
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                     $type = $get('purchase_type');
                     if ($type === 'po_supplier') {
-                        $po = \App\Models\PoSupplier::find($state, ['*']);
+                        $po = PoSupplier::find($state, ['*']);
                         if ($po) {
                             $set('subtotal', $po->subtotal);
                             $set('tax_amount', $po->ppn_amount);
                             $set('grand_total', $po->grand_total);
                         }
                     } elseif ($type === 'po_subcon') {
-                        $po = \App\Models\PoSubcon::find($state, ['*']);
+                        $po = PoSubcon::find($state, ['*']);
                         if ($po) {
                             $set('subtotal', $po->service_cost);
                             $set('tax_amount', 0);
@@ -162,12 +169,12 @@ class InvoicePurchaseResource extends Resource
                         Forms\Components\Textarea::make('notes'),
                     ])
                     ->action(function ($record, array $data) {
-                        $paymentCount = \App\Models\Payment::count('*') + 1;
-                        \App\Models\Payment::create([
+                        $paymentCount = Payment::count('*') + 1;
+                        Payment::create([
                             'company_id' => $record->company_id,
                             'invoice_type' => 'purchase',
                             'invoice_id' => $record->id,
-                            'payment_number' => 'PAY-PUR-' . now()->year . '-' . sprintf('%03d', $paymentCount),
+                            'payment_number' => 'PAY-PUR-'.now()->year.'-'.sprintf('%03d', $paymentCount),
                             'payment_date' => $data['payment_date'],
                             'amount' => $data['amount'],
                             'payment_method' => $data['payment_method'],
@@ -180,19 +187,19 @@ class InvoicePurchaseResource extends Resource
                         if ($newPaidAmount >= $record->grand_total) {
                             $newStatus = 'paid';
                         }
-                        
+
                         $record->update([
                             'paid_amount' => $newPaidAmount,
                             'status' => $newStatus,
                         ]);
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Payment recorded successfully!')
                             ->success()
                             ->send();
                     }),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

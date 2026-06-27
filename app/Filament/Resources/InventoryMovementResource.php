@@ -4,23 +4,27 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryMovementResource\Pages;
 use App\Models\InventoryMovement;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Models\InventoryStock;
+use App\Services\CompanyContext;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class InventoryMovementResource extends Resource
 {
     protected static ?string $model = InventoryMovement::class;
 
     protected static ?string $navigationLabel = 'Inventory Movements';
+
     protected static ?string $modelLabel = 'Inventory Movement';
+
     protected static ?string $pluralModelLabel = 'Inventory Movements';
 
     public static function form(Schema $schema): Schema
@@ -47,11 +51,12 @@ class InventoryMovementResource extends Resource
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
                 ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                    $companyId = CompanyContext::getCompanyId();
+                    $stock = InventoryStock::where('material_id', $record->id)
                         ->where('company_id', $companyId)
                         ->sum('quantity');
-                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                 })
                 ->required(),
             Forms\Components\TextInput::make('quantity')

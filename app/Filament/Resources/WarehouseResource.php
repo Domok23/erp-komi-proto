@@ -4,23 +4,25 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\WarehouseResource\Pages;
 use App\Models\Warehouse;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class WarehouseResource extends Resource
 {
     protected static ?string $model = Warehouse::class;
 
     protected static ?string $navigationLabel = 'Warehouses';
+
     protected static ?string $modelLabel = 'Warehouse';
+
     protected static ?string $pluralModelLabel = 'Warehouses';
 
     public static function form(Schema $schema): Schema

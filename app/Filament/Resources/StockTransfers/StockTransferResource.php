@@ -8,10 +8,8 @@ use App\Filament\Resources\StockTransfers\Pages\ListStockTransfers;
 use App\Filament\Resources\StockTransfers\Schemas\StockTransferForm;
 use App\Filament\Resources\StockTransfers\Tables\StockTransfersTable;
 use App\Models\StockTransfer;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class StockTransferResource extends Resource
@@ -19,7 +17,9 @@ class StockTransferResource extends Resource
     protected static ?string $model = StockTransfer::class;
 
     protected static ?string $navigationLabel = 'Stock Transfer';
+
     protected static ?string $modelLabel = 'Stock Transfer';
+
     protected static ?string $pluralModelLabel = 'Stock Transfers';
 
     public static function getNavigationIcon(): ?string

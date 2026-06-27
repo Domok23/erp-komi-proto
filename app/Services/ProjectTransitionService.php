@@ -20,7 +20,7 @@ class ProjectTransitionService
             return Project::create([
                 'company_id' => $project->company_id,
                 'project_code' => CodeGenerator::generateProjectCode(),
-                'name' => $project->name . ' - Sample',
+                'name' => $project->name.' - Sample',
                 'description' => $project->description,
                 'type' => 'sample',
                 'status' => 'planning',
@@ -33,10 +33,11 @@ class ProjectTransitionService
         } elseif ($project->type === 'sample') {
             // Auto-create Mass Production project
             $nameWithoutSample = str_replace(' - Sample', '', $project->name);
+
             return Project::create([
                 'company_id' => $project->company_id,
                 'project_code' => CodeGenerator::generateProjectCode(),
-                'name' => $nameWithoutSample . ' - Mass',
+                'name' => $nameWithoutSample.' - Mass',
                 'description' => $project->description,
                 'type' => 'mass',
                 'status' => 'planning',
@@ -56,7 +57,7 @@ class ProjectTransitionService
         return Project::create([
             'company_id' => $project->company_id,
             'project_code' => CodeGenerator::generateProjectCode(),
-            'name' => $project->name . ' (Copy)',
+            'name' => $project->name.' (Copy)',
             'description' => $project->description,
             'type' => $project->type,
             'status' => 'planning',

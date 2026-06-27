@@ -30,7 +30,6 @@ class ProductionOrder extends Model
         'end_date' => 'date',
     ];
 
-    
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

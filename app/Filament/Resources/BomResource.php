@@ -4,25 +4,30 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\BomResource\Pages;
 use App\Models\Bom;
+use App\Models\ConsumptionRate;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Services\CompanyContext;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class BomResource extends Resource
 {
     protected static ?string $model = Bom::class;
 
     protected static ?string $navigationLabel = 'BOM';
+
     protected static ?string $modelLabel = 'BOM';
+
     protected static ?string $pluralModelLabel = 'BOMs';
 
     public static function form(Schema $schema): Schema
@@ -36,8 +41,8 @@ class BomResource extends Resource
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $rates = \App\Models\ConsumptionRate::where('design_id', $state)->get();
-                        
+                        $rates = ConsumptionRate::where('design_id', $state)->get();
+
                         $items = $rates->map(function ($rate) {
                             return [
                                 'material_id' => $rate->material_id,
@@ -48,7 +53,7 @@ class BomResource extends Resource
                                 'notes' => $rate->notes,
                             ];
                         })->toArray();
-                        
+
                         $set('items', $items);
                     } else {
                         $set('items', []);
@@ -82,11 +87,12 @@ class BomResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->searchable()
                                 ->preload()
@@ -121,7 +127,7 @@ class BomResource extends Resource
                         ->columns(3)
                         ->defaultItems(1)
                         ->columnSpanFull(),
-                ])
+                ]),
         ]);
     }
 

@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\GoodsReceiptShipping;
+use App\Models\InvoicePurchase;
+use App\Models\InvoiceSales;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
+use Filament\Support\Facades\FilamentView;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,19 +27,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
-            'supplier' => \App\Models\PoSupplier::class,
-            'subcon' => \App\Models\PoSubcon::class,
-            'po_supplier' => \App\Models\PoSupplier::class,
-            'po_subcon' => \App\Models\PoSubcon::class,
-            'gr_shipping' => \App\Models\GoodsReceiptShipping::class,
-            'purchase' => \App\Models\InvoicePurchase::class,
-            'sales' => \App\Models\InvoiceSales::class,
+        Relation::morphMap([
+            'supplier' => PoSupplier::class,
+            'subcon' => PoSubcon::class,
+            'po_supplier' => PoSupplier::class,
+            'po_subcon' => PoSubcon::class,
+            'gr_shipping' => GoodsReceiptShipping::class,
+            'purchase' => InvoicePurchase::class,
+            'sales' => InvoiceSales::class,
         ]);
 
-        \Filament\Support\Facades\FilamentView::registerRenderHook(
+        FilamentView::registerRenderHook(
             'panels::head.end',
-            fn (): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString('
+            fn (): HtmlString => new HtmlString('
                 <style>
                     /* Prevent select form text from wrapping and making the form taller */
                     .fi-select-input-btn {

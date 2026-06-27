@@ -4,32 +4,31 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconResource\Pages;
 use App\Models\Subcon;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class SubconResource extends Resource
 {
     protected static ?string $model = Subcon::class;
 
-
-
     protected static ?string $navigationLabel = 'Subcontractor';
+
     protected static ?string $modelLabel = 'Subcontractor';
+
     protected static ?string $pluralModelLabel = 'Subcontractor';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\TextInput::make('code')
+            Forms\Components\TextInput::make('code')
                 ->required()
                 ->unique(ignoreRecord: true)
                 ->maxLength(50),
@@ -98,8 +97,6 @@ class SubconResource extends Resource
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
-
-
     public static function getNavigationIcon(): ?string
     {
         return 'heroicon-o-wrench-screwdriver';
@@ -115,7 +112,10 @@ class SubconResource extends Resource
         return 4;
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getRelations(): array
+    {
+        return [];
+    }
 
     public static function getPages(): array
     {

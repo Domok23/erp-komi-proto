@@ -3,24 +3,28 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PaymentResource\Pages;
+use App\Models\InvoicePurchase;
+use App\Models\InvoiceSales;
 use App\Models\Payment;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
 
     protected static ?string $navigationLabel = 'Payments';
+
     protected static ?string $modelLabel = 'Payment';
+
     protected static ?string $pluralModelLabel = 'Payments';
 
     public static function form(Schema $schema): Schema
@@ -41,10 +45,11 @@ class PaymentResource extends Resource
                 ->options(function (callable $get) {
                     $type = $get('invoice_type');
                     if ($type === 'purchase') {
-                        return \App\Models\InvoicePurchase::pluck('invoice_number', 'id');
+                        return InvoicePurchase::pluck('invoice_number', 'id');
                     } elseif ($type === 'sales') {
-                        return \App\Models\InvoiceSales::pluck('invoice_number', 'id');
+                        return InvoiceSales::pluck('invoice_number', 'id');
                     }
+
                     return [];
                 })
                 ->required(),

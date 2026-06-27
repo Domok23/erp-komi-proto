@@ -4,29 +4,32 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CostingResource\Pages;
 use App\Models\Costing;
+use App\Models\Project;
 use App\Services\CostingCalculatorService;
 use App\Services\CostingTransitionService;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class CostingResource extends Resource
 {
     protected static ?string $model = Costing::class;
 
     protected static ?string $navigationLabel = 'Costing';
+
     protected static ?string $modelLabel = 'Costing';
+
     protected static ?string $pluralModelLabel = 'Costings';
 
     public static function form(Schema $schema): Schema
@@ -42,7 +45,7 @@ class CostingResource extends Resource
                 ->reactive()
                 ->disabled($isLocked)
                 ->afterStateUpdated(function ($state, callable $set, Get $get) {
-                    $project = \App\Models\Project::find($state, ['*']);
+                    $project = Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
 
@@ -107,7 +110,7 @@ class CostingResource extends Resource
                 ->default((int) CostingCalculatorService::getMpRatePerUnit())
                 ->prefix('IDR')
                 ->step(1)
-                ->hint('Default: IDR ' . number_format(CostingCalculatorService::getMpRatePerUnit(), 0, ',', '.') . '/unit')
+                ->hint('Default: IDR '.number_format(CostingCalculatorService::getMpRatePerUnit(), 0, ',', '.').'/unit')
                 ->live(onBlur: true)
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
@@ -116,7 +119,7 @@ class CostingResource extends Resource
                 ->numeric()
                 ->default(CostingCalculatorService::getDefaultOverheadPct())
                 ->suffix('%')
-                ->hint('Default: ' . CostingCalculatorService::getDefaultOverheadPct() . '%')
+                ->hint('Default: '.CostingCalculatorService::getDefaultOverheadPct().'%')
                 ->live(onBlur: true)
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
@@ -177,17 +180,17 @@ class CostingResource extends Resource
             Forms\Components\Placeholder::make('submitted_by_display')
                 ->label('Submitted By')
                 ->content(fn (?Costing $record): string => $record && $record->submittedByUser
-                    ? $record->submittedByUser->name . ' — ' . ($record->submitted_at?->format('d M Y H:i') ?? '-')
+                    ? $record->submittedByUser->name.' — '.($record->submitted_at?->format('d M Y H:i') ?? '-')
                     : '-'),
             Forms\Components\Placeholder::make('approved_by_display')
                 ->label('Approved By')
                 ->content(fn (?Costing $record): string => $record && $record->approvedByUser
-                    ? $record->approvedByUser->name . ' — ' . ($record->approved_at?->format('d M Y H:i') ?? '-')
+                    ? $record->approvedByUser->name.' — '.($record->approved_at?->format('d M Y H:i') ?? '-')
                     : '-'),
             Forms\Components\Placeholder::make('rejected_by_display')
                 ->label('Rejected By')
                 ->content(fn (?Costing $record): string => $record && $record->rejectedByUser
-                    ? $record->rejectedByUser->name . ' — ' . ($record->rejected_at?->format('d M Y H:i') ?? '-')
+                    ? $record->rejectedByUser->name.' — '.($record->rejected_at?->format('d M Y H:i') ?? '-')
                     : '-'),
         ]);
     }
@@ -262,6 +265,7 @@ class CostingResource extends Resource
                                 ->title('No project linked')
                                 ->danger()
                                 ->send();
+
                             return;
                         }
 
@@ -270,7 +274,7 @@ class CostingResource extends Resource
                         CostingCalculatorService::recalculateCosting($record);
 
                         Notification::make()
-                            ->title('BOM Cost Imported: IDR ' . number_format($result['material_cost'], 2))
+                            ->title('BOM Cost Imported: IDR '.number_format($result['material_cost'], 2))
                             ->success()
                             ->send();
                     })

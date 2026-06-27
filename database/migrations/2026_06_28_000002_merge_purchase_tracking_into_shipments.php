@@ -30,7 +30,7 @@ return new class extends Migration
                     ->update([
                         'status' => $tracking->tracking_status === 'delivered' ? 'arrived' : $tracking->tracking_status,
                         'actual_arrival' => $tracking->actual_arrival,
-                        'notes' => trim(($existing->notes ?? '') . "\n" . ($tracking->notes ?? '')),
+                        'notes' => trim(($existing->notes ?? '')."\n".($tracking->notes ?? '')),
                     ]);
             } else {
                 $count = DB::table('purchase_shipments')->count() + 1;

@@ -4,26 +4,25 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ShipmentResource\Pages;
 use App\Models\Shipment;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
 
-
-
     protected static ?string $navigationLabel = 'Shipments';
+
     protected static ?string $modelLabel = 'Shipment';
+
     protected static ?string $pluralModelLabel = 'Shipments';
 
     public static function form(Schema $schema): Schema
@@ -126,8 +125,6 @@ class ShipmentResource extends Resource
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
-
-
     public static function getNavigationIcon(): ?string
     {
         return 'heroicon-o-paper-airplane';
@@ -143,12 +140,15 @@ class ShipmentResource extends Resource
         return 2;
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getRelations(): array
+    {
+        return [];
+    }
 
     public static function getPages(): array
     {
         return [
-       'index' => Pages\ListShipments::route('/'),
+            'index' => Pages\ListShipments::route('/'),
             'create' => Pages\CreateShipment::route('/create'),
             'edit' => Pages\EditShipment::route('/{record}/edit'),
         ];

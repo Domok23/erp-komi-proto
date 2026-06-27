@@ -5,26 +5,25 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SupplierResource\Pages;
 use App\Filament\Resources\SupplierResource\RelationManagers;
 use App\Models\Supplier;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class SupplierResource extends Resource
 {
     protected static ?string $model = Supplier::class;
 
-
-
     protected static ?string $navigationLabel = 'Suppliers';
+
     protected static ?string $modelLabel = 'Supplier';
+
     protected static ?string $pluralModelLabel = 'Suppliers';
 
     public static function form(Schema $schema): Schema
@@ -80,8 +79,6 @@ class SupplierResource extends Resource
             ->actions([EditAction::make(), DeleteAction::make()])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {

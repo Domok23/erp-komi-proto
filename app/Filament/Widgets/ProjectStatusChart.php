@@ -8,8 +8,10 @@ use Filament\Widgets\ChartWidget;
 class ProjectStatusChart extends ChartWidget
 {
     protected static ?int $sort = 3;
+
     protected ?string $heading = 'Projects by Status';
-    protected int | string | array $columnSpan = 1;
+
+    protected int|string|array $columnSpan = 1;
 
     protected function getData(): array
     {

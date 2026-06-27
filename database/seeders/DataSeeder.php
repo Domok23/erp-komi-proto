@@ -2,38 +2,38 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\Customer;
-use App\Models\Subcon;
-use App\Models\Supplier;
-use App\Models\Material;
-use App\Models\Warehouse;
-use App\Models\RdDesign;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Project;
-use App\Models\MerchandisePlanning;
-use App\Models\MerchandisePlanningItem;
+use App\Models\Company;
 use App\Models\Costing;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
-use App\Models\PoSupplier;
-use App\Models\PoSupplierItem;
-use App\Models\PoSubcon;
-use App\Models\PoSubconItem;
-use App\Models\PurchaseShipment;
+use App\Models\Customer;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptShipping;
-use App\Models\SubconMaterialOut;
-use App\Models\SubconMaterialOutItem;
-use App\Models\SubconMaterialIn;
-use App\Models\SubconMaterialInItem;
 use App\Models\InventoryStock;
 use App\Models\InvoiceSales;
-use App\Models\InvoicePurchase;
-use App\Models\Payment;
+use App\Models\Material;
+use App\Models\MerchandisePlanning;
+use App\Models\MerchandisePlanningItem;
+use App\Models\PoSubcon;
+use App\Models\PoSubconItem;
+use App\Models\PoSupplier;
+use App\Models\PoSupplierItem;
+use App\Models\Project;
+use App\Models\PurchaseShipment;
+use App\Models\RdDesign;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
+use App\Models\Subcon;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialInItem;
+use App\Models\SubconMaterialOut;
+use App\Models\SubconMaterialOutItem;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\CodeGenerator;
+use App\Services\CostingCalculatorService;
 use Illuminate\Database\Seeder;
 
 class DataSeeder extends Seeder
@@ -133,6 +133,17 @@ class DataSeeder extends Seeder
             'min_stock' => 200,
             'price' => 2500,
             'supplier_id' => $supplierDuraflex->id,
+        ]);
+
+        $matFabricEmbroidered = Material::create([
+            'code' => 'FAB-001-EMB',
+            'name' => '600D Recycled Polyester Dobby (Embroidered)',
+            'category' => 'semi_finished',
+            'unit' => 'pcs',
+            'stock' => 0,
+            'min_stock' => 0,
+            'price' => 45000,
+            'description' => 'Fabric after embroidery processing at subcontractor',
         ]);
 
         // 6. Seed RdDesigns
@@ -243,7 +254,7 @@ class DataSeeder extends Seeder
         ]);
 
         // 10. Seed Costings
-        $admin = \App\Models\User::where('email', 'admin@komi.com')->first();
+        $admin = User::where('email', 'admin@komi.com')->first();
         $costing = Costing::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
@@ -259,7 +270,7 @@ class DataSeeder extends Seeder
             'currency' => 'IDR',
         ]);
         // Calculate first (while still editable), then approve
-        \App\Services\CostingCalculatorService::recalculateCosting($costing);
+        CostingCalculatorService::recalculateCosting($costing);
         $costing->update([
             'status' => 'approved',
             'submitted_by' => $admin->id,
@@ -440,16 +451,29 @@ class DataSeeder extends Seeder
         $subconIn = SubconMaterialIn::create([
             'company_id' => $kei->id,
             'po_subcon_id' => $poSubcon->id,
+            'subcon_material_out_id' => $subconOut->id,
             'subcon_id' => $subconJaya->id,
             'document_number' => 'MAT-IN-001',
             'receive_date' => now()->toDateString(),
             'status' => 'draft',
         ]);
 
+        // Processed goods (Embroidered Panel) received
+        SubconMaterialInItem::create([
+            'subcon_material_in_id' => $subconIn->id,
+            'material_id' => $matFabricEmbroidered->id,
+            'item_type' => 'processed',
+            'qty_received' => 195,
+            'qty_rejected' => 2,
+            'unit' => 'pcs',
+        ]);
+
+        // Leftover raw material (Fabric) returned
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => $matFabric->id,
-            'qty_received' => 200,
+            'item_type' => 'raw_return',
+            'qty_received' => 3, // 3 yards leftover returned
             'qty_rejected' => 0,
             'unit' => 'yard',
         ]);

@@ -5,25 +5,30 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Models\Project;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
+use App\Services\ProjectTransitionService;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
 
     protected static ?string $navigationLabel = 'Projects';
+
     protected static ?string $modelLabel = 'Project';
+
     protected static ?string $pluralModelLabel = 'Projects';
 
     public static function form(Schema $schema): Schema
@@ -136,8 +141,8 @@ class ProjectResource extends Resource
                     ->color('success')
                     ->visible(fn ($record) => $record->status !== 'approved')
                     ->action(function ($record) {
-                        \App\Services\ProjectTransitionService::approveProject($record, \Illuminate\Support\Facades\Auth::id() ?? 1);
-                        \Filament\Notifications\Notification::make()
+                        ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
+                        Notification::make()
                             ->title('Project Approved')
                             ->success()
                             ->send();
@@ -148,14 +153,14 @@ class ProjectResource extends Resource
                     ->icon('heroicon-o-document-duplicate')
                     ->color('info')
                     ->action(function ($record) {
-                        $copy = \App\Services\ProjectTransitionService::duplicateProject($record);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Project Duplicated: ' . $copy->project_code)
+                        $copy = ProjectTransitionService::duplicateProject($record);
+                        Notification::make()
+                            ->title('Project Duplicated: '.$copy->project_code)
                             ->success()
                             ->send();
                     }),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

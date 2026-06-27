@@ -2,23 +2,26 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class CompanySettings extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
+
     protected static ?string $navigationLabel = 'Company Settings';
+
     protected static ?string $title = 'Company Settings';
+
     protected static ?string $slug = 'company-settings';
+
     protected static ?string $label = 'Company Settings';
 
     protected string $view = 'filament.pages.company-settings';
@@ -100,7 +103,7 @@ class CompanySettings extends Page
                                     ->maxLength(100),
                             ]),
                         TextInput::make('address')
-                                    ->label('Address')
+                            ->label('Address')
                             ->columnSpanFull(),
                     ]),
 
