@@ -46,7 +46,8 @@ class PoSupplierResource extends Resource
                 ->relationship('supplier', 'name')
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->reactive(),
             Forms\Components\DatePicker::make('po_date')
                 ->default(now()->toDateString())
                 ->required(),
@@ -101,7 +102,15 @@ class PoSupplierResource extends Resource
                         ->relationship('items')
                         ->schema([
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
+                                ->label('Material')
+                                ->options(function (callable $get) {
+                                    $supplierId = $get('../../supplier_id');
+                                    if (!$supplierId) {
+                                        return [];
+                                    }
+                                    return Material::where('supplier_id', $supplierId)
+                                        ->pluck('name', 'id');
+                                })
                                 ->getOptionLabelFromRecordUsing(function ($record) {
                                     $companyId = \App\Services\CompanyContext::getCompanyId();
                                     $stock = \App\Models\InventoryStock::where('material_id', $record->id)
