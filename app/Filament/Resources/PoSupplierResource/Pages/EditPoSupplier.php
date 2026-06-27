@@ -16,4 +16,11 @@ class EditPoSupplier extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $this->record->load('items');
+        $this->record->recalculateTotals();
+        $this->record->syncStatusFromItems();
+    }
 }

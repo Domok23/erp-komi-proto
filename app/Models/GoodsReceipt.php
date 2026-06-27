@@ -37,6 +37,7 @@ class GoodsReceipt extends Model
             if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
                 \App\Services\InventoryService::receiveGoods($goodsReceipt);
                 self::updatePurchaseTracking($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
             }
         });
 
@@ -44,6 +45,7 @@ class GoodsReceipt extends Model
             if ($goodsReceipt->status === 'verified') {
                 \App\Services\InventoryService::receiveGoods($goodsReceipt);
                 self::updatePurchaseTracking($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
             }
         });
     }
@@ -63,6 +65,21 @@ class GoodsReceipt extends Model
                 ]);
             }
         }
+    }
+
+    protected static function syncPoItemReceivedQty(GoodsReceipt $goodsReceipt): void
+    {
+        if ($goodsReceipt->po_type !== 'supplier' || ! $goodsReceipt->po_id) {
+            return;
+        }
+
+        $po = PoSupplier::with('items')->find($goodsReceipt->po_id);
+        if (! $po) {
+            return;
+        }
+
+        $po->syncReceivedQty();
+        $po->syncStatusFromItems();
     }
 
     public function po(): MorphTo
