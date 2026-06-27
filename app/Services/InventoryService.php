@@ -112,8 +112,8 @@ class InventoryService
         foreach ($in->items as $item) {
             $itemType = $item->item_type ?? 'processed';
 
-            // Only update stock if we actually received quantity
-            if ($item->qty_received > 0) {
+            // Only update stock if we have a material ID and actually received quantity
+            if ($item->material_id && $item->qty_received > 0) {
                 $stock = InventoryStock::firstOrCreate([
                     'company_id' => $in->company_id,
                     'warehouse_id' => $mainWarehouseId,
@@ -152,7 +152,7 @@ class InventoryService
                 ]);
 
                 self::syncMaterialTotalStock($item->material_id);
-            } elseif ($item->qty_rejected > 0) {
+            } elseif ($item->material_id && $item->qty_rejected > 0) {
                 // If only rejected items are received (qty_received is 0), we don't increase stock,
                 // but we record an inventory movement with 0 quantity change just for logging.
                 $stock = InventoryStock::where('company_id', $in->company_id)

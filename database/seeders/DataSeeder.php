@@ -461,7 +461,8 @@ class DataSeeder extends Seeder
         // Processed goods (Embroidered Panel) received
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
-            'material_id' => $matFabricEmbroidered->id,
+            'material_id' => null,
+            'description' => 'Logo Embroidery Service',
             'item_type' => 'processed',
             'qty_received' => 195,
             'qty_rejected' => 2,
@@ -472,6 +473,7 @@ class DataSeeder extends Seeder
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => $matFabric->id,
+            'description' => null,
             'item_type' => 'raw_return',
             'qty_received' => 3, // 3 yards leftover returned
             'qty_rejected' => 0,

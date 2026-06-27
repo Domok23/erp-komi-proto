@@ -26,7 +26,8 @@ return new class extends Migration
         Schema::create('subcon_material_in_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('subcon_material_in_id')->constrained('subcon_material_ins')->onDelete('cascade');
-            $table->foreignId('material_id')->constrained('materials')->onDelete('cascade');
+            $table->foreignId('material_id')->nullable()->constrained('materials')->onDelete('cascade');
+            $table->string('description')->nullable();
             $table->decimal('qty_received', 15, 2)->default(0);
             $table->decimal('qty_rejected', 15, 2)->default(0);
             $table->string('unit')->default('pcs');

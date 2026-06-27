@@ -7,6 +7,7 @@ use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSubcon;
+use App\Models\PoSubconItem;
 use App\Models\Subcon;
 use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialInItem;
@@ -87,8 +88,16 @@ class SubconIntegrationTest extends TestCase
             'subcon_id' => $subcon->id,
             'po_date' => now()->toDateString(),
             'status' => 'ordered',
-            'service_cost' => 5000,
-            'total_cost' => 5000,
+            'service_cost' => 450000,
+            'total_cost' => 450000,
+        ]);
+
+        PoSubconItem::create([
+            'po_subcon_id' => $poSubcon->id,
+            'description' => 'Test Sewing Service',
+            'qty' => 90,
+            'unit_price' => 5000,
+            'total_price' => 450000,
         ]);
 
         // 3. Send Materials to Subcon (Material Out)
@@ -139,10 +148,11 @@ class SubconIntegrationTest extends TestCase
             'status' => 'draft',
         ]);
 
-        // Item 1: Processed Goods (Sewn Panels) - 90 pcs received, 2 reject
+        // Item 1: Processed Goods (Sewn Panels) - received as Description (no material_id)
         $inItem1 = SubconMaterialInItem::create([
             'subcon_material_in_id' => $materialIn->id,
-            'material_id' => $processedGoods->id,
+            'material_id' => null,
+            'description' => 'Test Sewing Service',
             'item_type' => 'processed',
             'qty_received' => 90,
             'qty_rejected' => 2,
@@ -153,6 +163,7 @@ class SubconIntegrationTest extends TestCase
         $inItem2 = SubconMaterialInItem::create([
             'subcon_material_in_id' => $materialIn->id,
             'material_id' => $rawMaterial->id,
+            'description' => null,
             'item_type' => 'raw_return',
             'qty_received' => 5,
             'qty_rejected' => 3,
@@ -169,27 +180,21 @@ class SubconIntegrationTest extends TestCase
         $rawMaterial->refresh();
         $this->assertEquals(405, $rawMaterial->stock);
 
-        // B. Processed Goods Stock should increase by 90 pcs (0 -> 90)
+        // B. Processed Goods (Sewn Panels) stock should NOT change because it was received as service description
         $processedStock = InventoryStock::where('warehouse_id', $warehouse->id)
             ->where('material_id', $processedGoods->id)
             ->first();
-        $this->assertNotNull($processedStock);
-        $this->assertEquals(90, $processedStock->quantity);
-        $processedGoods->refresh();
-        $this->assertEquals(90, $processedGoods->stock);
+        $this->assertNull($processedStock);
 
         // C. Check Inventory Movements for Material In
-        // Processed goods movement
+        // Processed goods movement should NOT exist
         $moveProcessed = InventoryMovement::where('reference_type', SubconMaterialIn::class)
             ->where('reference_id', $materialIn->id)
             ->where('material_id', $processedGoods->id)
             ->first();
-        $this->assertNotNull($moveProcessed);
-        $this->assertEquals(90, $moveProcessed->quantity);
-        $this->assertEquals('production_in', $moveProcessed->type);
-        $this->assertStringContainsString('Processed goods received', $moveProcessed->notes);
+        $this->assertNull($moveProcessed);
 
-        // Raw return movement (qty_received > 0)
+        // Raw return movement (qty_received > 0) should exist
         $moveRawReturn = InventoryMovement::where('reference_type', SubconMaterialIn::class)
             ->where('reference_id', $materialIn->id)
             ->where('material_id', $rawMaterial->id)

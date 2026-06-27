@@ -71,15 +71,36 @@ class SubconMaterialInResource extends Resource
                         $set('po_subcon_id', $out->po_subcon_id);
 
                         $items = [];
-                        foreach ($out->items as $item) {
+
+                        // 1. Load Processed Goods / Services from PoSubcon
+                        if ($out->po_subcon_id) {
+                            $po = PoSubcon::with('items')->find($out->po_subcon_id);
+                            if ($po) {
+                                foreach ($po->items as $poItem) {
+                                    $items[] = [
+                                        'item_type' => 'processed',
+                                        'material_id' => null,
+                                        'description' => $poItem->description,
+                                        'qty_received' => $poItem->qty,
+                                        'qty_rejected' => 0.00,
+                                        'unit' => 'pcs',
+                                    ];
+                                }
+                            }
+                        }
+
+                        // 2. Load Raw Materials from SubconMaterialOut
+                        foreach ($out->items as $outItem) {
                             $items[] = [
-                                'material_id' => $item->material_id,
                                 'item_type' => 'raw_return',
+                                'material_id' => $outItem->material_id,
+                                'description' => null,
                                 'qty_received' => 0.00,
                                 'qty_rejected' => 0.00,
-                                'unit' => $item->unit,
+                                'unit' => $outItem->unit,
                             ];
                         }
+
                         $set('items', $items);
                     }
                 }),
@@ -118,8 +139,14 @@ class SubconMaterialInResource extends Resource
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $set('material_id', null);
+                                    $set('description', null);
                                     $set('unit', 'pcs');
                                 }),
+                            Forms\Components\TextInput::make('description')
+                                ->label('Material / Service Description')
+                                ->required(fn (callable $get) => $get('item_type') === 'processed')
+                                ->visible(fn (callable $get) => $get('item_type') === 'processed')
+                                ->maxLength(255),
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
@@ -130,17 +157,10 @@ class SubconMaterialInResource extends Resource
 
                                     return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
-                                ->options(function (callable $get) {
-                                    $type = $get('item_type');
-                                    if ($type === 'processed') {
-                                        return Material::whereIn('category', ['semi_finished', 'finished'])->pluck('name', 'id');
-                                    } else {
-                                        return Material::whereNotIn('category', ['semi_finished', 'finished'])->pluck('name', 'id');
-                                    }
-                                })
                                 ->searchable()
                                 ->preload()
-                                ->required()
+                                ->required(fn (callable $get) => $get('item_type') === 'raw_return')
+                                ->visible(fn (callable $get) => $get('item_type') === 'raw_return')
                                 ->reactive()
                                 ->disabled(fn (callable $get) => $get('item_type') === 'raw_return' && $get('material_id') !== null)
                                 ->dehydrated()
