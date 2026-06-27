@@ -9,6 +9,7 @@ use App\Models\PoSubcon;
 use App\Models\GoodsReceipt;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
+use App\Models\PurchaseShipment;
 use Carbon\Carbon;
 
 class CodeGenerator
@@ -67,5 +68,12 @@ class CodeGenerator
         $year = Carbon::now()->year;
         $count = \App\Models\StockTransfer::whereYear('created_at', $year)->count() + 1;
         return sprintf('ST-%d-%03d', $year, $count);
+    }
+
+    public static function generatePurchaseShipmentNo(): string
+    {
+        $year = Carbon::now()->year;
+        $count = PurchaseShipment::whereYear('created_at', $year)->count() + 1;
+        return sprintf('SHP-PUR-%d-%03d', $year, $count);
     }
 }

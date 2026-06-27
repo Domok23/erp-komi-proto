@@ -21,7 +21,7 @@ use App\Models\PoSupplier;
 use App\Models\PoSupplierItem;
 use App\Models\PoSubcon;
 use App\Models\PoSubconItem;
-use App\Models\PurchaseTracking;
+use App\Models\PurchaseShipment;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptShipping;
@@ -365,13 +365,18 @@ class DataSeeder extends Seeder
             'total_price' => 15000000,
         ]);
 
-        // 14. Seed Purchase Tracking
-        PurchaseTracking::create([
+        // 14. Seed Purchase Shipment
+        PurchaseShipment::create([
             'company_id' => $kei->id,
+            'shipment_number' => CodeGenerator::generatePurchaseShipmentNo(),
             'po_type' => 'supplier',
             'po_id' => $poSupplier->id,
-            'tracking_status' => 'shipped',
-            'estimated_arrival' => now()->addDays(5)->toDateString(),
+            'shipment_date' => now()->toDateString(),
+            'status' => 'shipped',
+            'carrier' => 'JNE Cargo',
+            'tracking_number' => 'JNE-12345678',
+            'shipping_cost' => 120000,
+            'eta' => now()->addDays(5)->toDateString(),
             'notes' => 'On transit from Jakarta port',
         ]);
 

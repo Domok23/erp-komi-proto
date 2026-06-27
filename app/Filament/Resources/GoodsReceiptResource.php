@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
+use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
 use Filament\Forms;
 use Filament\Schemas\Schema;
@@ -58,7 +59,7 @@ class GoodsReceiptResource extends Resource
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                     $type = $get('po_type');
                     if ($type === 'supplier') {
-                        $po = \App\Models\PoSupplier::find($state, ['*']);
+                        $po = \App\Models\PoSupplier::with('items')->find($state);
                         if ($po) {
                             $items = [];
                             foreach ($po->items as $item) {
@@ -73,6 +74,22 @@ class GoodsReceiptResource extends Resource
                             }
                             $set('items', $items);
                         }
+                    }
+
+                    // Auto-populate shipping details from latest PurchaseShipment
+                    $latestShipment = PurchaseShipment::where('po_type', $type)
+                        ->where('po_id', $state)
+                        ->latest()
+                        ->first();
+
+                    if ($latestShipment) {
+                        $set('shipping', [
+                            'carrier' => $latestShipment->carrier,
+                            'tracking_number' => $latestShipment->tracking_number,
+                            'shipping_cost' => $latestShipment->shipping_cost,
+                            'received_condition' => 'good',
+                            'notes' => 'Auto-populated from ' . $latestShipment->shipment_number,
+                        ]);
                     }
                 }),
             Forms\Components\Select::make('warehouse_id')
