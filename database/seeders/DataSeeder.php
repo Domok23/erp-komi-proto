@@ -33,6 +33,9 @@ use App\Models\InventoryStock;
 use App\Models\InvoiceSales;
 use App\Models\InvoicePurchase;
 use App\Models\Payment;
+use App\Models\ProductionOrder;
+use App\Models\QcInspection;
+use App\Models\JobOrder;
 use App\Services\CodeGenerator;
 use Illuminate\Database\Seeder;
 
@@ -40,8 +43,30 @@ class DataSeeder extends Seeder
 {
     public function run(): void
     {
+        // Create companies if they don't exist
         $kei = Company::where('code', 'KEI')->first();
+        if (!$kei) {
+            $kei = Company::create([
+                'code' => 'KEI',
+                'name' => 'Karya Eka Indonesia',
+                'address' => 'Bandung, Indonesia',
+                'phone' => '+62 22 1234567',
+                'email' => 'info@kei.co.id',
+                'is_active' => true,
+            ]);
+        }
+
         $ktk = Company::where('code', 'KTK')->first();
+        if (!$ktk) {
+            $ktk = Company::create([
+                'code' => 'KTK',
+                'name' => 'Karya Teknik Kencana',
+                'address' => 'Jakarta, Indonesia',
+                'phone' => '+62 21 7654321',
+                'email' => 'info@ktk.co.id',
+                'is_active' => true,
+            ]);
+        }
 
         // 1. Seed Warehouses
         $whMain = Warehouse::create([
@@ -493,6 +518,73 @@ class DataSeeder extends Seeder
             'unit' => 'meter',
             'min_stock' => 200,
             'location' => 'Rack C-3',
+        ]);
+
+        // 20. Seed Phase 2: Production Orders
+        $merchandisingPlanning = MerchandisePlanning::where('project_id', $project->id)->first();
+        
+        $productionOrder = ProductionOrder::create([
+            'company_id' => $kei->id,
+            'production_number' => CodeGenerator::generateProductionOrderNumber(),
+            'project_id' => $project->id,
+            'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
+            'planned_qty' => 1000,
+            'completed_qty' => 0,
+            'status' => 'planned',
+            'start_date' => now()->addDays(5)->toDateString(),
+            'end_date' => now()->addDays(45)->toDateString(),
+            'notes' => 'Mass production for Vera Bradley order',
+        ]);
+
+        // 21. Seed Phase 2: Job Orders
+        $jobOrderCutting = JobOrder::create([
+            'company_id' => $kei->id,
+            'production_order_id' => $productionOrder->id,
+            'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
+            'job_order_number' => CodeGenerator::generateJobOrderNumber(),
+            'task_type' => 'cutting',
+            'planned_qty' => 1000,
+            'completed_qty' => 0,
+            'status' => 'pending',
+            'assigned_to' => 'Cutting Team A',
+        ]);
+
+        $jobOrderSewing = JobOrder::create([
+            'company_id' => $kei->id,
+            'production_order_id' => $productionOrder->id,
+            'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
+            'job_order_number' => CodeGenerator::generateJobOrderNumber(),
+            'task_type' => 'sewing',
+            'planned_qty' => 1000,
+            'completed_qty' => 0,
+            'status' => 'pending',
+            'assigned_to' => 'Sewing Team B',
+        ]);
+
+        $jobOrderFinishing = JobOrder::create([
+            'company_id' => $kei->id,
+            'production_order_id' => $productionOrder->id,
+            'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
+            'job_order_number' => CodeGenerator::generateJobOrderNumber(),
+            'task_type' => 'finishing',
+            'planned_qty' => 1000,
+            'completed_qty' => 0,
+            'status' => 'pending',
+            'assigned_to' => 'Finishing Team C',
+        ]);
+
+        // 22. Seed Phase 2: QC Inspections
+        $qcInspection = QcInspection::create([
+            'company_id' => $kei->id,
+            'job_order_id' => $jobOrderFinishing->id,
+            'inspection_number' => CodeGenerator::generateQcInspectionNumber(),
+            'inspection_date' => now()->addDays(40)->toDateString(),
+            'sample_size' => 50,
+            'passed_qty' => 48,
+            'failed_qty' => 2,
+            'result' => 'pass',
+            'inspector' => 'QC Supervisor',
+            'notes' => 'Initial quality check passed with minor defects',
         ]);
     }
 }

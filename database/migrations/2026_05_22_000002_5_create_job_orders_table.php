@@ -6,26 +6,34 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::create('production_orders', function (Blueprint $table) {
+        Schema::create('job_orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
-            $table->string('production_number')->unique();
-            $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
+            $table->foreignId('production_order_id')->constrained('production_orders')->onDelete('cascade');
             $table->foreignId('merchandising_planning_id')->constrained('merchandise_plannings')->onDelete('cascade')->nullable();
-            $table->integer('planned_qty');
+            $table->string('job_order_number')->unique();
+            $table->enum('task_type', ['cutting', 'sewing', 'finishing', 'qc', 'packing']);
+            $table->integer('planned_qty')->default(0);
             $table->integer('completed_qty')->default(0);
-            $table->enum('status', ['planned', 'in_progress', 'qc_passed', 'qc_failed', 'completed', 'cancelled'])->default('planned');
+            $table->enum('status', ['pending', 'in_progress', 'completed', 'cancelled'])->default('pending');
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
+            $table->string('assigned_to')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::dropIfExists('production_orders');
+        Schema::dropIfExists('job_orders');
     }
 };
