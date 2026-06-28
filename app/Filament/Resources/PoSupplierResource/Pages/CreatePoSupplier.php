@@ -8,4 +8,11 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePoSupplier extends CreateRecord
 {
     protected static string $resource = PoSupplierResource::class;
+
+    protected function afterSave(): void
+    {
+        $this->record->load('items');
+        $this->record->recalculateTotals();
+        $this->record->syncStatusFromItems();
+    }
 }

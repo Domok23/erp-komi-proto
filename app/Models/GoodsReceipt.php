@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,34 +36,49 @@ class GoodsReceipt extends Model
     {
         static::updated(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
-                \App\Services\InventoryService::receiveGoods($goodsReceipt);
-                self::updatePurchaseTracking($goodsReceipt);
+                InventoryService::receiveGoods($goodsReceipt);
+                self::updateShipmentOnReceipt($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
             }
         });
 
         static::created(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified') {
-                \App\Services\InventoryService::receiveGoods($goodsReceipt);
-                self::updatePurchaseTracking($goodsReceipt);
+                InventoryService::receiveGoods($goodsReceipt);
+                self::updateShipmentOnReceipt($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
             }
         });
     }
 
-    protected static function updatePurchaseTracking(GoodsReceipt $goodsReceipt): void
+    protected static function updateShipmentOnReceipt(GoodsReceipt $goodsReceipt): void
     {
         if ($goodsReceipt->po_type && $goodsReceipt->po_id) {
-            $tracking = PurchaseTracking::where('company_id', $goodsReceipt->company_id)
+            // Update all non-arrived shipments for this PO to arrived
+            PurchaseShipment::where('company_id', $goodsReceipt->company_id)
                 ->where('po_type', $goodsReceipt->po_type)
                 ->where('po_id', $goodsReceipt->po_id)
-                ->first();
-
-            if ($tracking) {
-                $tracking->update([
-                    'tracking_status' => 'delivered',
+                ->where('status', '!=', 'arrived')
+                ->update([
+                    'status' => 'arrived',
                     'actual_arrival' => $goodsReceipt->receipt_date,
                 ]);
-            }
         }
+    }
+
+    protected static function syncPoItemReceivedQty(GoodsReceipt $goodsReceipt): void
+    {
+        if ($goodsReceipt->po_type !== 'supplier' || ! $goodsReceipt->po_id) {
+            return;
+        }
+
+        $po = PoSupplier::with('items')->find($goodsReceipt->po_id);
+        if (! $po) {
+            return;
+        }
+
+        $po->syncReceivedQty();
+        $po->syncStatusFromItems();
     }
 
     public function po(): MorphTo

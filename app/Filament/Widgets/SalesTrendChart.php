@@ -8,8 +8,10 @@ use Filament\Widgets\ChartWidget;
 class SalesTrendChart extends ChartWidget
 {
     protected static ?int $sort = 2;
+
     protected ?string $heading = 'Sales Revenue Trend';
-    protected int | string | array $columnSpan = 2;
+
+    protected int|string|array $columnSpan = 2;
 
     protected function getData(): array
     {

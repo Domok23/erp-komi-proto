@@ -1,18 +1,22 @@
 <?php
+
 namespace App\Filament\Resources\SupplierResource\RelationManagers;
 
-use App\Models\Material;
-use Filament\Schemas\Schema;
-use Filament\Tables\Table;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class MaterialsRelationManager extends RelationManager
 {
@@ -21,11 +25,11 @@ class MaterialsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->schema([
-            \Filament\Forms\Components\TextInput::make('code')
+            TextInput::make('code')
                 ->required()
                 ->unique(ignoreRecord: true),
-            \Filament\Forms\Components\TextInput::make('name')->required(),
-            \Filament\Forms\Components\Select::make('category')
+            TextInput::make('name')->required(),
+            Select::make('category')
                 ->options([
                     'fabric' => 'Fabric',
                     'zipper' => 'Zipper',
@@ -36,8 +40,10 @@ class MaterialsRelationManager extends RelationManager
                     'interlining' => 'Interlining',
                     'other' => 'Other',
                 ]),
-            \Filament\Forms\Components\TextInput::make('unit')->default('pcs'),
-            \Filament\Forms\Components\Toggle::make('is_active')->default(true),
+            TextInput::make('unit')->default('pcs'),
+            Toggle::make('is_active')
+                ->default(true)
+                ->inline(false),
         ]);
     }
 
@@ -56,8 +62,10 @@ class MaterialsRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

@@ -5,27 +5,32 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PoSubconResource\Pages;
 use App\Models\PoSubcon;
 use App\Services\CodeGenerator;
+use App\Services\InvoiceGeneratorService;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PoSubconResource extends Resource
 {
     protected static ?string $model = PoSubcon::class;
 
     protected static ?string $navigationLabel = 'PO Subcons';
+
     protected static ?string $modelLabel = 'PO Subcon';
+
     protected static ?string $pluralModelLabel = 'PO Subcons';
 
     public static function form(Schema $schema): Schema
@@ -60,15 +65,16 @@ class PoSubconResource extends Resource
                 ])
                 ->default('draft')
                 ->required(),
-            
+
             Section::make('Subcon Costs')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('service_cost')
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
-                        ->reactive()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('shipping_cost')
                         ->numeric()
                         ->default(0)
@@ -93,6 +99,7 @@ class PoSubconResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('PO Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -103,6 +110,7 @@ class PoSubconResource extends Resource
                                 ->numeric()
                                 ->default(1)
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
@@ -114,6 +122,7 @@ class PoSubconResource extends Resource
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
@@ -136,12 +145,12 @@ class PoSubconResource extends Resource
                                 $subtotal += floatval($item['total_price'] ?? 0);
                             }
                             $set('service_cost', $subtotal);
-                            
+
                             $shipping = floatval($get('shipping_cost') ?? 0);
                             $shippingReturn = floatval($get('shipping_return_cost') ?? 0);
                             $set('total_cost', $subtotal + $shipping + $shippingReturn);
                         }),
-                ])
+                ]),
         ]);
     }
 
@@ -183,21 +192,23 @@ class PoSubconResource extends Resource
                 SelectFilter::make('subcon_id')->relationship('subcon', 'name'),
             ])
             ->actions([
-                Action::make('generateInvoice')
-                    ->label('Generate Invoice')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
-                    ->action(function ($record) {
-                        \App\Services\InvoiceGeneratorService::generateFromSubconPO($record);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Subcon Invoice generated successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make()
+                ActionGroup::make([
+                    Action::make('generateInvoice')
+                        ->label('Generate Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
+                        ->action(function ($record) {
+                            InvoiceGeneratorService::generateFromSubconPO($record);
+                            Notification::make()
+                                ->title('Subcon Invoice generated successfully!')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

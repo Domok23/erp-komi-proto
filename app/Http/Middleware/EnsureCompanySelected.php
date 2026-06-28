@@ -21,7 +21,7 @@ class EnsureCompanySelected
             return $next($request);
         }
 
-        if (!CompanyContext::hasCompany()) {
+        if (! CompanyContext::hasCompany()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Company not selected'], 403);
             }

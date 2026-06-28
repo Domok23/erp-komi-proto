@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceiptRetur extends Model
 {
@@ -12,14 +13,8 @@ class GoodsReceiptRetur extends Model
     protected $fillable = [
         'goods_receipt_id',
         'retur_number',
-        'material_id',
-        'qty_returned',
-        'reason',
         'status',
-    ];
-
-    protected $casts = [
-        'qty_returned' => 'decimal:2',
+        'notes',
     ];
 
     public function goodsReceipt(): BelongsTo
@@ -27,8 +22,8 @@ class GoodsReceiptRetur extends Model
         return $this->belongsTo(GoodsReceipt::class, 'goods_receipt_id');
     }
 
-    public function material(): BelongsTo
+    public function items(): HasMany
     {
-        return $this->belongsTo(Material::class, 'material_id');
+        return $this->hasMany(GoodsReceiptReturItem::class, 'goods_receipt_retur_id');
     }
 }

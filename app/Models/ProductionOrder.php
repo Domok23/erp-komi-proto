@@ -31,7 +31,6 @@ class ProductionOrder extends Model
         'end_date' => 'date',
     ];
 
-    
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
@@ -41,7 +40,6 @@ class ProductionOrder extends Model
     {
         return $this->belongsTo(MerchandisePlanning::class);
     }
-
     public function jobOrders(): HasMany
     {
         return $this->hasMany(JobOrder::class);
@@ -51,4 +49,4 @@ class ProductionOrder extends Model
     {
         return $this->hasMany(ProductionOrderMaterial::class);
     }
-}   
+}

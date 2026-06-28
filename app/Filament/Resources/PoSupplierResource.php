@@ -3,30 +3,37 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PoSupplierResource\Pages;
-use App\Models\PoSupplier;
+use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\PoSupplier;
 use App\Services\CodeGenerator;
+use App\Services\CompanyContext;
+use App\Services\InvoiceGeneratorService;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PoSupplierResource extends Resource
 {
     protected static ?string $model = PoSupplier::class;
 
     protected static ?string $navigationLabel = 'PO Suppliers';
+
     protected static ?string $modelLabel = 'PO Supplier';
+
     protected static ?string $pluralModelLabel = 'PO Suppliers';
 
     public static function form(Schema $schema): Schema
@@ -46,7 +53,8 @@ class PoSupplierResource extends Resource
                 ->relationship('supplier', 'name')
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->reactive(),
             Forms\Components\DatePicker::make('po_date')
                 ->default(now()->toDateString())
                 ->required(),
@@ -61,8 +69,9 @@ class PoSupplierResource extends Resource
                 ])
                 ->default('draft')
                 ->required(),
-            
+
             Section::make('Cost & Tax Totals')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('subtotal')
                         ->numeric()
@@ -94,34 +103,47 @@ class PoSupplierResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('PO Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
+                                ->label('Material')
+                                ->options(function (callable $get) {
+                                    $supplierId = $get('../../supplier_id');
+                                    if (! $supplierId) {
+                                        return [];
+                                    }
+
+                                    return Material::where('supplier_id', $supplierId)
+                                        ->pluck('name', 'id');
+                                })
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
-                                    if ($material) {
-                                        $set('unit', $material->unit);
-                                        $set('unit_price', $material->price);
-                                    }
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $material = $state ? Material::find($state, ['*']) : null;
+                                    $set('unit', $material?->unit);
+                                    $price = $material?->price ?? 0;
+                                    $set('unit_price', $price);
+                                    $qty = floatval($get('qty') ?? 1);
+                                    $set('total_price', $qty * $price);
                                 }),
                             Forms\Components\TextInput::make('qty')
                                 ->numeric()
                                 ->default(1)
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
@@ -137,6 +159,7 @@ class PoSupplierResource extends Resource
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
+                                ->minValue(0.01)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
@@ -164,14 +187,14 @@ class PoSupplierResource extends Resource
                                 $subtotal += floatval($item['total_price'] ?? 0);
                             }
                             $set('subtotal', $subtotal);
-                            
+
                             $ppnPct = floatval($get('ppn_percent') ?? 11);
                             $ppnAmount = $subtotal * ($ppnPct / 100);
                             $set('ppn_amount', $ppnAmount);
-                            
+
                             $set('grand_total', $subtotal + $ppnAmount);
                         }),
-                ])
+                ]),
         ]);
     }
 
@@ -214,21 +237,23 @@ class PoSupplierResource extends Resource
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
             ->actions([
-                Action::make('generateInvoice')
-                    ->label('Generate Invoice')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
-                    ->action(function ($record) {
-                        \App\Services\InvoiceGeneratorService::generateFromPO($record);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Purchase Invoice generated successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make()
+                ActionGroup::make([
+                    Action::make('generateInvoice')
+                        ->label('Generate Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'ordered' || $record->status === 'received')
+                        ->action(function ($record) {
+                            InvoiceGeneratorService::generateFromPO($record);
+                            Notification::make()
+                                ->title('Purchase Invoice generated successfully!')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

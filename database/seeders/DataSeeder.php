@@ -2,41 +2,43 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\Customer;
-use App\Models\Subcon;
-use App\Models\Supplier;
-use App\Models\Material;
-use App\Models\Warehouse;
-use App\Models\RdDesign;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Project;
-use App\Models\MerchandisePlanning;
-use App\Models\MerchandisePlanningItem;
+use App\Models\Company;
 use App\Models\Costing;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
-use App\Models\PoSupplier;
-use App\Models\PoSupplierItem;
-use App\Models\PoSubcon;
-use App\Models\PoSubconItem;
-use App\Models\PurchaseTracking;
+use App\Models\Customer;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptShipping;
-use App\Models\SubconMaterialOut;
-use App\Models\SubconMaterialOutItem;
-use App\Models\SubconMaterialIn;
-use App\Models\SubconMaterialInItem;
 use App\Models\InventoryStock;
 use App\Models\InvoiceSales;
 use App\Models\InvoicePurchase;
-use App\Models\Payment;
-use App\Models\ProductionOrder;
-use App\Models\QcInspection;
 use App\Models\JobOrder;
+use App\Models\Material;
+use App\Models\MerchandisePlanning;
+use App\Models\MerchandisePlanningItem;
+use App\Models\Payment;
+use App\Models\PoSubcon;
+use App\Models\PoSubconItem;
+use App\Models\PoSupplier;
+use App\Models\PoSupplierItem;
+use App\Models\ProductionOrder;
+use App\Models\Project;
+use App\Models\PurchaseShipment;
+use App\Models\QcInspection;
+use App\Models\RdDesign;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
+use App\Models\Subcon;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialInItem;
+use App\Models\SubconMaterialOut;
+use App\Models\SubconMaterialOutItem;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\CodeGenerator;
+use App\Services\CostingCalculatorService;
 use Illuminate\Database\Seeder;
 
 class DataSeeder extends Seeder
@@ -160,6 +162,17 @@ class DataSeeder extends Seeder
             'supplier_id' => $supplierDuraflex->id,
         ]);
 
+        $matFabricEmbroidered = Material::create([
+            'code' => 'FAB-001-EMB',
+            'name' => '600D Recycled Polyester Dobby (Embroidered)',
+            'category' => 'semi_finished',
+            'unit' => 'pcs',
+            'stock' => 0,
+            'min_stock' => 0,
+            'price' => 45000,
+            'description' => 'Fabric after embroidery processing at subcontractor',
+        ]);
+
         // 6. Seed RdDesigns
         $designBackpack = RdDesign::create([
             'company_id' => $kei->id,
@@ -268,21 +281,30 @@ class DataSeeder extends Seeder
         ]);
 
         // 10. Seed Costings
+        $admin = User::where('email', 'admin@komi.com')->first();
         $costing = Costing::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
             'design_id' => $designBackpack->id,
             'costing_date' => now()->toDateString(),
             'version' => '1.0',
-            'status' => 'approved',
+            'status' => 'draft',
             'material_cost' => 90000,
-            'mp_cost' => 20000,
+            'mp_cost' => 33000,
             'overhead_pct' => 15,
             'shipping_cost' => 5000,
             'profit_margin_pct' => 20,
             'currency' => 'IDR',
         ]);
-        \App\Services\CostingCalculatorService::recalculateCosting($costing);
+        // Calculate first (while still editable), then approve
+        CostingCalculatorService::recalculateCosting($costing);
+        $costing->update([
+            'status' => 'approved',
+            'submitted_by' => $admin->id,
+            'submitted_at' => now()->subHour(),
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
+        ]);
 
         // 11. Seed Sales Orders
         $salesOrder = SalesOrder::create([
@@ -381,13 +403,18 @@ class DataSeeder extends Seeder
             'total_price' => 15000000,
         ]);
 
-        // 14. Seed Purchase Tracking
-        PurchaseTracking::create([
+        // 14. Seed Purchase Shipment
+        PurchaseShipment::create([
             'company_id' => $kei->id,
+            'shipment_number' => CodeGenerator::generatePurchaseShipmentNo(),
             'po_type' => 'supplier',
             'po_id' => $poSupplier->id,
-            'tracking_status' => 'shipped',
-            'estimated_arrival' => now()->addDays(5)->toDateString(),
+            'shipment_date' => now()->toDateString(),
+            'status' => 'shipped',
+            'carrier' => 'JNE Cargo',
+            'tracking_number' => 'JNE-12345678',
+            'shipping_cost' => 120000,
+            'eta' => now()->addDays(5)->toDateString(),
             'notes' => 'On transit from Jakarta port',
         ]);
 
@@ -451,16 +478,31 @@ class DataSeeder extends Seeder
         $subconIn = SubconMaterialIn::create([
             'company_id' => $kei->id,
             'po_subcon_id' => $poSubcon->id,
+            'subcon_material_out_id' => $subconOut->id,
             'subcon_id' => $subconJaya->id,
             'document_number' => 'MAT-IN-001',
             'receive_date' => now()->toDateString(),
             'status' => 'draft',
         ]);
 
+        // Processed goods (Embroidered Panel) received
+        SubconMaterialInItem::create([
+            'subcon_material_in_id' => $subconIn->id,
+            'material_id' => null,
+            'description' => 'Logo Embroidery Service',
+            'item_type' => 'processed',
+            'qty_received' => 195,
+            'qty_rejected' => 2,
+            'unit' => 'pcs',
+        ]);
+
+        // Leftover raw material (Fabric) returned
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => $matFabric->id,
-            'qty_received' => 200,
+            'description' => null,
+            'item_type' => 'raw_return',
+            'qty_received' => 3, // 3 yards leftover returned
             'qty_rejected' => 0,
             'unit' => 'yard',
         ]);

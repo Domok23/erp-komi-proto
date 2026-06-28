@@ -4,25 +4,34 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
+use App\Models\InventoryStock;
+use App\Models\Material;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
+use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class GoodsReceiptResource extends Resource
 {
     protected static ?string $model = GoodsReceipt::class;
 
     protected static ?string $navigationLabel = 'Goods Receipt';
+
     protected static ?string $modelLabel = 'Goods Receipt';
+
     protected static ?string $pluralModelLabel = 'Goods Receipts';
 
     public static function form(Schema $schema): Schema
@@ -41,24 +50,37 @@ class GoodsReceiptResource extends Resource
                 ])
                 ->required()
                 ->reactive()
-                ->afterStateUpdated(fn (callable $set) => $set('po_id', null)),
+                ->afterStateUpdated(function (callable $set) {
+                    $set('po_id', null);
+                    $set('items', []);
+                    $set('shipping', null);
+                }),
             Forms\Components\Select::make('po_id')
                 ->label('Purchase Order')
                 ->options(function (callable $get) {
                     $type = $get('po_type');
                     if ($type === 'supplier') {
-                        return \App\Models\PoSupplier::pluck('po_number', 'id');
+                        return PoSupplier::pluck('po_number', 'id');
                     } elseif ($type === 'subcon') {
-                        return \App\Models\PoSubcon::pluck('po_number', 'id');
+                        return PoSubcon::pluck('po_number', 'id');
                     }
+
                     return [];
                 })
+                ->searchable()
+                ->preload()
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    if (! $state) {
+                        $set('items', []);
+                        $set('shipping', null);
+
+                        return;
+                    }
                     $type = $get('po_type');
                     if ($type === 'supplier') {
-                        $po = \App\Models\PoSupplier::find($state, ['*']);
+                        $po = PoSupplier::with('items')->find($state);
                         if ($po) {
                             $items = [];
                             foreach ($po->items as $item) {
@@ -74,9 +96,27 @@ class GoodsReceiptResource extends Resource
                             $set('items', $items);
                         }
                     }
+
+                    // Auto-populate shipping details from latest PurchaseShipment
+                    $latestShipment = PurchaseShipment::where('po_type', $type)
+                        ->where('po_id', $state)
+                        ->latest()
+                        ->first();
+
+                    if ($latestShipment) {
+                        $set('shipping', [
+                            'carrier' => $latestShipment->carrier,
+                            'tracking_number' => $latestShipment->tracking_number,
+                            'shipping_cost' => $latestShipment->shipping_cost,
+                            'received_condition' => 'good',
+                            'notes' => 'Auto-populated from '.$latestShipment->shipment_number,
+                        ]);
+                    }
                 }),
             Forms\Components\Select::make('warehouse_id')
                 ->relationship('warehouse', 'name')
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('receipt_date')
                 ->default(now()->toDateString())
@@ -97,6 +137,7 @@ class GoodsReceiptResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('Received Items')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -104,11 +145,12 @@ class GoodsReceiptResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->disabled()
                                 ->dehydrated()
@@ -134,6 +176,7 @@ class GoodsReceiptResource extends Resource
                 ]),
 
             Section::make('Shipping Details')
+                ->columnSpanFull()
                 ->relationship('shipping')
                 ->schema([
                     Forms\Components\TextInput::make('carrier'),
@@ -147,25 +190,23 @@ class GoodsReceiptResource extends Resource
                 ])->columns(2),
 
             Section::make('Returns Handling')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('returs')
                         ->relationship('returs')
                         ->schema([
-                            Forms\Components\TextInput::make('retur_number')->required(),
-                            Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+                            Forms\Components\TextInput::make('retur_number')
+                                ->default(function (callable $get) {
+                                    $existingReturs = $get('../../returs') ?? [];
+                                    $excludeNumbers = collect($existingReturs)
+                                        ->pluck('retur_number')
+                                        ->filter()
+                                        ->toArray();
+
+                                    return CodeGenerator::generateGRReturNumber($excludeNumbers);
                                 })
-                                ->required(),
-                            Forms\Components\TextInput::make('qty_returned')
-                                ->numeric()
-                                ->required(),
-                            Forms\Components\TextInput::make('reason')
+                                ->reactive()
+                                ->dehydrated()
                                 ->required(),
                             Forms\Components\Select::make('status')
                                 ->options([
@@ -176,9 +217,63 @@ class GoodsReceiptResource extends Resource
                                 ])
                                 ->default('pending')
                                 ->required(),
+                            Forms\Components\Textarea::make('notes')
+                                ->columnSpanFull(),
+                            Forms\Components\Repeater::make('items')
+                                ->relationship('items')
+                                ->label('Return Items')
+                                ->schema([
+                                    Forms\Components\Select::make('material_id')
+                                        ->label('Material')
+                                        ->options(function (callable $get) {
+                                            $grItems = $get('../../../../items') ?? [];
+                                            $materialIds = collect($grItems)
+                                                ->pluck('material_id')
+                                                ->filter()
+                                                ->unique()
+                                                ->values();
+
+                                            if ($materialIds->isEmpty()) {
+                                                return [];
+                                            }
+
+                                            return Material::whereIn('id', $materialIds)
+                                                ->get()
+                                                ->mapWithKeys(fn ($material) => [
+                                                    $material->id => "[{$material->code}] {$material->name}",
+                                                ]);
+                                        })
+                                        ->searchable()
+                                        ->required(),
+                                    Forms\Components\TextInput::make('qty_returned')
+                                        ->numeric()
+                                        ->required()
+                                        ->minValue(0.01)
+                                        ->rules([
+                                            fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                                $materialId = $get('material_id');
+                                                if (! $materialId) {
+                                                    return;
+                                                }
+                                                $grItems = $get('../../../../items') ?? [];
+                                                $matchedItem = collect($grItems)->firstWhere('material_id', $materialId);
+                                                $maxAllowed = $matchedItem ? floatval($matchedItem['qty_received'] ?? 0) : 0;
+
+                                                if (floatval($value) > $maxAllowed) {
+                                                    $fail("Kuantitas yang diretur ({$value}) tidak boleh melebihi kuantitas yang diterima ({$maxAllowed}).");
+                                                }
+                                            },
+                                        ]),
+                                    Forms\Components\TextInput::make('reason')
+                                        ->required(),
+                                ])
+                                ->columns(3)
+                                ->columnSpanFull(),
                         ])
-                        ->columns(3)
-                        ->columnSpanFull(),
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string => $state['retur_number'] ?? 'New Return'),
                 ]),
         ]);
     }
@@ -211,7 +306,12 @@ class GoodsReceiptResource extends Resource
                 ]),
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

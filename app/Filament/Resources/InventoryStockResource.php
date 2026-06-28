@@ -5,23 +5,27 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InventoryStockResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class InventoryStockResource extends Resource
 {
     protected static ?string $model = InventoryStock::class;
 
     protected static ?string $navigationLabel = 'Inventory Stock';
+
     protected static ?string $modelLabel = 'Inventory Stock';
+
     protected static ?string $pluralModelLabel = 'Inventory Stocks';
 
     public static function form(Schema $schema): Schema
@@ -29,15 +33,18 @@ class InventoryStockResource extends Resource
         return $schema->schema([
             Forms\Components\Select::make('warehouse_id')
                 ->relationship('warehouse', 'name')
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
                 ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                    $companyId = CompanyContext::getCompanyId();
+                    $stock = InventoryStock::where('material_id', $record->id)
                         ->where('company_id', $companyId)
                         ->sum('quantity');
-                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                 })
                 ->searchable()
                 ->preload()
@@ -97,7 +104,12 @@ class InventoryStockResource extends Resource
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

@@ -3,24 +3,34 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryMovementResource\Pages;
+use App\Filament\Resources\StockTransfers\StockTransferResource;
+use App\Models\GoodsReceipt;
 use App\Models\InventoryMovement;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Models\InventoryStock;
+use App\Models\StockTransfer;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialOut;
+use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class InventoryMovementResource extends Resource
 {
     protected static ?string $model = InventoryMovement::class;
 
     protected static ?string $navigationLabel = 'Inventory Movements';
+
     protected static ?string $modelLabel = 'Inventory Movement';
+
     protected static ?string $pluralModelLabel = 'Inventory Movements';
 
     public static function form(Schema $schema): Schema
@@ -47,12 +57,15 @@ class InventoryMovementResource extends Resource
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
                 ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                    $companyId = CompanyContext::getCompanyId();
+                    $stock = InventoryStock::where('material_id', $record->id)
                         ->where('company_id', $companyId)
                         ->sum('quantity');
-                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                 })
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\TextInput::make('quantity')
                 ->numeric()
@@ -97,8 +110,30 @@ class InventoryMovementResource extends Resource
             Tables\Columns\TextColumn::make('quantity')->numeric()->sortable(),
             Tables\Columns\TextColumn::make('before_qty')->numeric(),
             Tables\Columns\TextColumn::make('after_qty')->numeric(),
-            Tables\Columns\TextColumn::make('reference_type'),
-            Tables\Columns\TextColumn::make('reference_id'),
+            Tables\Columns\TextColumn::make('reference_type')
+                ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
+                    StockTransfer::class => 'Stock Transfer',
+                    GoodsReceipt::class => 'Goods Receipt',
+                    SubconMaterialIn::class => 'Subcon Material In',
+                    SubconMaterialOut::class => 'Subcon Material Out',
+                    default => class_basename($state),
+                } : '-')
+                ->color('primary')
+                ->url(function ($record) {
+                    if (! $record->reference_id || ! $record->reference_type) {
+                        return null;
+                    }
+
+                    return match ($record->reference_type) {
+                        StockTransfer::class => StockTransferResource::getUrl('edit', ['record' => $record->reference_id]),
+                        GoodsReceipt::class => GoodsReceiptResource::getUrl('edit', ['record' => $record->reference_id]),
+                        SubconMaterialOut::class => SubconMaterialOutResource::getUrl('edit', ['record' => $record->reference_id]),
+                        SubconMaterialIn::class => SubconMaterialInResource::getUrl('edit', ['record' => $record->reference_id]),
+                        default => null,
+                    };
+                }),
+            Tables\Columns\TextColumn::make('reference_id')
+                ->label('Reference ID'),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
         ])
             ->filters([
@@ -115,7 +150,12 @@ class InventoryMovementResource extends Resource
                 ]),
                 SelectFilter::make('material_id')->relationship('material', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

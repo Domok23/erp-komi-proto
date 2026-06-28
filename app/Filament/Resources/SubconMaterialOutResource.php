@@ -3,26 +3,32 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialOutResource\Pages;
-use App\Models\SubconMaterialOut;
+use App\Models\InventoryStock;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Models\PoSubcon;
+use App\Models\SubconMaterialOut;
+use App\Services\CompanyContext;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class SubconMaterialOutResource extends Resource
 {
     protected static ?string $model = SubconMaterialOut::class;
 
     protected static ?string $navigationLabel = 'Subcon Material Out';
+
     protected static ?string $modelLabel = 'Subcon Material Out';
+
     protected static ?string $pluralModelLabel = 'Subcon Material Outs';
 
     public static function form(Schema $schema): Schema
@@ -38,9 +44,11 @@ class SubconMaterialOutResource extends Resource
                 ->nullable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $po = \App\Models\PoSubcon::find($state, ['*']);
+                    $po = $state ? PoSubcon::find($state, ['*']) : null;
                     if ($po) {
                         $set('subcon_id', $po->subcon_id);
+                    } else {
+                        $set('subcon_id', null);
                     }
                 }),
             Forms\Components\Select::make('subcon_id')
@@ -55,7 +63,6 @@ class SubconMaterialOutResource extends Resource
                 ->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
-                    'received' => 'Received',
                 ])
                 ->default('draft')
                 ->required(),
@@ -63,6 +70,7 @@ class SubconMaterialOutResource extends Resource
                 ->columnSpanFull(),
 
             Section::make('Sent Materials')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -70,26 +78,41 @@ class SubconMaterialOutResource extends Resource
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
                                 ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = \App\Services\CompanyContext::getCompanyId();
-                                    $stock = \App\Models\InventoryStock::where('material_id', $record->id)
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = InventoryStock::where('material_id', $record->id)
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
-                                    return "[{$record->code}] {$record->name} (Stock: " . number_format($stock, 2) . " {$record->unit})";
+
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
                                 })
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
-                                    if ($material) {
-                                        $set('unit', $material->unit);
-                                    }
+                                    $material = $state ? Material::find($state, ['*']) : null;
+                                    $set('unit', $material?->unit);
                                 }),
                             Forms\Components\TextInput::make('qty_sent')
                                 ->numeric()
                                 ->default(1)
-                                ->required(),
+                                ->required()
+                                ->minValue(0.01)
+                                ->rules([
+                                    fn ($get) => function (string $attribute, $value, $fail) use ($get) {
+                                        $materialId = $get('material_id');
+                                        if (! $materialId) {
+                                            return;
+                                        }
+                                        $companyId = CompanyContext::getCompanyId();
+                                        $stock = InventoryStock::where('material_id', $materialId)
+                                            ->where('company_id', $companyId)
+                                            ->sum('quantity');
+                                        if (floatval($value) > $stock) {
+                                            $fail("Stok gudang tidak mencukupi. Stok saat ini: {$stock}.");
+                                        }
+                                    },
+                                ]),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
                                 ->dehydrated()
@@ -97,7 +120,7 @@ class SubconMaterialOutResource extends Resource
                         ])
                         ->columns(3)
                         ->columnSpanFull(),
-                ])
+                ]),
         ]);
     }
 
@@ -121,10 +144,14 @@ class SubconMaterialOutResource extends Resource
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
-                    'received' => 'Received',
                 ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

@@ -4,37 +4,42 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ShipmentResource\Pages;
 use App\Models\Shipment;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
 
-
-
     protected static ?string $navigationLabel = 'Shipments';
+
     protected static ?string $modelLabel = 'Shipment';
+
     protected static ?string $pluralModelLabel = 'Shipments';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\TextInput::make('shipment_number')
+            Forms\Components\TextInput::make('shipment_number')
+                ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(50),
             Forms\Components\Select::make('sales_order_id')
                 ->relationship('salesOrder', 'so_number')
+                ->searchable()
+                ->preload()
                 ->nullable(),
-            Forms\Components\DatePicker::make('shipment_date'),
+            Forms\Components\DatePicker::make('shipment_date')
+                ->required(),
             Forms\Components\Select::make('status')
                 ->options([
                     'pending' => 'Pending',
@@ -43,6 +48,7 @@ class ShipmentResource extends Resource
                     'delivered' => 'Delivered',
                     'cancelled' => 'Cancelled',
                 ])
+                ->required()
                 ->default('pending'),
             Forms\Components\Select::make('shipping_method')
                 ->options([
@@ -50,7 +56,9 @@ class ShipmentResource extends Resource
                     'air' => 'Air',
                     'land' => 'Land',
                     'courier' => 'Courier',
-                ]),
+                ])
+                ->required()
+                ->default('sea'),
             Forms\Components\TextInput::make('container_number')
                 ->maxLength(100),
             Forms\Components\TextInput::make('bl_number')
@@ -116,11 +124,14 @@ class ShipmentResource extends Resource
                 SelectFilter::make('status')->options(['pending' => 'Pending', 'in_transit' => 'In Transit', 'customs' => 'Customs', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled']),
                 SelectFilter::make('shipping_method')->options(['sea' => 'Sea', 'air' => 'Air', 'land' => 'Land', 'courier' => 'Courier']),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {
@@ -137,12 +148,15 @@ class ShipmentResource extends Resource
         return 2;
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getRelations(): array
+    {
+        return [];
+    }
 
     public static function getPages(): array
     {
         return [
-       'index' => Pages\ListShipments::route('/'),
+            'index' => Pages\ListShipments::route('/'),
             'create' => Pages\CreateShipment::route('/create'),
             'edit' => Pages\EditShipment::route('/{record}/edit'),
         ];

@@ -4,32 +4,32 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Models\Customer;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-
-
     protected static ?string $navigationLabel = 'Customers';
+
     protected static ?string $modelLabel = 'Customers';
+
     protected static ?string $pluralModelLabel = 'Customers';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\TextInput::make('code')
+            Forms\Components\TextInput::make('code')
                 ->required()
                 ->unique(ignoreRecord: true)
                 ->maxLength(50),
@@ -101,8 +101,10 @@ class CustomerResource extends Resource
                     ->relationship('company', 'name'),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -110,8 +112,6 @@ class CustomerResource extends Resource
                 ]),
             ]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {

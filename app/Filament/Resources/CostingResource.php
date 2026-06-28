@@ -4,30 +4,39 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CostingResource\Pages;
 use App\Models\Costing;
+use App\Models\Project;
+use App\Services\CostingCalculatorService;
+use App\Services\CostingTransitionService;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class CostingResource extends Resource
 {
     protected static ?string $model = Costing::class;
 
     protected static ?string $navigationLabel = 'Costing';
+
     protected static ?string $modelLabel = 'Costing';
+
     protected static ?string $pluralModelLabel = 'Costings';
 
     public static function form(Schema $schema): Schema
     {
+        $isLocked = fn (?Costing $record): bool => $record && $record->isLocked();
+
         return $schema->schema([
             Forms\Components\Select::make('project_id')
                 ->relationship('project', 'project_code')
@@ -35,10 +44,29 @@ class CostingResource extends Resource
                 ->preload()
                 ->required()
                 ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $project = \App\Models\Project::find($state, ['*']);
+                ->disabled($isLocked)
+                ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                    $project = Project::find($state, ['*']);
                     if ($project) {
                         $set('design_id', $project->design_id);
+
+                        // Auto-fill MP cost from config per unit
+                        $mpCost = CostingCalculatorService::getMpRatePerUnit();
+                        $set('mp_cost', $mpCost);
+
+                        // Auto-fill overhead & profit from config
+                        $set('overhead_pct', CostingCalculatorService::getDefaultOverheadPct());
+                        $set('profit_margin_pct', CostingCalculatorService::getDefaultProfitMarginPct());
+
+                        // Auto-fill material cost from design if available
+                        $design = $project->design;
+                        if ($design) {
+                            if ($design->estimated_material_cost > 0) {
+                                $set('material_cost', $design->estimated_material_cost);
+                            }
+                        }
+
+                        self::recalculate($get, $set);
                     }
                 }),
             Forms\Components\Select::make('design_id')
@@ -48,11 +76,13 @@ class CostingResource extends Resource
                 ->required(),
             Forms\Components\DatePicker::make('costing_date')
                 ->default(now()->toDateString())
-                ->required(),
+                ->required()
+                ->disabled($isLocked),
             Forms\Components\TextInput::make('version')
                 ->required()
                 ->default('1.0')
-                ->maxLength(50),
+                ->maxLength(50)
+                ->disabled($isLocked),
             Forms\Components\Select::make('status')
                 ->options([
                     'draft' => 'Draft',
@@ -62,39 +92,50 @@ class CostingResource extends Resource
                     'rejected' => 'Rejected',
                 ])
                 ->required()
-                ->default('draft'),
+                ->default('draft')
+                ->disabled(),
+
+            // --- Cost breakdown ---
             Forms\Components\TextInput::make('material_cost')
                 ->label('Material Cost')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                ->helperText('Auto-imported from BOM')
+                ->disabled()
+                ->dehydrated(),
             Forms\Components\TextInput::make('mp_cost')
                 ->label('Manufacturing Cost (MP)')
                 ->numeric()
-                ->default(0)
+                ->default((int) CostingCalculatorService::getMpRatePerUnit())
                 ->prefix('IDR')
+                ->step(1)
+                ->hint('Default: IDR '.number_format(CostingCalculatorService::getMpRatePerUnit(), 0, ',', '.').'/unit')
                 ->live(onBlur: true)
+                ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_pct')
                 ->label('Overhead %')
                 ->numeric()
-                ->default(15)
+                ->default(CostingCalculatorService::getDefaultOverheadPct())
                 ->suffix('%')
+                ->hint('Default: '.CostingCalculatorService::getDefaultOverheadPct().'%')
                 ->live(onBlur: true)
+                ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_amount')
                 ->label('Overhead Amount')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->readOnly(),
+                ->disabled()
+                ->dehydrated(),
             Forms\Components\TextInput::make('shipping_cost')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->live(onBlur: true)
+                ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_pct')
                 ->label('Profit Margin %')
@@ -102,33 +143,55 @@ class CostingResource extends Resource
                 ->default(20)
                 ->suffix('%')
                 ->live(onBlur: true)
+                ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_amount')
                 ->label('Profit Margin Amount')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->readOnly(),
+                ->disabled()
+                ->dehydrated(),
+
+            // --- Result ---
             Forms\Components\TextInput::make('landed_cost')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->readOnly(),
+                ->disabled()
+                ->dehydrated(),
             Forms\Components\TextInput::make('selling_price')
                 ->label('Selling Price')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
-                ->readOnly(),
+                ->disabled()
+                ->dehydrated(),
             Forms\Components\TextInput::make('currency')
                 ->default('IDR')
-                ->maxLength(10),
+                ->maxLength(10)
+                ->disabled($isLocked),
+
+            // --- Notes & approval info ---
             Forms\Components\Textarea::make('notes')
                 ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\TextInput::make('approved_by')
-                ->maxLength(255),
-            Forms\Components\DatePicker::make('approved_at'),
+                ->columnSpanFull()
+                ->disabled($isLocked),
+            Forms\Components\Placeholder::make('submitted_by_display')
+                ->label('Submitted By')
+                ->content(fn (?Costing $record): string => $record && $record->submittedByUser
+                    ? $record->submittedByUser->name.' — '.($record->submitted_at?->format('d M Y H:i') ?? '-')
+                    : '-'),
+            Forms\Components\Placeholder::make('approved_by_display')
+                ->label('Approved By')
+                ->content(fn (?Costing $record): string => $record && $record->approvedByUser
+                    ? $record->approvedByUser->name.' — '.($record->approved_at?->format('d M Y H:i') ?? '-')
+                    : '-'),
+            Forms\Components\Placeholder::make('rejected_by_display')
+                ->label('Rejected By')
+                ->content(fn (?Costing $record): string => $record && $record->rejectedByUser
+                    ? $record->rejectedByUser->name.' — '.($record->rejected_at?->format('d M Y H:i') ?? '-')
+                    : '-'),
         ]);
     }
 
@@ -173,8 +236,13 @@ class CostingResource extends Resource
                 Tables\Columns\TextColumn::make('material_cost')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('selling_price')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('currency')->sortable(),
-                Tables\Columns\TextColumn::make('approved_by')->searchable(),
+                Tables\Columns\TextColumn::make('approvedByUser.name')
+                    ->label('Approved/Rejected By')
+                    ->sortable()
+                    ->searchable()
+                    ->placeholder('-'),
             ])
+            ->defaultSort('id', 'desc')
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -186,25 +254,50 @@ class CostingResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'project_code'),
             ])
             ->actions([
-                Action::make('importFromBOM')
-                    ->label('Import BOM Cost')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('info')
-                    ->action(function ($record) {
-                        $result = \App\Services\CostingCalculatorService::calculateFromBOM($record->project);
-                        $record->update([
-                            'material_cost' => $result['material_cost'],
-                        ]);
-                        \App\Services\CostingCalculatorService::recalculateCosting($record);
-                        
-                        \Filament\Notifications\Notification::make()
-                            ->title('BOM Cost Imported: IDR ' . number_format($result['material_cost'], 2))
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make()
+                ActionGroup::make([
+                    Action::make('importFromBOM')
+                        ->label('Import BOM')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->visible(fn (Costing $record): bool => $record->isEditable())
+                        ->action(function (Costing $record) {
+                            if (! $record->project) {
+                                Notification::make()
+                                    ->title('No project linked')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $result = CostingCalculatorService::calculateFromBOM($record->project);
+                            $record->update(['material_cost' => $result['material_cost']]);
+                            CostingCalculatorService::recalculateCosting($record);
+
+                            Notification::make()
+                                ->title('BOM Cost Imported: IDR '.number_format($result['material_cost'], 2))
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make()
+                        ->visible(fn (Costing $record): bool => $record->isEditable()),
+                    Action::make('duplicate')
+                        ->label('Duplicate')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('gray')
+                        ->action(function (Costing $record) {
+                            $new = CostingTransitionService::duplicate($record);
+
+                            Notification::make()
+                                ->title("Duplicated to v{$new->version}")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    DeleteAction::make()
+                        ->visible(fn (Costing $record): bool => $record->status === 'draft'),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

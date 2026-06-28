@@ -5,26 +5,26 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MaterialResource\Pages;
 use App\Filament\Resources\MaterialResource\RelationManagers;
 use App\Models\Material;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class MaterialResource extends Resource
 {
     protected static ?string $model = Material::class;
 
-
-
     protected static ?string $navigationLabel = 'Material';
+
     protected static ?string $modelLabel = 'Material';
+
     protected static ?string $pluralModelLabel = 'Material';
 
     public static function form(Schema $schema): Schema
@@ -46,8 +46,11 @@ class MaterialResource extends Resource
                     'handle' => 'Handle',
                     'label' => 'Label',
                     'interlining' => 'Interlining',
+                    'semi_finished' => 'Semi-Finished Product',
+                    'finished' => 'Finished Product',
                     'other' => 'Other',
-                ]),
+                ])
+                ->required(),
             Forms\Components\TextInput::make('unit')
                 ->default('pcs')
                 ->maxLength(20),
@@ -62,7 +65,9 @@ class MaterialResource extends Resource
                 ->prefix('$')
                 ->default(0),
             Forms\Components\Select::make('supplier_id')
-                ->relationship('supplier', 'name'),
+                ->relationship('supplier', 'name')
+                ->searchable()
+                ->preload(),
             Forms\Components\Textarea::make('description')
                 ->maxLength(65535)
                 ->columnSpanFull(),
@@ -95,16 +100,21 @@ class MaterialResource extends Resource
                     'handle' => 'Handle',
                     'label' => 'Label',
                     'interlining' => 'Interlining',
+                    'semi_finished' => 'Semi-Finished Product',
+                    'finished' => 'Finished Product',
                     'other' => 'Other',
                 ]),
                 SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
                 SelectFilter::make('supplier_id')->relationship('supplier', 'name'),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {

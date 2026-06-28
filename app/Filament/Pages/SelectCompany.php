@@ -5,8 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Schema;
 use Filament\Pages\Page;
 
 class SelectCompany extends Page

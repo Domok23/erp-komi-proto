@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\SalesOrder;
-use App\Models\PoSupplier;
-use App\Models\PoSubcon;
-use App\Models\InvoiceSales;
 use App\Models\InvoicePurchase;
+use App\Models\InvoiceSales;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
+use App\Models\SalesOrder;
 use Carbon\Carbon;
 
 class InvoiceGeneratorService
@@ -27,7 +27,7 @@ class InvoiceGeneratorService
             'paid_amount' => 0,
             'status' => 'unpaid',
             'is_tax_invoice' => false,
-            'notes' => 'Generated automatically from SO ' . $so->so_number,
+            'notes' => 'Generated automatically from SO '.$so->so_number,
         ]);
     }
 
@@ -45,7 +45,7 @@ class InvoiceGeneratorService
             'grand_total' => $po->grand_total,
             'paid_amount' => 0,
             'status' => 'unpaid',
-            'notes' => 'Generated automatically from Supplier PO ' . $po->po_number,
+            'notes' => 'Generated automatically from Supplier PO '.$po->po_number,
         ]);
     }
 
@@ -63,7 +63,7 @@ class InvoiceGeneratorService
             'grand_total' => $po->total_cost,
             'paid_amount' => 0,
             'status' => 'unpaid',
-            'notes' => 'Generated automatically from Subcon PO ' . $po->po_number,
+            'notes' => 'Generated automatically from Subcon PO '.$po->po_number,
         ]);
     }
 }

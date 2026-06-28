@@ -3,30 +3,39 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PaymentResource\Pages;
+use App\Models\InvoicePurchase;
+use App\Models\InvoiceSales;
 use App\Models\Payment;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use App\Services\CodeGenerator;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
 
     protected static ?string $navigationLabel = 'Payments';
+
     protected static ?string $modelLabel = 'Payment';
+
     protected static ?string $pluralModelLabel = 'Payments';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
             Forms\Components\TextInput::make('payment_number')
+                ->default(fn () => CodeGenerator::generatePaymentNumber('sales'))
+                ->disabled()
+                ->dehydrated()
                 ->required()
                 ->maxLength(50),
             Forms\Components\Select::make('invoice_type')
@@ -35,18 +44,27 @@ class PaymentResource extends Resource
                     'sales' => 'Sales Invoice',
                 ])
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    if ($state) {
+                        $set('payment_number', CodeGenerator::generatePaymentNumber($state));
+                    }
+                    $set('invoice_id', null);
+                }),
             Forms\Components\Select::make('invoice_id')
                 ->label('Invoice')
                 ->options(function (callable $get) {
                     $type = $get('invoice_type');
                     if ($type === 'purchase') {
-                        return \App\Models\InvoicePurchase::pluck('invoice_number', 'id');
+                        return InvoicePurchase::pluck('invoice_number', 'id');
                     } elseif ($type === 'sales') {
-                        return \App\Models\InvoiceSales::pluck('invoice_number', 'id');
+                        return InvoiceSales::pluck('invoice_number', 'id');
                     }
+
                     return [];
                 })
+                ->searchable()
+                ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('payment_date')
                 ->default(now()->toDateString())
@@ -90,7 +108,12 @@ class PaymentResource extends Resource
                     'credit' => 'Credit',
                 ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 

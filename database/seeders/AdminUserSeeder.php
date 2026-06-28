@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -12,7 +13,7 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $company = \App\Models\Company::firstOrFail();
+        $company = Company::firstOrFail();
 
         User::updateOrCreate(
             ['email' => 'admin@komi.com'],

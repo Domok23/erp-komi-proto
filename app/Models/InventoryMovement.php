@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\CompanyContext;
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Services\CompanyContext;
 
 class InventoryMovement extends Model
 {
@@ -20,17 +21,17 @@ class InventoryMovement extends Model
                 if ($movement->inventory_stock_id === null) {
                     // Find main warehouse or first warehouse of the company
                     $companyId = $movement->company_id ?? CompanyContext::getCompanyId();
-                    if (!$companyId) {
+                    if (! $companyId) {
                         $companyId = 1; // Fallback
                     }
-                    
-                    $warehouseId = \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')
+
+                    $warehouseId = Warehouse::where('company_id', '=', $companyId, 'and')
                         ->where('code', '=', 'WH-MAIN', 'and')
-                        ->first()?->id ?? \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')->first()?->id;
-                    
-                    if (!$warehouseId) {
+                        ->first()?->id ?? Warehouse::where('company_id', '=', $companyId, 'and')->first()?->id;
+
+                    if (! $warehouseId) {
                         // Create default WH if none exists
-                        $warehouse = \App\Models\Warehouse::create([
+                        $warehouse = Warehouse::create([
                             'company_id' => $companyId,
                             'code' => 'WH-MAIN',
                             'name' => 'Main Warehouse',
@@ -39,7 +40,7 @@ class InventoryMovement extends Model
                         $warehouseId = $warehouse->id;
                     }
 
-                    $stock = \App\Models\InventoryStock::firstOrCreate([
+                    $stock = InventoryStock::firstOrCreate([
                         'company_id' => $companyId,
                         'warehouse_id' => $warehouseId,
                         'material_id' => $movement->material_id,
@@ -55,14 +56,14 @@ class InventoryMovement extends Model
                 }
 
                 // Fetch current stock quantity
-                $stock = \App\Models\InventoryStock::find($movement->inventory_stock_id, ['*']);
+                $stock = InventoryStock::find($movement->inventory_stock_id, ['*']);
                 if ($stock) {
                     $movement->before_qty = $stock->quantity;
-                    
+
                     // Determine whether to add or subtract quantity based on movement type
                     $qty = $movement->quantity;
                     $isSubtraction = in_array($movement->type, ['production_out', 'shipment', 'return_out', 'transfer_out']);
-                    
+
                     if ($isSubtraction) {
                         $movement->after_qty = $movement->before_qty - $qty;
                     } else {
@@ -78,7 +79,7 @@ class InventoryMovement extends Model
                     ]);
 
                     // Sync total stock in material table
-                    \App\Services\InventoryService::syncMaterialTotalStock($movement->material_id);
+                    InventoryService::syncMaterialTotalStock($movement->material_id);
                 }
             }
         });

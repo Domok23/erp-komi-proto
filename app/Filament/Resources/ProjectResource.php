@@ -5,25 +5,31 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Models\Project;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
+use App\Services\ProjectTransitionService;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
 
     protected static ?string $navigationLabel = 'Projects';
+
     protected static ?string $modelLabel = 'Project';
+
     protected static ?string $pluralModelLabel = 'Projects';
 
     public static function form(Schema $schema): Schema
@@ -59,34 +65,50 @@ class ProjectResource extends Resource
                 ->required(),
             Forms\Components\Select::make('customer_id')
                 ->relationship('customer', 'name')
+                ->searchable()
+                ->preload()
                 ->nullable(),
             Forms\Components\Select::make('sales_order_id')
                 ->relationship('salesOrder', 'so_number')
+                ->searchable()
+                ->preload()
                 ->nullable(),
             Forms\Components\Select::make('design_id')
                 ->relationship('design', 'name')
+                ->searchable()
+                ->preload()
                 ->nullable(),
             Forms\Components\Select::make('bom_id')
                 ->relationship('bom', 'name')
+                ->searchable()
+                ->preload()
                 ->nullable(),
             Forms\Components\Select::make('reference_project_id')
                 ->relationship('referenceProject', 'project_code')
+                ->searchable()
+                ->preload()
                 ->disabled()
                 ->nullable(),
             Forms\Components\DatePicker::make('start_date'),
-            Forms\Components\DatePicker::make('target_date'),
+            Forms\Components\DatePicker::make('target_date')
+                ->afterOrEqual('start_date'),
             Forms\Components\TextInput::make('target_qty')
                 ->integer()
-                ->default(0),
+                ->default(0)
+                ->minValue(0),
             Forms\Components\TextInput::make('produced_qty')
                 ->integer()
-                ->default(0),
+                ->default(0)
+                ->minValue(0),
             Section::make('Approval Details')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\DateTimePicker::make('approved_at')
                         ->disabled(),
                     Forms\Components\Select::make('approved_by')
                         ->relationship('approvedByUser', 'name')
+                        ->searchable()
+                        ->preload()
                         ->disabled(),
                 ])->columns(2),
             Forms\Components\Textarea::make('description')
@@ -129,32 +151,34 @@ class ProjectResource extends Resource
                 SelectFilter::make('customer_id')->relationship('customer', 'name'),
             ])
             ->actions([
-                Action::make('approve')
-                    ->label('Approve')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status !== 'approved')
-                    ->action(function ($record) {
-                        \App\Services\ProjectTransitionService::approveProject($record, \Illuminate\Support\Facades\Auth::id() ?? 1);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Project Approved')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                Action::make('duplicate')
-                    ->label('Duplicate')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('info')
-                    ->action(function ($record) {
-                        $copy = \App\Services\ProjectTransitionService::duplicateProject($record);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Project Duplicated: ' . $copy->project_code)
-                            ->success()
-                            ->send();
-                    }),
-                EditAction::make(),
-                DeleteAction::make()
+                ActionGroup::make([
+                    Action::make('approve')
+                        ->label('Approve')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status !== 'approved')
+                        ->action(function ($record) {
+                            ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
+                            Notification::make()
+                                ->title('Project Approved')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    Action::make('duplicate')
+                        ->label('Duplicate')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $copy = ProjectTransitionService::duplicateProject($record);
+                            Notification::make()
+                                ->title('Project Duplicated: '.$copy->project_code)
+                                ->success()
+                                ->send();
+                        }),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

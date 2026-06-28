@@ -3,25 +3,29 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RdDesignResource\Pages;
+use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class RdDesignResource extends Resource
 {
     protected static ?string $model = RdDesign::class;
 
     protected static ?string $navigationLabel = 'R&D Design';
+
     protected static ?string $modelLabel = 'R&D Design';
+
     protected static ?string $pluralModelLabel = 'R&D Designs';
 
     public static function form(Schema $schema): Schema
@@ -50,7 +54,8 @@ class RdDesignResource extends Resource
                     'approved' => 'Approved',
                     'archived' => 'Archived',
                 ])
-                ->default('draft'),
+                ->default('draft')
+                ->required(),
             Forms\Components\TextInput::make('brand')
                 ->maxLength(255),
             Forms\Components\TextInput::make('size_range')
@@ -67,6 +72,7 @@ class RdDesignResource extends Resource
                 ->maxLength(65535)
                 ->columnSpanFull(),
             Section::make('Cost Estimations (Read-Only)')
+                ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('estimated_material_cost')
                         ->numeric()
@@ -125,7 +131,12 @@ class RdDesignResource extends Resource
                     'other' => 'Other',
                 ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
@@ -146,7 +157,9 @@ class RdDesignResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\ConsumptionRatesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\CostingCalculatorService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -62,5 +63,36 @@ class RdDesign extends Model
     public function costings(): HasMany
     {
         return $this->hasMany(Costing::class, 'design_id');
+    }
+
+    public function recalculateEstimates(): void
+    {
+        $materialCost = 0;
+        foreach ($this->consumptionRates()->with('material')->get() as $rate) {
+            $material = $rate->material;
+            if ($material) {
+                $wastageMultiplier = 1 + ($rate->wastage_rate / 100);
+                $qtyAdjusted = $rate->standard_rate * $wastageMultiplier;
+                $materialCost += $qtyAdjusted * $material->price;
+            }
+        }
+
+        $mpCost = CostingCalculatorService::getMpRatePerUnit();
+        $overheadPct = CostingCalculatorService::getDefaultOverheadPct();
+        $profitPct = CostingCalculatorService::getDefaultProfitMarginPct();
+
+        $subtotal = $materialCost + $mpCost;
+        $overheadAmount = $subtotal * ($overheadPct / 100);
+        $landedCost = $subtotal + $overheadAmount; // shipping is 0 at design stage
+        $profitAmount = $landedCost * ($profitPct / 100);
+        $sellingPrice = $landedCost + $profitAmount;
+
+        $this->update([
+            'estimated_material_cost' => $materialCost,
+            'estimated_mp_cost' => $mpCost,
+            'estimated_overhead_pct' => $overheadPct,
+            'estimated_profit_margin_pct' => $profitPct,
+            'estimated_selling_price' => $sellingPrice,
+        ]);
     }
 }

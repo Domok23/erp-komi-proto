@@ -3,17 +3,26 @@
 namespace App\Services;
 
 use App\Models\GoodsReceipt;
-use App\Models\InventoryStock;
 use App\Models\InventoryMovement;
-use App\Models\SubconMaterialOut;
-use App\Models\SubconMaterialIn;
+use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\StockTransfer;
+use App\Models\SubconMaterialIn;
+use App\Models\SubconMaterialOut;
+use App\Models\Warehouse;
 
 class InventoryService
 {
     public static function receiveGoods(GoodsReceipt $receipt): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', GoodsReceipt::class)
+            ->where('reference_id', $receipt->id)
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($receipt->items as $item) {
             $stock = InventoryStock::firstOrCreate([
                 'company_id' => $receipt->company_id,
@@ -45,7 +54,7 @@ class InventoryService
                 'quantity' => $item->qty_received,
                 'before_qty' => $beforeQty,
                 'after_qty' => $afterQty,
-                'notes' => 'Received via Goods Receipt ' . $receipt->gr_number,
+                'notes' => 'Received via Goods Receipt '.$receipt->gr_number,
             ]);
 
             self::syncMaterialTotalStock($item->material_id);
@@ -54,13 +63,21 @@ class InventoryService
 
     public static function sendToSubcon(SubconMaterialOut $out): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', SubconMaterialOut::class)
+            ->where('reference_id', $out->id)
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         // Typically, we send materials out from the main warehouse to subcon
         // Find main warehouse or use the first available warehouse for the company
-        $mainWarehouseId = \App\Models\Warehouse::where('company_id', $out->company_id)
+        $mainWarehouseId = Warehouse::where('company_id', $out->company_id)
             ->where('code', 'WH-MAIN')
-            ->first()?->id ?? \App\Models\Warehouse::where('company_id', $out->company_id)->first()?->id;
+            ->first()?->id ?? Warehouse::where('company_id', $out->company_id)->first()?->id;
 
-        if (!$mainWarehouseId) {
+        if (! $mainWarehouseId) {
             return;
         }
 
@@ -89,7 +106,7 @@ class InventoryService
                     'quantity' => $item->qty_sent,
                     'before_qty' => $beforeQty,
                     'after_qty' => $afterQty,
-                    'notes' => 'Sent to Subcon via Document ' . $out->document_number,
+                    'notes' => 'Sent to Subcon via Document '.$out->document_number,
                 ]);
 
                 self::syncMaterialTotalStock($item->material_id);
@@ -99,50 +116,93 @@ class InventoryService
 
     public static function receiveFromSubcon(SubconMaterialIn $in): void
     {
-        // Receive raw/processed goods back to main warehouse
-        $mainWarehouseId = \App\Models\Warehouse::where('company_id', $in->company_id)
-            ->where('code', 'WH-MAIN')
-            ->first()?->id ?? \App\Models\Warehouse::where('company_id', $in->company_id)->first()?->id;
+        $hasMovements = InventoryMovement::where('reference_type', SubconMaterialIn::class)
+            ->where('reference_id', $in->id)
+            ->exists();
 
-        if (!$mainWarehouseId) {
+        if ($hasMovements) {
+            return;
+        }
+
+        // Receive raw/processed goods back to main warehouse
+        $mainWarehouseId = Warehouse::where('company_id', $in->company_id)
+            ->where('code', 'WH-MAIN')
+            ->first()?->id ?? Warehouse::where('company_id', $in->company_id)->first()?->id;
+
+        if (! $mainWarehouseId) {
             return;
         }
 
         foreach ($in->items as $item) {
-            $stock = InventoryStock::firstOrCreate([
-                'company_id' => $in->company_id,
-                'warehouse_id' => $mainWarehouseId,
-                'material_id' => $item->material_id,
-            ], [
-                'quantity' => 0,
-                'reserved_qty' => 0,
-                'available_qty' => 0,
-                'unit' => $item->unit ?? 'pcs',
-                'min_stock' => 0,
-            ]);
+            $itemType = $item->item_type ?? 'processed';
 
-            $beforeQty = $stock->quantity;
-            $afterQty = $beforeQty + $item->qty_received;
+            // Only update stock if we have a material ID and actually received quantity
+            if ($item->material_id && $item->qty_received > 0) {
+                $stock = InventoryStock::firstOrCreate([
+                    'company_id' => $in->company_id,
+                    'warehouse_id' => $mainWarehouseId,
+                    'material_id' => $item->material_id,
+                ], [
+                    'quantity' => 0,
+                    'reserved_qty' => 0,
+                    'available_qty' => 0,
+                    'unit' => $item->unit ?? 'pcs',
+                    'min_stock' => 0,
+                ]);
 
-            $stock->update([
-                'quantity' => $afterQty,
-                'available_qty' => $stock->available_qty + $item->qty_received,
-            ]);
+                $beforeQty = $stock->quantity;
+                $afterQty = $beforeQty + $item->qty_received;
 
-            InventoryMovement::create([
-                'company_id' => $in->company_id,
-                'inventory_stock_id' => $stock->id,
-                'material_id' => $item->material_id,
-                'type' => 'production_in',
-                'reference_type' => SubconMaterialIn::class,
-                'reference_id' => $in->id,
-                'quantity' => $item->qty_received,
-                'before_qty' => $beforeQty,
-                'after_qty' => $afterQty,
-                'notes' => 'Received from Subcon via Document ' . $in->document_number,
-            ]);
+                $stock->update([
+                    'quantity' => $afterQty,
+                    'available_qty' => $stock->available_qty + $item->qty_received,
+                ]);
 
-            self::syncMaterialTotalStock($item->material_id);
+                $note = $itemType === 'raw_return'
+                    ? "Leftover raw material returned from Subcon via Document {$in->document_number}. Rejected: {$item->qty_rejected}"
+                    : "Processed goods received from Subcon via Document {$in->document_number}. Rejected: {$item->qty_rejected}";
+
+                InventoryMovement::create([
+                    'company_id' => $in->company_id,
+                    'inventory_stock_id' => $stock->id,
+                    'material_id' => $item->material_id,
+                    'type' => 'production_in',
+                    'reference_type' => SubconMaterialIn::class,
+                    'reference_id' => $in->id,
+                    'quantity' => $item->qty_received,
+                    'before_qty' => $beforeQty,
+                    'after_qty' => $afterQty,
+                    'notes' => $note,
+                ]);
+
+                self::syncMaterialTotalStock($item->material_id);
+            } elseif ($item->material_id && $item->qty_rejected > 0) {
+                // If only rejected items are received (qty_received is 0), we don't increase stock,
+                // but we record an inventory movement with 0 quantity change just for logging.
+                $stock = InventoryStock::where('company_id', $in->company_id)
+                    ->where('warehouse_id', $mainWarehouseId)
+                    ->where('material_id', $item->material_id)
+                    ->first();
+
+                if ($stock) {
+                    $note = $itemType === 'raw_return'
+                        ? "Rejected raw material from Subcon via Document {$in->document_number} (not added to stock)"
+                        : "Rejected processed goods from Subcon via Document {$in->document_number} (not added to stock)";
+
+                    InventoryMovement::create([
+                        'company_id' => $in->company_id,
+                        'inventory_stock_id' => $stock->id,
+                        'material_id' => $item->material_id,
+                        'type' => 'production_in',
+                        'reference_type' => SubconMaterialIn::class,
+                        'reference_id' => $in->id,
+                        'quantity' => 0,
+                        'before_qty' => $stock->quantity,
+                        'after_qty' => $stock->quantity,
+                        'notes' => $note.'. Qty: '.$item->qty_rejected,
+                    ]);
+                }
+            }
         }
     }
 
@@ -159,6 +219,15 @@ class InventoryService
 
     public static function executeTransferShipment(StockTransfer $transfer): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', StockTransfer::class)
+            ->where('reference_id', $transfer->id)
+            ->where('type', 'transfer_out')
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($transfer->items as $item) {
             $stock = InventoryStock::where('company_id', $transfer->from_company_id)
                 ->where('warehouse_id', $transfer->from_warehouse_id)
@@ -184,7 +253,7 @@ class InventoryService
                     'quantity' => $item->qty_transferred,
                     'before_qty' => $beforeQty,
                     'after_qty' => $afterQty,
-                    'notes' => 'Transferred out via Stock Transfer ' . $transfer->transfer_number,
+                    'notes' => 'Transferred out via Stock Transfer '.$transfer->transfer_number,
                 ]);
 
                 self::syncMaterialTotalStock($item->material_id);
@@ -194,6 +263,15 @@ class InventoryService
 
     public static function executeTransferReceipt(StockTransfer $transfer): void
     {
+        $hasMovements = InventoryMovement::where('reference_type', StockTransfer::class)
+            ->where('reference_id', $transfer->id)
+            ->where('type', 'transfer_in')
+            ->exists();
+
+        if ($hasMovements) {
+            return;
+        }
+
         foreach ($transfer->items as $item) {
             $stock = InventoryStock::firstOrCreate([
                 'company_id' => $transfer->to_company_id,
@@ -225,7 +303,7 @@ class InventoryService
                 'quantity' => $item->qty_transferred,
                 'before_qty' => $beforeQty,
                 'after_qty' => $afterQty,
-                'notes' => 'Received via Stock Transfer ' . $transfer->transfer_number,
+                'notes' => 'Received via Stock Transfer '.$transfer->transfer_number,
             ]);
 
             self::syncMaterialTotalStock($item->material_id);

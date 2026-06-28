@@ -28,7 +28,6 @@ class Material extends Model
         'is_active' => 'boolean',
     ];
 
-    
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
