@@ -27,7 +27,7 @@ class CodeGenerator
         do {
             $code = sprintf('PRJ-%03d-%d', $count, $year);
             $count++;
-        } while (Project::where('code', $code)->exists());
+        } while (Project::where('project_code', $code)->exists());
 
         return $code;
     }
