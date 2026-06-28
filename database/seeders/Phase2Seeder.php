@@ -43,6 +43,22 @@ class Phase2Seeder extends Seeder
             'notes' => 'Mass production for Vera Bradley order',
         ]);
 
+        if ($merchandisingPlanning) {
+            foreach ($merchandisingPlanning->items as $item) {
+                if ($item->material_id) {
+                    \App\Models\ProductionOrderMaterial::create([
+                        'company_id' => $company->id,
+                        'production_order_id' => $productionOrder->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                }
+            }
+        }
+
         $this->command->info('Production Order created: ' . $productionOrder->production_number);
 
         // Seed Phase 2: Job Orders
@@ -81,6 +97,40 @@ class Phase2Seeder extends Seeder
             'status' => 'pending',
             'assigned_to' => 'Finishing Team C',
         ]);
+
+        if ($merchandisingPlanning) {
+            foreach ($merchandisingPlanning->items as $item) {
+                if ($item->material_id) {
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $company->id,
+                        'job_order_id' => $jobOrderCutting->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $company->id,
+                        'job_order_id' => $jobOrderSewing->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $company->id,
+                        'job_order_id' => $jobOrderFinishing->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                }
+            }
+        }
 
         $this->command->info('Job Orders created: ' . $jobOrderCutting->job_order_number . ', ' . $jobOrderSewing->job_order_number . ', ' . $jobOrderFinishing->job_order_number);
 

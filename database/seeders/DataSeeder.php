@@ -578,6 +578,22 @@ class DataSeeder extends Seeder
             'notes' => 'Mass production for Vera Bradley order',
         ]);
 
+        if ($merchandisingPlanning) {
+            foreach ($merchandisingPlanning->items as $item) {
+                if ($item->material_id) {
+                    \App\Models\ProductionOrderMaterial::create([
+                        'company_id' => $kei->id,
+                        'production_order_id' => $productionOrder->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                }
+            }
+        }
+
         // 21. Seed Phase 2: Job Orders
         $jobOrderCutting = JobOrder::create([
             'company_id' => $kei->id,
@@ -614,6 +630,40 @@ class DataSeeder extends Seeder
             'status' => 'pending',
             'assigned_to' => 'Finishing Team C',
         ]);
+
+        if ($merchandisingPlanning) {
+            foreach ($merchandisingPlanning->items as $item) {
+                if ($item->material_id) {
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $kei->id,
+                        'job_order_id' => $jobOrderCutting->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $kei->id,
+                        'job_order_id' => $jobOrderSewing->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                    \App\Models\JobOrderMaterial::create([
+                        'company_id' => $kei->id,
+                        'job_order_id' => $jobOrderFinishing->id,
+                        'merchandising_planning_item_id' => $item->id,
+                        'material_id' => $item->material_id,
+                        'planned_qty' => $item->planned_qty,
+                        'unit' => $item->unit,
+                        'is_selected' => true,
+                    ]);
+                }
+            }
+        }
 
         // 22. Seed Phase 2: QC Inspections
         $qcInspection = QcInspection::create([

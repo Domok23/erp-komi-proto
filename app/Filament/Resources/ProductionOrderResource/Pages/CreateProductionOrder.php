@@ -15,12 +15,12 @@ class CreateProductionOrder extends CreateRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (isset($material['is_selected']) && $material['is_selected']) {
+                if (!empty($material['material_id'])) {
                     ProductionOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'production_order_id' => $record->id,
                         'merchandising_planning_item_id' => $material['merchandising_planning_item_id'] ?? null,
-                        'material_id' => $material['material_id'] ?? null,
+                        'material_id' => $material['material_id'],
                         'planned_qty' => $material['planned_qty'] ?? 0,
                         'unit' => $material['unit'] ?? 'pcs',
                         'is_selected' => true,

@@ -20,6 +20,10 @@ class EditJobOrder extends EditRecord
             
             $materials = [];
             foreach ($items as $item) {
+                if (!$item->material_id) {
+                    continue;
+                }
+
                 $existingMaterial = $existingMaterials->get($item->id);
                 
                 // Only include materials that were actually selected/saved
@@ -56,12 +60,12 @@ class EditJobOrder extends EditRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (isset($material['is_selected']) && $material['is_selected']) {
+                if (isset($material['is_selected']) && $material['is_selected'] && !empty($material['material_id'])) {
                     JobOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'job_order_id' => $record->id,
                         'merchandising_planning_item_id' => $material['merchandising_planning_item_id'] ?? null,
-                        'material_id' => $material['material_id'] ?? null,
+                        'material_id' => $material['material_id'],
                         'planned_qty' => $material['planned_qty'] ?? 0,
                         'unit' => $material['unit'] ?? 'pcs',
                         'is_selected' => true,

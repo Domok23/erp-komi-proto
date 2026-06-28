@@ -19,6 +19,10 @@ class CreateMaterialUsage extends CreateRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
+                if (empty($material['material_id'])) {
+                    continue;
+                }
+
                 $plannedQty = (float)($material['planned_qty'] ?? 0);
                 $actualQty = (float)($material['actual_qty'] ?? 0);
                 $wasteQty = (float)($material['waste_qty'] ?? 0);
