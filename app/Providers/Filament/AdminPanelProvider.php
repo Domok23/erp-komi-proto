@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
                 'Master Data',
                 'R&D & Consumption',
                 'Projects',
+                'Production',
                 'Merchandising',
                 'Costing & Pricing',
                 'Sales & Shipping',

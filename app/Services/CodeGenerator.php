@@ -6,11 +6,14 @@ use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptRetur;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
+use App\Models\JobOrder;
 use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
+use App\Models\ProductionOrder;
 use App\Models\Project;
 use App\Models\PurchaseShipment;
+use App\Models\QcInspection;
 use App\Models\SalesOrder;
 use App\Models\StockTransfer;
 use Carbon\Carbon;
@@ -99,6 +102,27 @@ class CodeGenerator
         } while (InvoiceSales::where('invoice_number', $number)->exists());
 
         return $number;
+    }
+
+    public static function generateProductionOrderNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = ProductionOrder::whereYear('created_at', $year)->count() + 1;
+        return sprintf('PO-%d-%03d', $year, $count);
+    }
+
+    public static function generateQcInspectionNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = QcInspection::whereYear('created_at', $year)->count() + 1;
+        return sprintf('QC-%d-%03d', $year, $count);
+    }
+
+    public static function generateJobOrderNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = JobOrder::whereYear('created_at', $year)->count() + 1;
+        return sprintf('JO-%d-%03d', $year, $count);
     }
 
     public static function generateTransferNumber(): string

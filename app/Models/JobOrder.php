@@ -7,46 +7,49 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ProductionOrder extends Model
+class JobOrder extends Model
 {
     use BelongsToCompany;
 
     protected $fillable = [
         'company_id',
-        'production_number',
-        'project_id',
+        'production_order_id',
         'merchandising_planning_id',
+        'job_order_number',
+        'task_type',
         'planned_qty',
         'completed_qty',
         'status',
         'start_date',
         'end_date',
+        'assigned_to',
         'notes',
     ];
 
     protected $casts = [
-        'planned_qty' => 'decimal:2',
-        'completed_qty' => 'decimal:2',
+        'planned_qty' => 'integer',
+        'completed_qty' => 'integer',
         'start_date' => 'date',
         'end_date' => 'date',
     ];
 
-    public function project(): BelongsTo
+    public function productionOrder(): BelongsTo
     {
-        return $this->belongsTo(Project::class);
+        return $this->belongsTo(ProductionOrder::class);
     }
 
     public function merchandisingPlanning(): BelongsTo
     {
         return $this->belongsTo(MerchandisePlanning::class);
     }
-    public function jobOrders(): HasMany
+
+    public function qcInspections(): HasMany
     {
-        return $this->hasMany(JobOrder::class);
+        return $this->hasMany(QcInspection::class);
     }
 
     public function materials(): HasMany
     {
-        return $this->hasMany(ProductionOrderMaterial::class);
+        return $this->hasMany(JobOrderMaterial::class);
     }
 }
