@@ -128,7 +128,6 @@ class DataSeeder extends Seeder
 
         // 5. Seed Materials
         $matFabric = Material::create([
-            'company_id' => $kei->id,
             'code' => 'FAB-001',
             'name' => '600D Recycled Polyester Dobby',
             'category' => 'fabric',
@@ -140,7 +139,6 @@ class DataSeeder extends Seeder
         ]);
 
         $matZipper = Material::create([
-            'company_id' => $kei->id,
             'code' => 'ZIP-001',
             'name' => 'YKK #5 Metal Zipper, Nickel',
             'category' => 'zipper',
@@ -152,7 +150,6 @@ class DataSeeder extends Seeder
         ]);
 
         $matWebbing = Material::create([
-            'company_id' => $kei->id,
             'code' => 'ACC-003',
             'name' => 'Webbing Tape 38mm Nylon, Black',
             'category' => 'other',

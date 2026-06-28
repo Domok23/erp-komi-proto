@@ -8,6 +8,7 @@ use App\Models\InventoryMovement;
 use App\Models\SubconMaterialOut;
 use App\Models\SubconMaterialIn;
 use App\Models\Material;
+use App\Models\StockTransfer;
 
 class InventoryService
 {
@@ -153,6 +154,81 @@ class InventoryService
             $material->update([
                 'stock' => $totalStock,
             ]);
+        }
+    }
+
+    public static function executeTransferShipment(StockTransfer $transfer): void
+    {
+        foreach ($transfer->items as $item) {
+            $stock = InventoryStock::where('company_id', $transfer->from_company_id)
+                ->where('warehouse_id', $transfer->from_warehouse_id)
+                ->where('material_id', $item->material_id)
+                ->first();
+
+            if ($stock) {
+                $beforeQty = $stock->quantity;
+                $afterQty = $beforeQty - $item->qty_transferred;
+
+                $stock->update([
+                    'quantity' => $afterQty,
+                    'available_qty' => $stock->available_qty - $item->qty_transferred,
+                ]);
+
+                InventoryMovement::create([
+                    'company_id' => $transfer->from_company_id,
+                    'inventory_stock_id' => $stock->id,
+                    'material_id' => $item->material_id,
+                    'type' => 'transfer_out',
+                    'reference_type' => StockTransfer::class,
+                    'reference_id' => $transfer->id,
+                    'quantity' => $item->qty_transferred,
+                    'before_qty' => $beforeQty,
+                    'after_qty' => $afterQty,
+                    'notes' => 'Transferred out via Stock Transfer ' . $transfer->transfer_number,
+                ]);
+
+                self::syncMaterialTotalStock($item->material_id);
+            }
+        }
+    }
+
+    public static function executeTransferReceipt(StockTransfer $transfer): void
+    {
+        foreach ($transfer->items as $item) {
+            $stock = InventoryStock::firstOrCreate([
+                'company_id' => $transfer->to_company_id,
+                'warehouse_id' => $transfer->to_warehouse_id,
+                'material_id' => $item->material_id,
+            ], [
+                'quantity' => 0,
+                'reserved_qty' => 0,
+                'available_qty' => 0,
+                'unit' => $item->unit ?? 'pcs',
+                'min_stock' => 0,
+            ]);
+
+            $beforeQty = $stock->quantity;
+            $afterQty = $beforeQty + $item->qty_transferred;
+
+            $stock->update([
+                'quantity' => $afterQty,
+                'available_qty' => $stock->available_qty + $item->qty_transferred,
+            ]);
+
+            InventoryMovement::create([
+                'company_id' => $transfer->to_company_id,
+                'inventory_stock_id' => $stock->id,
+                'material_id' => $item->material_id,
+                'type' => 'transfer_in',
+                'reference_type' => StockTransfer::class,
+                'reference_id' => $transfer->id,
+                'quantity' => $item->qty_transferred,
+                'before_qty' => $beforeQty,
+                'after_qty' => $afterQty,
+                'notes' => 'Received via Stock Transfer ' . $transfer->transfer_number,
+            ]);
+
+            self::syncMaterialTotalStock($item->material_id);
         }
     }
 }

@@ -85,4 +85,11 @@ class CodeGenerator
         $count = JobOrder::whereYear('created_at', $year)->count() + 1;
         return sprintf('JO-%d-%03d', $year, $count);
     }
+
+    public static function generateTransferNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = \App\Models\StockTransfer::whereYear('created_at', $year)->count() + 1;
+        return sprintf('ST-%d-%03d', $year, $count);
+    }
 }
