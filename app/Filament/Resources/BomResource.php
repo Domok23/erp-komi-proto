@@ -122,7 +122,8 @@ class BomResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
                                 ->numeric()
-                                ->default(0),
+                                ->default(0)
+                                ->suffix('%'),
                             Forms\Components\TextInput::make('notes'),
                         ])
                         ->columns(3)

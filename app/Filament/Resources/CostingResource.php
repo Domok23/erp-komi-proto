@@ -97,7 +97,7 @@ class CostingResource extends Resource
 
             // --- Cost breakdown ---
             Forms\Components\TextInput::make('material_cost')
-                ->label('Material Cost')
+                ->label(new \Illuminate\Support\HtmlString('Material Cost <span title="Total biaya bahan baku (material) per unit produk yang diimpor otomatis dari BOM" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
@@ -105,7 +105,7 @@ class CostingResource extends Resource
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('mp_cost')
-                ->label('Manufacturing Cost (MP)')
+                ->label(new \Illuminate\Support\HtmlString('Manufacturing Cost (MP) <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default((int) CostingCalculatorService::getMpRatePerUnit())
                 ->prefix('IDR')
@@ -115,7 +115,7 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_pct')
-                ->label('Overhead %')
+                ->label(new \Illuminate\Support\HtmlString('Overhead % <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(CostingCalculatorService::getDefaultOverheadPct())
                 ->suffix('%')
@@ -124,13 +124,14 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_amount')
-                ->label('Overhead Amount')
+                ->label(new \Illuminate\Support\HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + MP Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('shipping_cost')
+                ->label(new \Illuminate\Support\HtmlString('Shipping Cost <span title="Biaya logistik pengiriman satu unit produk ke tujuan pelanggan" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
@@ -138,7 +139,7 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_pct')
-                ->label('Profit Margin %')
+                ->label(new \Illuminate\Support\HtmlString('Profit Margin % <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(20)
                 ->suffix('%')
@@ -146,7 +147,7 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_amount')
-                ->label('Profit Margin Amount')
+                ->label(new \Illuminate\Support\HtmlString('Profit Margin Amount <span title="Nilai nominal target keuntungan per unit: Landed Cost x Profit Margin %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
@@ -155,13 +156,14 @@ class CostingResource extends Resource
 
             // --- Result ---
             Forms\Components\TextInput::make('landed_cost')
+                ->label(new \Illuminate\Support\HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + MP + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('selling_price')
-                ->label('Selling Price')
+                ->label(new \Illuminate\Support\HtmlString('Selling Price <span title="Harga jual final per unit produk ke pelanggan: Landed Cost + Profit Margin Amount" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')

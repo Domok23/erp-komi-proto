@@ -45,16 +45,19 @@ class ConsumptionRatesRelationManager extends RelationManager
                     $set('unit', $material?->unit);
                 }),
             Forms\Components\TextInput::make('standard_rate')
-                ->numeric()
-                ->required(),
+            ->numeric()
+            ->required()
+            ->label(new \Illuminate\Support\HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->default('pcs')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('wastage_rate')
-                ->numeric()
-                ->default(0)
-                ->required(),
+            ->numeric()
+            ->default(0)
+            ->required()
+            ->label(new \Illuminate\Support\HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->suffix('%'),
             Forms\Components\Textarea::make('notes')
                 ->maxLength(65535)
                 ->columnSpanFull(),

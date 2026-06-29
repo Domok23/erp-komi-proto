@@ -70,6 +70,7 @@ class PoSubconResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('service_cost')
+                        ->label(new \Illuminate\Support\HtmlString('Service Cost <span title="Total biaya jasa subkon yang dihitung otomatis dari akumulasi tabel PO Items di bawah" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
