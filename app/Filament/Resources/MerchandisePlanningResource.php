@@ -176,7 +176,7 @@ class MerchandisePlanningResource extends Resource
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));

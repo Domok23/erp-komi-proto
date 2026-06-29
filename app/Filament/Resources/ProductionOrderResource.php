@@ -76,8 +76,8 @@ class ProductionOrderResource extends Resource
                                         'supplier_name' => $supplier ? $supplier->name : 'N/A',
                                         'planned_qty' => $item->planned_qty,
                                         'unit' => $item->unit,
-                                        'unit_price' => number_format($item->unit_price, 0),
-                                        'total_price' => number_format($totalPrice, 0),
+                                        'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                                        'total_price' => number_format($totalPrice, 2, '.', ','),
                                         'material_id' => $item->material_id,
                                         'merchandising_planning_item_id' => $item->id,
                                     ];
@@ -177,8 +177,10 @@ class ProductionOrderResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('production_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('project.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('planned_qty')->numeric(),
-            Tables\Columns\TextColumn::make('completed_qty')->numeric(),
+            Tables\Columns\TextColumn::make('planned_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('completed_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'planned' => 'gray',
@@ -291,8 +293,8 @@ class ProductionOrderResource extends Resource
                             'supplier_name' => $supplier ? $supplier->name : 'N/A',
                             'planned_qty' => $item->planned_qty,
                             'unit' => $item->unit,
-                            'unit_price' => number_format($item->unit_price, 0),
-                            'total_price' => number_format($totalPrice, 0),
+                            'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                            'total_price' => number_format($totalPrice, 2, '.', ','),
                             'material_id' => $item->material_id,
                             'merchandising_planning_item_id' => $item->id,
                         ];

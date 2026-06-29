@@ -64,13 +64,13 @@ class MaterialUsageResource extends Resource
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 0, ',', '.') : '0'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
                     Forms\Components\TextInput::make('actual_qty')
                         ->label('Actual Qty')
                         ->numeric()
                         ->default(0)
                         ->required()
-                        ->live()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(function ($state, callable $get, callable $set) {
                             $plannedQty = (float)($get('planned_qty') ?? 0);
                             $actualQty = (float)($state ?? 0);
@@ -91,7 +91,7 @@ class MaterialUsageResource extends Resource
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 0, ',', '.') : '0'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
                     Forms\Components\Hidden::make('material_id'),
                     Forms\Components\Hidden::make('merchandising_planning_item_id'),
                 ])
@@ -173,7 +173,7 @@ class MaterialUsageResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 5;
+        return 4;
     }
 
     public static function getRelations(): array

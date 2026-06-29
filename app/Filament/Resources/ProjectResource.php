@@ -151,8 +151,10 @@ class ProjectResource extends Resource
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('customer.name')->searchable(),
-            Tables\Columns\TextColumn::make('target_qty')->numeric(),
-            Tables\Columns\TextColumn::make('produced_qty')->numeric(),
+            Tables\Columns\TextColumn::make('target_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('produced_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
         ])
             ->filters([
                 SelectFilter::make('status')->options(['planning' => 'Planning', 'development' => 'Development', 'sampling' => 'Sampling', 'approved' => 'Approved', 'production' => 'Production', 'completed' => 'Completed', 'cancelled' => 'Cancelled']),

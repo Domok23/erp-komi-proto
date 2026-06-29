@@ -80,13 +80,13 @@ class PoSubconResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('shipping_return_cost')
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('total_cost')
                         ->numeric()
@@ -112,7 +112,7 @@ class PoSubconResource extends Resource
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));
@@ -124,7 +124,7 @@ class PoSubconResource extends Resource
                                 ->prefix('IDR')
                                 ->required()
                                 ->minValue(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
                                     $qty = floatval($get('qty'));
@@ -180,7 +180,9 @@ class PoSubconResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('total_cost')->numeric()->sortable(),
+            Tables\Columns\TextColumn::make('total_cost')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
         ])
             ->filters([
                 SelectFilter::make('status')->options([

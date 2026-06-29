@@ -112,9 +112,13 @@ class InventoryMovementResource extends Resource
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('quantity')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('before_qty')->numeric(),
-            Tables\Columns\TextColumn::make('after_qty')->numeric(),
+            Tables\Columns\TextColumn::make('quantity')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('before_qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('after_qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('reference_type')
                 ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
                     StockTransfer::class => 'Stock Transfer',

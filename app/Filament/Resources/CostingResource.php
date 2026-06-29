@@ -110,7 +110,7 @@ class CostingResource extends Resource
                 ->default((int) CostingCalculatorService::getMpRatePerUnit())
                 ->prefix('IDR')
                 ->step(1)
-                ->hint('Default: IDR '.number_format(CostingCalculatorService::getMpRatePerUnit(), 0, ',', '.').'/unit')
+                ->hint('Default: IDR '.number_format(CostingCalculatorService::getMpRatePerUnit(), 0, '.', ',').'/unit')
                 ->live(onBlur: true)
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
@@ -235,8 +235,12 @@ class CostingResource extends Resource
                         'rejected' => 'danger',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('material_cost')->numeric()->sortable(),
-                Tables\Columns\TextColumn::make('selling_price')->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('material_cost')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('selling_price')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('currency')->sortable(),
                 Tables\Columns\TextColumn::make('approvedByUser.name')
                     ->label('Approved/Rejected By')

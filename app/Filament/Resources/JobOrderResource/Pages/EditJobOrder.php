@@ -38,8 +38,8 @@ class EditJobOrder extends EditRecord
                         'supplier_name' => $supplier ? $supplier->name : 'N/A',
                         'planned_qty' => $item->planned_qty,
                         'unit' => $item->unit,
-                        'unit_price' => number_format($item->unit_price, 0),
-                        'total_price' => number_format($totalPrice, 0),
+                        'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                        'total_price' => number_format($totalPrice, 2, '.', ','),
                         'material_id' => $item->material_id,
                         'merchandising_planning_item_id' => $item->id,
                     ];

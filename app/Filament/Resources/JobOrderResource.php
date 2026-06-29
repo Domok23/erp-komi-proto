@@ -274,7 +274,7 @@ class JobOrderResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 3;
+        return 2;
     }
 
     public static function getRelations(): array

@@ -105,14 +105,14 @@ class InvoicePurchaseResource extends Resource
                 ->default(0)
                 ->prefix('IDR')
                 ->required()
-                ->reactive()
+                ->live(onBlur: true)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('tax_amount')
                 ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->required()
-                ->reactive()
+                ->live(onBlur: true)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('grand_total')
                 ->numeric()

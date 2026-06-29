@@ -124,7 +124,8 @@ class ShipmentResource extends Resource
             Tables\Columns\TextColumn::make('carrier'),
             Tables\Columns\TextColumn::make('etd')->date(),
             Tables\Columns\TextColumn::make('eta')->date(),
-            Tables\Columns\TextColumn::make('total_packages')->numeric(),
+            Tables\Columns\TextColumn::make('total_packages')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('shipping_cost_usd')->money('USD')->sortable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
