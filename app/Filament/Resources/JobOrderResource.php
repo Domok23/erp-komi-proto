@@ -42,39 +42,11 @@ class JobOrderResource extends Resource
                 ->preload()
                 ->required()
                 ->live()
+                ->afterStateHydrated(function ($state, callable $set) {
+                    self::loadProductionOrderMaterials($state, $set);
+                })
                 ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $productionOrder = \App\Models\ProductionOrder::find($state);
-                        if ($productionOrder && $productionOrder->merchandisingPlanning) {
-                            $set('merchandising_planning_id', $productionOrder->merchandisingPlanning->id);
-                            $set('planned_qty', $productionOrder->planned_qty);
-                            
-                            // Load materials from merchandising planning
-                            $planning = $productionOrder->merchandisingPlanning;
-                            $items = $planning->items;
-                            if ($items->isNotEmpty()) {
-                                $materials = [];
-                                foreach ($items as $item) {
-                                    $material = $item->material;
-                                    $supplier = $item->supplier;
-                                    $totalPrice = $item->planned_qty * $item->unit_price;
-                                    
-                                    $materials[] = [
-                                        'is_selected' => true,
-                                        'material_name' => $material ? $material->name : 'N/A',
-                                        'supplier_name' => $supplier ? $supplier->name : 'N/A',
-                                        'planned_qty' => $item->planned_qty,
-                                        'unit' => $item->unit,
-                                        'unit_price' => $item->unit_price,
-                                        'total_price' => $totalPrice,
-                                        'material_id' => $item->material_id,
-                                        'merchandising_planning_item_id' => $item->id,
-                                    ];
-                                }
-                                $set('materials', $materials);
-                            }
-                        }
-                    }
+                    self::loadProductionOrderMaterials($state, $set);
                 }),
             Forms\Components\Select::make('merchandising_planning_id')
                 ->relationship('merchandisingPlanning', 'id')
@@ -90,6 +62,10 @@ class JobOrderResource extends Resource
                             if ($items->isNotEmpty()) {
                                 $materials = [];
                                 foreach ($items as $item) {
+                                    if (!$item->material_id) {
+                                        continue;
+                                    }
+
                                     $material = $item->material;
                                     $supplier = $item->supplier;
                                     $totalPrice = $item->planned_qty * $item->unit_price;
@@ -162,10 +138,12 @@ class JobOrderResource extends Resource
                     Forms\Components\TextInput::make('planned_qty')
                         ->label('Planned Qty')
                         ->numeric()
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('unit')
                         ->label('Unit')
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('unit_price')
                         ->label('Price')
                         ->disabled(),
@@ -296,7 +274,7 @@ class JobOrderResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 3;
+        return 2;
     }
 
     public static function getRelations(): array
@@ -311,5 +289,47 @@ class JobOrderResource extends Resource
             'create' => Pages\CreateJobOrder::route('/create'),
             'edit' => Pages\EditJobOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function loadProductionOrderMaterials($state, callable $set): void
+    {
+        if ($state) {
+            $productionOrder = \App\Models\ProductionOrder::find($state);
+            if ($productionOrder && $productionOrder->merchandisingPlanning) {
+                $set('merchandising_planning_id', $productionOrder->merchandisingPlanning->id);
+                $set('planned_qty', $productionOrder->planned_qty);
+                
+                $planning = $productionOrder->merchandisingPlanning;
+                $items = $planning->items;
+                if ($items->isNotEmpty()) {
+                    $materials = [];
+                    foreach ($items as $item) {
+                        if (!$item->material_id) {
+                            continue;
+                        }
+
+                        $material = $item->material;
+                        $supplier = $item->supplier;
+                        $totalPrice = $item->planned_qty * $item->unit_price;
+                        
+                        $materials[] = [
+                            'is_selected' => true,
+                            'material_name' => $material ? $material->name : 'N/A',
+                            'supplier_name' => $supplier ? $supplier->name : 'N/A',
+                            'planned_qty' => $item->planned_qty,
+                            'unit' => $item->unit,
+                            'unit_price' => $item->unit_price,
+                            'total_price' => $totalPrice,
+                            'material_id' => $item->material_id,
+                            'merchandising_planning_item_id' => $item->id,
+                        ];
+                    }
+                    $set('materials', $materials);
+                    return;
+                }
+            }
+        }
+        $set('merchandising_planning_id', null);
+        $set('materials', []);
     }
 }

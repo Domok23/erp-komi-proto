@@ -42,13 +42,11 @@ class ProductionOrderResource extends Resource
                 ->preload()
                 ->required()
                 ->live()
+                ->afterStateHydrated(function ($state, callable $set) {
+                    self::loadProjectMaterials($state, $set);
+                })
                 ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $project = \App\Models\Project::find($state);
-                        if ($project && $project->merchandisingPlanning) {
-                            $set('merchandising_planning_id', $project->merchandisingPlanning->id);
-                        }
-                    }
+                    self::loadProjectMaterials($state, $set);
                 }),
             Forms\Components\Select::make('merchandising_planning_id')
                 ->relationship('merchandisingPlanning', 'id')
@@ -64,6 +62,10 @@ class ProductionOrderResource extends Resource
                             if ($items->isNotEmpty()) {
                                 $materials = [];
                                 foreach ($items as $item) {
+                                    if (!$item->material_id) {
+                                        continue;
+                                    }
+
                                     $material = $item->material;
                                     $supplier = $item->supplier;
                                     $totalPrice = $item->planned_qty * $item->unit_price;
@@ -74,8 +76,8 @@ class ProductionOrderResource extends Resource
                                         'supplier_name' => $supplier ? $supplier->name : 'N/A',
                                         'planned_qty' => $item->planned_qty,
                                         'unit' => $item->unit,
-                                        'unit_price' => number_format($item->unit_price, 0),
-                                        'total_price' => number_format($totalPrice, 0),
+                                        'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                                        'total_price' => number_format($totalPrice, 2, '.', ','),
                                         'material_id' => $item->material_id,
                                         'merchandising_planning_item_id' => $item->id,
                                     ];
@@ -101,10 +103,12 @@ class ProductionOrderResource extends Resource
                     Forms\Components\TextInput::make('planned_qty')
                         ->label('Planned Qty')
                         ->numeric()
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('unit')
                         ->label('Unit')
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\TextInput::make('unit_price')
                         ->label('Price')
                         ->disabled(),
@@ -113,6 +117,7 @@ class ProductionOrderResource extends Resource
                         ->disabled(),
                     Forms\Components\Hidden::make('material_id'),
                     Forms\Components\Hidden::make('merchandising_planning_item_id'),
+                    Forms\Components\Hidden::make('is_selected')->default(true),
                 ])
                 ->columns(6)
                 ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)
@@ -172,8 +177,10 @@ class ProductionOrderResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('production_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('project.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('planned_qty')->numeric(),
-            Tables\Columns\TextColumn::make('completed_qty')->numeric(),
+            Tables\Columns\TextColumn::make('planned_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('completed_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'planned' => 'gray',
@@ -258,5 +265,46 @@ class ProductionOrderResource extends Resource
             'create' => Pages\CreateProductionOrder::route('/create'),
             'edit' => Pages\EditProductionOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function loadProjectMaterials($state, callable $set): void
+    {
+        if ($state) {
+            $project = \App\Models\Project::find($state);
+            $planning = $project?->merchandisePlannings()->latest()->first();
+            if ($planning) {
+                $set('merchandising_planning_id', $planning->id);
+                
+                $items = $planning->items;
+                if ($items->isNotEmpty()) {
+                    $materials = [];
+                    foreach ($items as $item) {
+                        if (!$item->material_id) {
+                            continue;
+                        }
+
+                        $material = $item->material;
+                        $supplier = $item->supplier;
+                        $totalPrice = $item->planned_qty * $item->unit_price;
+                        
+                        $materials[] = [
+                            'is_selected' => true,
+                            'material_name' => $material ? $material->name : 'N/A',
+                            'supplier_name' => $supplier ? $supplier->name : 'N/A',
+                            'planned_qty' => $item->planned_qty,
+                            'unit' => $item->unit,
+                            'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                            'total_price' => number_format($totalPrice, 2, '.', ','),
+                            'material_id' => $item->material_id,
+                            'merchandising_planning_item_id' => $item->id,
+                        ];
+                    }
+                    $set('materials', $materials);
+                    return;
+                }
+            }
+        }
+        $set('merchandising_planning_id', null);
+        $set('materials', []);
     }
 }

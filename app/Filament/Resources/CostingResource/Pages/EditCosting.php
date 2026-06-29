@@ -57,9 +57,9 @@ class EditCosting extends EditRecord
                     $this->refreshFormData(['status', 'material_cost', 'mp_cost']);
 
                     Notification::make()
-                        ->title('Calculated — Material: IDR '.number_format($record->material_cost, 0, ',', '.')
-                            .', MP: IDR '.number_format($record->mp_cost, 0, ',', '.')
-                            .', Selling: IDR '.number_format($record->selling_price, 0, ',', '.'))
+                        ->title('Calculated — Material: IDR '.number_format($record->material_cost, 2, '.', ',')
+                            .', MP: IDR '.number_format($record->mp_cost, 2, '.', ',')
+                            .', Selling: IDR '.number_format($record->selling_price, 2, '.', ','))
                         ->success()
                         ->send();
                 }),

@@ -89,6 +89,7 @@ class StockTransferForm
                     ->columnSpanFull(),
 
                 Section::make('Transfer Items')
+                    ->columnSpanFull()
                     ->schema([
                         Repeater::make('items')
                             ->relationship('items')

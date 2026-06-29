@@ -20,6 +20,10 @@ class EditProductionOrder extends EditRecord
             
             $materials = [];
             foreach ($items as $item) {
+                if (!$item->material_id) {
+                    continue;
+                }
+
                 $material = $item->material;
                 $supplier = $item->supplier;
                 $totalPrice = $item->planned_qty * $item->unit_price;
@@ -31,8 +35,8 @@ class EditProductionOrder extends EditRecord
                     'supplier_name' => $supplier ? $supplier->name : 'N/A',
                     'planned_qty' => $item->planned_qty,
                     'unit' => $item->unit,
-                    'unit_price' => number_format($item->unit_price, 0),
-                    'total_price' => number_format($totalPrice, 0),
+                    'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                    'total_price' => number_format($totalPrice, 2, '.', ','),
                     'material_id' => $item->material_id,
                     'merchandising_planning_item_id' => $item->id,
                 ];
@@ -52,12 +56,12 @@ class EditProductionOrder extends EditRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (isset($material['is_selected']) && $material['is_selected']) {
+                if (!empty($material['material_id'])) {
                     ProductionOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'production_order_id' => $record->id,
                         'merchandising_planning_item_id' => $material['merchandising_planning_item_id'] ?? null,
-                        'material_id' => $material['material_id'] ?? null,
+                        'material_id' => $material['material_id'],
                         'planned_qty' => $material['planned_qty'] ?? 0,
                         'unit' => $material['unit'] ?? 'pcs',
                         'is_selected' => true,

@@ -99,14 +99,14 @@ class SalesOrderResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->required()
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('unit_price')
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
                         ->required()
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                 ])->columns(2),
 
@@ -123,7 +123,7 @@ class SalesOrderResource extends Resource
                         ->numeric()
                         ->default(11)
                         ->suffix('%')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->numeric()
@@ -135,7 +135,7 @@ class SalesOrderResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('grand_total')
                         ->numeric()
@@ -152,7 +152,7 @@ class SalesOrderResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->suffix('%')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('down_payment_amount')
                         ->numeric()
@@ -190,7 +190,7 @@ class SalesOrderResource extends Resource
                                 ->numeric()
                                 ->default(1)
                                 ->required()
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));
@@ -204,7 +204,7 @@ class SalesOrderResource extends Resource
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
                                     $qty = floatval($get('quantity'));
@@ -282,7 +282,9 @@ class SalesOrderResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('grand_total')->numeric()->sortable(),
+            Tables\Columns\TextColumn::make('grand_total')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
             Tables\Columns\TextColumn::make('currency'),
         ])
             ->filters([

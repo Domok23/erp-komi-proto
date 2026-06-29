@@ -32,41 +32,11 @@ class MaterialUsageResource extends Resource
                 ->preload()
                 ->required()
                 ->live()
+                ->afterStateHydrated(function ($state, callable $set) {
+                    self::loadJobOrderMaterials($state, $set);
+                })
                 ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $jobOrder = \App\Models\JobOrder::with('materials.material', 'materials.merchandisingPlanningItem')->find($state);
-                        if ($jobOrder) {
-                            $jobOrderMaterials = $jobOrder->materials;
-                            if ($jobOrderMaterials->isNotEmpty()) {
-                                $materials = [];
-                                foreach ($jobOrderMaterials as $jobOrderMaterial) {
-                                    $material = $jobOrderMaterial->material;
-                                    $merchandisingItem = $jobOrderMaterial->merchandisingPlanningItem;
-                                    
-                                    $unitPrice = 0;
-                                    if ($merchandisingItem && $merchandisingItem->unit_price) {
-                                        $unitPrice = (float)$merchandisingItem->unit_price;
-                                    }
-                                    
-                                    $plannedQty = (float)$jobOrderMaterial->planned_qty;
-                                    $totalCost = $plannedQty * $unitPrice;
-                                    
-                                    $materials[] = [
-                                        'material_name' => $material ? $material->name : 'N/A',
-                                        'planned_qty' => $plannedQty,
-                                        'unit' => $jobOrderMaterial->unit ?? 'pcs',
-                                        'unit_price' => $unitPrice,
-                                        'total_cost' => $totalCost,
-                                        'actual_qty' => 0,
-                                        'waste_qty' => $plannedQty,
-                                        'material_id' => $jobOrderMaterial->material_id,
-                                        'merchandising_planning_item_id' => $jobOrderMaterial->merchandising_planning_item_id,
-                                    ];
-                                }
-                                $set('materials', $materials);
-                            }
-                        }
-                    }
+                    self::loadJobOrderMaterials($state, $set);
                 }),
             Forms\Components\DatePicker::make('usage_date')
                 ->native(false)
@@ -94,13 +64,13 @@ class MaterialUsageResource extends Resource
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 0, ',', '.') : '0'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
                     Forms\Components\TextInput::make('actual_qty')
                         ->label('Actual Qty')
                         ->numeric()
                         ->default(0)
                         ->required()
-                        ->live()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(function ($state, callable $get, callable $set) {
                             $plannedQty = (float)($get('planned_qty') ?? 0);
                             $actualQty = (float)($state ?? 0);
@@ -121,7 +91,7 @@ class MaterialUsageResource extends Resource
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 0, ',', '.') : '0'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
                     Forms\Components\Hidden::make('material_id'),
                     Forms\Components\Hidden::make('merchandising_planning_item_id'),
                 ])
@@ -203,7 +173,7 @@ class MaterialUsageResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 5;
+        return 4;
     }
 
     public static function getRelations(): array
@@ -218,5 +188,45 @@ class MaterialUsageResource extends Resource
             'create' => Pages\CreateMaterialUsage::route('/create'),
             'edit' => Pages\EditMaterialUsage::route('/{record}/edit'),
         ];
+    }
+
+    public static function loadJobOrderMaterials($state, callable $set): void
+    {
+        if ($state) {
+            $jobOrder = \App\Models\JobOrder::with('materials.material', 'materials.merchandisingPlanningItem')->find($state);
+            if ($jobOrder) {
+                $jobOrderMaterials = $jobOrder->materials;
+                if ($jobOrderMaterials->isNotEmpty()) {
+                    $materials = [];
+                    foreach ($jobOrderMaterials as $jobOrderMaterial) {
+                        $material = $jobOrderMaterial->material;
+                        $merchandisingItem = $jobOrderMaterial->merchandisingPlanningItem;
+                        
+                        $unitPrice = 0;
+                        if ($merchandisingItem && $merchandisingItem->unit_price) {
+                            $unitPrice = (float)$merchandisingItem->unit_price;
+                        }
+                        
+                        $plannedQty = (float)$jobOrderMaterial->planned_qty;
+                        $totalCost = $plannedQty * $unitPrice;
+                        
+                        $materials[] = [
+                            'material_name' => $material ? $material->name : 'N/A',
+                            'planned_qty' => $plannedQty,
+                            'unit' => $jobOrderMaterial->unit ?? 'pcs',
+                            'unit_price' => $unitPrice,
+                            'total_cost' => $totalCost,
+                            'actual_qty' => 0,
+                            'waste_qty' => $plannedQty,
+                            'material_id' => $jobOrderMaterial->material_id,
+                            'merchandising_planning_item_id' => $jobOrderMaterial->merchandising_planning_item_id,
+                        ];
+                    }
+                    $set('materials', $materials);
+                    return;
+                }
+            }
+        }
+        $set('materials', []);
     }
 }

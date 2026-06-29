@@ -60,32 +60,40 @@ class ShipmentResource extends Resource
                 ->required()
                 ->default('sea'),
             Forms\Components\TextInput::make('container_number')
+                ->label(new \Illuminate\Support\HtmlString('Container Number <span title="Nomor kode identifikasi kontainer kargo penyewaan barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->maxLength(100),
             Forms\Components\TextInput::make('bl_number')
-                ->label('BL Number')
+                ->label(new \Illuminate\Support\HtmlString('BL Number <span title="Nomor Bill of Lading (bukti kontrak pengangkutan kargo laut/udara)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->maxLength(100),
             Forms\Components\TextInput::make('carrier')
+                ->label(new \Illuminate\Support\HtmlString('Carrier <span title="Nama perusahaan ekspedisi atau maskapai pelayaran pengangkut barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->maxLength(255),
             Forms\Components\TextInput::make('port_of_loading')
+                ->label(new \Illuminate\Support\HtmlString('Port of Loading <span title="Nama pelabuhan asal tempat kargo dimuat ke kapal/pesawat" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->maxLength(255),
             Forms\Components\TextInput::make('port_of_discharge')
+                ->label(new \Illuminate\Support\HtmlString('Port of Discharge <span title="Nama pelabuhan tujuan tempat pembongkaran kargo kiriman" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->maxLength(255),
             Forms\Components\DatePicker::make('etd')
                 ->label('ETD'),
             Forms\Components\DatePicker::make('eta')
                 ->label('ETA'),
             Forms\Components\TextInput::make('total_packages')
+                ->label(new \Illuminate\Support\HtmlString('Total Packages <span title="Jumlah total dus karton atau koli kemasan barang dikirim" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default(0),
             Forms\Components\TextInput::make('total_gross_weight_kg')
+                ->label(new \Illuminate\Support\HtmlString('Total Gross Weight (Kg) <span title="Berat kotor total kiriman termasuk dus dan palet dalam kilogram" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->step(0.01)
                 ->default(0),
             Forms\Components\TextInput::make('total_volume_m3')
+                ->label(new \Illuminate\Support\HtmlString('Total Volume (m³) <span title="Volume total ruang kargo paket kiriman dalam meter kubik" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->step(0.01)
                 ->default(0),
             Forms\Components\TextInput::make('shipping_cost_usd')
+                ->label(new \Illuminate\Support\HtmlString('Shipping Cost (USD) <span title="Biaya logistik kargo internasional yang dibayarkan dalam USD" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->prefix('$')
                 ->default(0),
@@ -116,7 +124,8 @@ class ShipmentResource extends Resource
             Tables\Columns\TextColumn::make('carrier'),
             Tables\Columns\TextColumn::make('etd')->date(),
             Tables\Columns\TextColumn::make('eta')->date(),
-            Tables\Columns\TextColumn::make('total_packages')->numeric(),
+            Tables\Columns\TextColumn::make('total_packages')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('shipping_cost_usd')->money('USD')->sortable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])

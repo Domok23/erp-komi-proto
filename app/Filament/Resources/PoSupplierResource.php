@@ -83,7 +83,7 @@ class PoSupplierResource extends Resource
                         ->numeric()
                         ->default(11)
                         ->suffix('%')
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->numeric()
@@ -144,7 +144,7 @@ class PoSupplierResource extends Resource
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));
@@ -160,7 +160,7 @@ class PoSupplierResource extends Resource
                                 ->prefix('IDR')
                                 ->required()
                                 ->minValue(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
                                     $qty = floatval($get('qty'));
@@ -224,7 +224,9 @@ class PoSupplierResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('grand_total')->numeric()->sortable(),
+            Tables\Columns\TextColumn::make('grand_total')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
         ])
             ->filters([
                 SelectFilter::make('status')->options([

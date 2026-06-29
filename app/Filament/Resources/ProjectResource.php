@@ -84,7 +84,16 @@ class ProjectResource extends Resource
                 ->preload()
                 ->nullable(),
             Forms\Components\Select::make('reference_project_id')
+                ->label(new \Illuminate\Support\HtmlString('Reference Project <span title="Proyek asal (referensi) yang otomatis terisi ketika proyek sampel/massal dibuat melalui approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->relationship('referenceProject', 'project_code')
+                ->getOptionLabelFromRecordUsing(fn ($record) => new \Illuminate\Support\HtmlString('
+                    <style>
+                        .ref-project-link { color: inherit; text-decoration: none; pointer-events: auto !important; cursor: pointer; }
+                        .ref-project-link:hover { text-decoration: underline !important; }
+                    </style>
+                    <a href="' . self::getUrl('edit', ['record' => $record->id]) . '" class="ref-project-link">' . $record->project_code . '</a>
+                '))
+                ->allowHtml()
                 ->searchable()
                 ->preload()
                 ->disabled()
@@ -142,8 +151,10 @@ class ProjectResource extends Resource
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('customer.name')->searchable(),
-            Tables\Columns\TextColumn::make('target_qty')->numeric(),
-            Tables\Columns\TextColumn::make('produced_qty')->numeric(),
+            Tables\Columns\TextColumn::make('target_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('produced_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
         ])
             ->filters([
                 SelectFilter::make('status')->options(['planning' => 'Planning', 'development' => 'Development', 'sampling' => 'Sampling', 'approved' => 'Approved', 'production' => 'Production', 'completed' => 'Completed', 'cancelled' => 'Cancelled']),

@@ -87,9 +87,12 @@ class QcInspectionResource extends Resource
             Tables\Columns\TextColumn::make('inspection_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('jobOrder.job_order_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('inspection_date')->date(),
-            Tables\Columns\TextColumn::make('sample_size')->numeric(),
-            Tables\Columns\TextColumn::make('passed_qty')->numeric(),
-            Tables\Columns\TextColumn::make('failed_qty')->numeric(),
+            Tables\Columns\TextColumn::make('sample_size')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('passed_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('failed_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('result')
                 ->color(fn (string $state): string => match ($state) {
                     'pass' => 'success',
@@ -126,7 +129,7 @@ class QcInspectionResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 2;
+        return 3;
     }
 
     public static function getRelations(): array
