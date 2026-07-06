@@ -181,4 +181,11 @@ class CodeGenerator
 
         return $number;
     }
+
+    public static function generateBOMNumber(int $designId, string $version): string
+    {
+        $year = Carbon::now()->year;
+        return sprintf('BOM-%d-%d-%s', $year, $designId, $version);
+    }
 }
+

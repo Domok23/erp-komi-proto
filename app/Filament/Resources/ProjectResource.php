@@ -143,8 +143,8 @@ class ProjectResource extends Resource
                     return $query;
                 })
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'active'
-                    ? $record->name
-                    : new HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
+                    ? new HtmlString("{$record->name} <span class='bom-number-prefix'>[{$record->bom_number}]</span>")
+                    : new HtmlString("{$record->name} <span class='bom-number-prefix'>[{$record->bom_number}] [{$record->status}]</span>"))
                 ->allowHtml()
                 ->searchable()
                 ->preload()

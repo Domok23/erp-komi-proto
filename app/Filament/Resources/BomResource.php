@@ -8,6 +8,8 @@ use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
+use App\Services\CodeGenerator;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -46,13 +48,20 @@ class BomResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
+            Forms\Components\TextInput::make('bom_number')
+                ->label('BOM Number')
+                ->placeholder('Generated automatically on selection')
+                ->disabled()
+                ->dehydrated()
+                ->required()
+                ->maxLength(50),
             Forms\Components\Select::make('design_id')
                 ->relationship('design', 'name')
                 ->searchable()
                 ->preload()
                 ->required()
                 ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
+                ->afterStateUpdated(function ($state, callable $set, Get $get) {
                     if ($state) {
                         $rates = ConsumptionRate::where('design_id', $state)->get();
 
@@ -72,6 +81,9 @@ class BomResource extends Resource
                     } else {
                         $set('items', []);
                     }
+
+                    $version = $get('version') ?: '1.0';
+                    $set('bom_number', $state ? CodeGenerator::generateBOMNumber((int) $state, $version) : '');
                 }),
             Forms\Components\TextInput::make('name')
                 ->required()
@@ -79,7 +91,18 @@ class BomResource extends Resource
             Forms\Components\TextInput::make('version')
                 ->default('1.0')
                 ->required()
-                ->maxLength(20),
+                ->maxLength(20)
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                    $designId = $get('design_id');
+                    $set('bom_number', $designId ? CodeGenerator::generateBOMNumber((int) $designId, $state) : '');
+                })
+                ->unique(
+                    table: 'boms',
+                    column: 'version',
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
+                ),
             Forms\Components\Select::make('status')
                 ->options([
                     'draft' => 'Draft',
@@ -172,6 +195,7 @@ class BomResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
+            Tables\Columns\TextColumn::make('bom_number')->label('BOM Number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('version')->sortable(),
