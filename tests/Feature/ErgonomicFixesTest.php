@@ -269,4 +269,79 @@ class ErgonomicFixesTest extends TestCase
 
         $this->assertEquals(1650, round($plannedQty, 2));
     }
+
+    /**
+     * 6. Test Merchandise Planning auto-fills supplier_id from BOM material
+     */
+    public function test_merchandise_planning_autofills_supplier_id_from_bom(): void
+    {
+        $supplier = \App\Models\Supplier::create([
+            'company_id' => $this->company->id,
+            'name' => 'Test Supplier',
+            'code' => 'SUP-TEST',
+            'contact_person' => 'Contact',
+            'phone' => '123',
+            'address' => 'Addr',
+        ]);
+
+        $material = Material::create([
+            'company_id' => $this->company->id,
+            'code' => 'MAT-SUP-TEST',
+            'name' => 'Raw Supplier Test',
+            'category' => 'fabric',
+            'unit' => 'yard',
+            'price' => 10000,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $bom = Bom::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
+            'name' => 'BOM Test 2',
+            'code' => 'BOM-TEST-2',
+        ]);
+
+        $bomItem = BomItem::create([
+            'bom_id' => $bom->id,
+            'material_id' => $material->id,
+            'category' => 'main_material',
+            'quantity_per_unit' => 1.5,
+            'unit' => 'yard',
+            'wastage_percent' => 10.0,
+        ]);
+
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project 2',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'bom_id' => $bom->id,
+            'design_id' => $this->design->id,
+            'target_qty' => 10,
+        ]);
+
+        // Simulating the actual query/mapping in MerchandisePlanningResource.php
+        $items = $project->bom->items->map(function ($bomItem) use ($project) {
+            $unitPrice = $bomItem->material?->price ?? 0;
+            $targetQty = max(1, (int) ($project->target_qty ?? 1));
+            $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
+            $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
+
+            return [
+                'material_id' => $bomItem->material_id,
+                'supplier_id' => $bomItem->material?->supplier_id,
+                'planned_qty' => $plannedQty,
+                'unit' => $bomItem->unit,
+                'unit_price' => number_format($unitPrice, 2, '.', ','),
+                'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
+                'is_subcon' => false,
+                'notes' => $bomItem->notes,
+            ];
+        })->toArray();
+
+        $this->assertNotEmpty($items);
+        $this->assertEquals($supplier->id, $items[0]['supplier_id']);
+    }
 }

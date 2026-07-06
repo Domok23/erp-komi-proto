@@ -72,6 +72,7 @@ class MerchandisePlanningResource extends Resource
 
                                 return [
                                     'material_id' => $bomItem->material_id,
+                                    'supplier_id' => $bomItem->material?->supplier_id,
                                     'planned_qty' => $plannedQty,
                                     'unit' => $bomItem->unit,
                                     'unit_price' => number_format($unitPrice, 2, '.', ','),
