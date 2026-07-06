@@ -106,6 +106,7 @@ class ConsumptionRatesTest extends TestCase
                 'unit' => $rate->unit,
                 'wastage_percent' => $rate->wastage_rate,
                 'notes' => $rate->notes,
+                'is_from_rnd' => true,
             ];
         })->toArray();
 
@@ -116,6 +117,7 @@ class ConsumptionRatesTest extends TestCase
         $this->assertEquals('yard', $items[0]['unit']);
         $this->assertEquals(10, $items[0]['wastage_percent']);
         $this->assertEquals('Test Notes', $items[0]['notes']);
+        $this->assertTrue($items[0]['is_from_rnd']);
     }
 
     public function test_design_cost_estimation_triggers_on_consumption_rate_change(): void

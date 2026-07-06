@@ -8,6 +8,7 @@ use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -20,6 +21,16 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+
+class NullableToggle extends Forms\Components\Toggle
+{
+    public function getDefaultStateCasts(): array
+    {
+        return [
+            app(\Filament\Schemas\Components\StateCasts\BooleanStateCast::class, ['isNullable' => true]),
+        ];
+    }
+}
 
 class BomResource extends Resource
 {
@@ -52,6 +63,7 @@ class BomResource extends Resource
                                 'unit' => $rate->unit,
                                 'wastage_percent' => $rate->wastage_rate,
                                 'notes' => $rate->notes,
+                                'is_from_rnd' => true,
                             ];
                         })->toArray();
 
@@ -104,7 +116,9 @@ class BomResource extends Resource
                                     if ($material) {
                                         $set('unit', $material->unit);
                                     }
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\Select::make('category')
                                 ->options([
                                     'main_material' => 'Main Material',
@@ -112,10 +126,14 @@ class BomResource extends Resource
                                     'trim' => 'Trim',
                                     'packaging' => 'Packaging',
                                 ])
-                                ->required(),
+                                ->required()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
                                 ->numeric()
-                                ->required(),
+                                ->required()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('unit')
                                 ->default('pcs')
                                 ->disabled()
@@ -123,12 +141,26 @@ class BomResource extends Resource
                             Forms\Components\TextInput::make('wastage_percent')
                                 ->numeric()
                                 ->default(0)
-                                ->suffix('%'),
-                            Forms\Components\TextInput::make('notes'),
+                                ->suffix('%')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('notes')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            NullableToggle::make('is_from_rnd')
+                                ->label('from R&D')
+                                ->default(null)
+                                ->reactive()
+                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
                         ])
                         ->columns(3)
                         ->defaultItems(1)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->itemLabel(function (array $state): ?\Illuminate\Support\HtmlString {
+                            return new \Illuminate\Support\HtmlString(view('filament.components.rnd-badge', [
+                                'visible' => !empty($state['is_from_rnd']),
+                            ])->render());
+                        }),
                 ]),
         ]);
     }

@@ -202,6 +202,7 @@ class DataSeeder extends Seeder
             'quantity_per_unit' => 1.5,
             'unit' => 'yard',
             'wastage_percent' => 5,
+            'is_from_rnd' => true,
         ]);
 
         BomItem::create([
@@ -211,6 +212,7 @@ class DataSeeder extends Seeder
             'quantity_per_unit' => 3,
             'unit' => 'pcs',
             'wastage_percent' => 2,
+            'is_from_rnd' => true,
         ]);
 
         BomItem::create([
@@ -220,6 +222,7 @@ class DataSeeder extends Seeder
             'quantity_per_unit' => 2.5,
             'unit' => 'meter',
             'wastage_percent' => 0,
+            'is_from_rnd' => true,
         ]);
 
         // 8. Seed Projects
