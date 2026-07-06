@@ -189,6 +189,7 @@ class DataSeeder extends Seeder
         // 7. Seed BOMs and BOM Items
         $bomBackpack = Bom::create([
             'company_id' => $kei->id,
+            'bom_number' => CodeGenerator::generateBOMNumber($designBackpack->id, '1.0'),
             'design_id' => $designBackpack->id,
             'name' => 'Main BOM Explorer Backpack',
             'version' => '1.0',
@@ -260,6 +261,7 @@ class DataSeeder extends Seeder
             'unit_price' => 38000,
             'total_price' => 57000000,
             'is_subcon' => false,
+            'is_from_rnd' => true,
         ]);
 
         MerchandisePlanningItem::create([
@@ -271,6 +273,7 @@ class DataSeeder extends Seeder
             'unit_price' => 7500,
             'total_price' => 22500000,
             'is_subcon' => false,
+            'is_from_rnd' => true,
         ]);
 
         MerchandisePlanningItem::create([

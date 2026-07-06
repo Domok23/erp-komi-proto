@@ -24,16 +24,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
-
-class NullableToggle extends Forms\Components\Toggle
-{
-    public function getDefaultStateCasts(): array
-    {
-        return [
-            app(BooleanStateCast::class, ['isNullable' => true]),
-        ];
-    }
-}
+use App\Forms\Components\NullableToggle;
 
 class BomResource extends Resource
 {

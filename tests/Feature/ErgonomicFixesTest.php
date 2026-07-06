@@ -338,10 +338,12 @@ class ErgonomicFixesTest extends TestCase
                 'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
                 'is_subcon' => false,
                 'notes' => $bomItem->notes,
+                'is_from_rnd' => $bomItem->is_from_rnd ?? true,
             ];
         })->toArray();
 
         $this->assertNotEmpty($items);
         $this->assertEquals($supplier->id, $items[0]['supplier_id']);
+        $this->assertTrue($items[0]['is_from_rnd']);
     }
 }

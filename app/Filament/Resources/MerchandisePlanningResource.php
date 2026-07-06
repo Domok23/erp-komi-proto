@@ -27,6 +27,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use App\Forms\Components\NullableToggle;
+use Illuminate\Support\HtmlString;
 
 class MerchandisePlanningResource extends Resource
 {
@@ -79,6 +81,7 @@ class MerchandisePlanningResource extends Resource
                                     'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
                                     'is_subcon' => false,
                                     'notes' => $bomItem->notes,
+                                    'is_from_rnd' => $bomItem->is_from_rnd ?? true,
                                 ];
                             })->toArray();
 
@@ -159,7 +162,9 @@ class MerchandisePlanningResource extends Resource
 
                                     $qty = floatval($get('planned_qty') ?? 1);
                                     $set('total_price', number_format($qty * floatval($price), 2, '.', ','));
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\Select::make('supplier_id')
                                 ->relationship('supplier', 'name')
                                 ->searchable()
@@ -185,7 +190,9 @@ class MerchandisePlanningResource extends Resource
                                     $qty = floatval($state);
                                     $price = floatval(str_replace(',', '', $get('unit_price')));
                                     $set('total_price', number_format($qty * $price, 2, '.', ','));
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('unit')
                                 ->default('pcs')
                                 ->disabled()
@@ -214,12 +221,24 @@ class MerchandisePlanningResource extends Resource
                                     }
                                 }),
                             Forms\Components\TextInput::make('notes')
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            NullableToggle::make('is_from_rnd')
+                                ->label('from R&D')
+                                ->default(null)
+                                ->reactive()
+                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
                         ])
                         ->columns(3)
                         ->columnSpanFull()
                         ->defaultItems(1)
                         ->reactive()
+                        ->itemLabel(function (array $state): ?HtmlString {
+                            return new HtmlString(view('filament.components.rnd-badge', [
+                                'visible' => ! empty($state['is_from_rnd']),
+                            ])->render());
+                        })
                         ->afterStateUpdated(function ($state, callable $set) {
                             $totalMat = 0;
                             $totalSub = 0;
