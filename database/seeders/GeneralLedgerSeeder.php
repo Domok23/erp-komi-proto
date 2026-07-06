@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\ChartOfAccount;
 use App\Models\Company;
 use App\Models\GeneralLedger;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class GeneralLedgerSeeder extends Seeder
@@ -17,8 +16,9 @@ class GeneralLedgerSeeder extends Seeder
     {
         $company = Company::first();
 
-        if (!$company) {
+        if (! $company) {
             $this->command->warn('No company found. Skipping General Ledger seeder.');
+
             return;
         }
 
@@ -120,8 +120,9 @@ class GeneralLedgerSeeder extends Seeder
             $debitAccount = $accounts->get($entry['debit_account']);
             $creditAccount = $accounts->get($entry['credit_account']);
 
-            if (!$debitAccount || !$creditAccount) {
+            if (! $debitAccount || ! $creditAccount) {
                 $this->command->warn("Skipping entry {$entry['entry_number']}: Missing accounts");
+
                 continue;
             }
 

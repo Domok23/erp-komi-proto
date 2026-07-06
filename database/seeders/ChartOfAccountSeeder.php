@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\ChartOfAccount;
 use App\Models\Company;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ChartOfAccountSeeder extends Seeder
@@ -16,8 +15,9 @@ class ChartOfAccountSeeder extends Seeder
     {
         $company = Company::first();
 
-        if (!$company) {
+        if (! $company) {
             $this->command->warn('No company found. Skipping Chart of Accounts seeder.');
+
             return;
         }
 

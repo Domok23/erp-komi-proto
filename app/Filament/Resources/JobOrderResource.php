@@ -4,25 +4,30 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\JobOrderResource\Pages;
 use App\Models\JobOrder;
+use App\Models\MerchandisePlanning;
+use App\Models\ProductionOrder;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class JobOrderResource extends Resource
 {
     protected static ?string $model = JobOrder::class;
 
     protected static ?string $navigationLabel = 'Job Orders';
+
     protected static ?string $modelLabel = 'Job Order';
+
     protected static ?string $pluralModelLabel = 'Job Orders';
 
     public static function form(Schema $schema): Schema
@@ -56,20 +61,20 @@ class JobOrderResource extends Resource
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $planning = \App\Models\MerchandisePlanning::find($state);
+                        $planning = MerchandisePlanning::find($state);
                         if ($planning) {
                             $items = $planning->items;
                             if ($items->isNotEmpty()) {
                                 $materials = [];
                                 foreach ($items as $item) {
-                                    if (!$item->material_id) {
+                                    if (! $item->material_id) {
                                         continue;
                                     }
 
                                     $material = $item->material;
                                     $supplier = $item->supplier;
                                     $totalPrice = $item->planned_qty * $item->unit_price;
-                                    
+
                                     $materials[] = [
                                         'is_selected' => true,
                                         'material_name' => $material ? $material->name : 'N/A',
@@ -99,11 +104,13 @@ class JobOrderResource extends Resource
             Forms\Components\TextInput::make('planned_qty')
                 ->required()
                 ->numeric()
+                ->step(1)
                 ->default(0),
             Forms\Components\TextInput::make('completed_qty')
-                ->numeric()
                 ->default(0)
-                ->disabled(),
+                ->disabled()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 0, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\Select::make('status')
                 ->options([
                     'pending' => 'Pending',
@@ -122,7 +129,7 @@ class JobOrderResource extends Resource
             Forms\Components\Placeholder::make('no_materials')
                 ->label('No materials selected')
                 ->content('Select a merchandising planning to see materials')
-                ->visible(fn (callable $get) => !$get('merchandising_planning_id')),
+                ->visible(fn (callable $get) => ! $get('merchandising_planning_id')),
             Forms\Components\Repeater::make('materials')
                 ->label('Materials from Merchandising')
                 ->schema([
@@ -198,8 +205,10 @@ class JobOrderResource extends Resource
                     'packing' => 'gray',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('planned_qty')->numeric(),
-            Tables\Columns\TextColumn::make('completed_qty')->numeric(),
+            Tables\Columns\TextColumn::make('planned_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('completed_qty')
+                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('status')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
@@ -237,7 +246,7 @@ class JobOrderResource extends Resource
                     ->visible(fn ($record) => $record->status === 'pending')
                     ->action(function ($record) {
                         $record->update(['status' => 'in_progress', 'start_date' => now()]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Task Started')
                             ->success()
                             ->send();
@@ -250,14 +259,14 @@ class JobOrderResource extends Resource
                     ->visible(fn ($record) => $record->status === 'in_progress')
                     ->action(function ($record) {
                         $record->update(['status' => 'completed', 'end_date' => now(), 'completed_qty' => $record->planned_qty]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Task Completed')
                             ->success()
                             ->send();
                     })
                     ->requiresConfirmation(),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
@@ -294,24 +303,24 @@ class JobOrderResource extends Resource
     public static function loadProductionOrderMaterials($state, callable $set): void
     {
         if ($state) {
-            $productionOrder = \App\Models\ProductionOrder::find($state);
+            $productionOrder = ProductionOrder::find($state);
             if ($productionOrder && $productionOrder->merchandisingPlanning) {
                 $set('merchandising_planning_id', $productionOrder->merchandisingPlanning->id);
                 $set('planned_qty', $productionOrder->planned_qty);
-                
+
                 $planning = $productionOrder->merchandisingPlanning;
                 $items = $planning->items;
                 if ($items->isNotEmpty()) {
                     $materials = [];
                     foreach ($items as $item) {
-                        if (!$item->material_id) {
+                        if (! $item->material_id) {
                             continue;
                         }
 
                         $material = $item->material;
                         $supplier = $item->supplier;
                         $totalPrice = $item->planned_qty * $item->unit_price;
-                        
+
                         $materials[] = [
                             'is_selected' => true,
                             'material_name' => $material ? $material->name : 'N/A',
@@ -325,6 +334,7 @@ class JobOrderResource extends Resource
                         ];
                     }
                     $set('materials', $materials);
+
                     return;
                 }
             }

@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class PoSubconResource extends Resource
 {
@@ -70,30 +71,36 @@ class PoSubconResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('service_cost')
-                        ->label(new \Illuminate\Support\HtmlString('Service Cost <span title="Total biaya jasa subkon yang dihitung otomatis dari akumulasi tabel PO Items di bawah" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                        ->numeric()
+                        ->label(new HtmlString('Service Cost <span title="Total biaya jasa subkon yang dihitung otomatis dari akumulasi tabel PO Items di bawah" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
                         ->prefix('IDR')
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('shipping_cost')
                         ->numeric()
+                        ->step(0.01)
+                        ->minValue(0)
                         ->default(0)
                         ->prefix('IDR')
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('shipping_return_cost')
                         ->numeric()
+                        ->step(0.01)
+                        ->minValue(0)
                         ->default(0)
                         ->prefix('IDR')
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('total_cost')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
                         ->dehydrated()
-                        ->prefix('IDR'),
+                        ->prefix('IDR')
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
 
             Forms\Components\Textarea::make('notes')
@@ -109,6 +116,7 @@ class PoSubconResource extends Resource
                                 ->required(),
                             Forms\Components\TextInput::make('qty')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
@@ -116,10 +124,11 @@ class PoSubconResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));
-                                    $set('total_price', $qty * $price);
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('unit_price')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
@@ -128,14 +137,15 @@ class PoSubconResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
                                     $qty = floatval($get('qty'));
-                                    $set('total_price', $qty * $price);
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('total_price')
-                                ->numeric()
                                 ->default(0)
                                 ->disabled()
                                 ->dehydrated()
-                                ->prefix('IDR'),
+                                ->prefix('IDR')
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                         ])
                         ->columns(3)
                         ->columnSpanFull()
@@ -143,13 +153,13 @@ class PoSubconResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set, callable $get) {
                             $subtotal = 0;
                             foreach ($state as $item) {
-                                $subtotal += floatval($item['total_price'] ?? 0);
+                                $subtotal += floatval(str_replace(',', '', $item['total_price'] ?? 0));
                             }
-                            $set('service_cost', $subtotal);
+                            $set('service_cost', number_format($subtotal, 2, '.', ','));
 
-                            $shipping = floatval($get('shipping_cost') ?? 0);
-                            $shippingReturn = floatval($get('shipping_return_cost') ?? 0);
-                            $set('total_cost', $subtotal + $shipping + $shippingReturn);
+                            $shipping = floatval(str_replace(',', '', $get('shipping_cost') ?? 0));
+                            $shippingReturn = floatval(str_replace(',', '', $get('shipping_return_cost') ?? 0));
+                            $set('total_cost', number_format($subtotal + $shipping + $shippingReturn, 2, '.', ','));
                         }),
                 ]),
         ]);
@@ -157,10 +167,10 @@ class PoSubconResource extends Resource
 
     protected static function recalculateTotals(Get $get, Set $set): void
     {
-        $service = floatval($get('service_cost') ?? 0);
-        $shipping = floatval($get('shipping_cost') ?? 0);
-        $shippingReturn = floatval($get('shipping_return_cost') ?? 0);
-        $set('total_cost', $service + $shipping + $shippingReturn);
+        $service = floatval(str_replace(',', '', $get('service_cost') ?? 0));
+        $shipping = floatval(str_replace(',', '', $get('shipping_cost') ?? 0));
+        $shippingReturn = floatval(str_replace(',', '', $get('shipping_return_cost') ?? 0));
+        $set('total_cost', number_format($service + $shipping + $shippingReturn, 2, '.', ','));
     }
 
     public static function table(Table $table): Table

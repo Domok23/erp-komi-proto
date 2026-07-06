@@ -1,6 +1,7 @@
 <?php
+
 namespace App\Filament\Resources\ProductionOrderResource\Pages;
-use App\Filament\Resources\ProductionOrderResource;
+
 use App\Models\ProductionOrderMaterial;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -15,7 +16,7 @@ class CreateProductionOrder extends CreateRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (!empty($material['material_id'])) {
+                if (! empty($material['material_id'])) {
                     ProductionOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'production_order_id' => $record->id,

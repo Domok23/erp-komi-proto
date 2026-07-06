@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class RdDesignResource extends Resource
 {
@@ -79,17 +80,17 @@ class RdDesignResource extends Resource
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_mp_cost')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_overhead_pct')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_profit_margin_pct')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),

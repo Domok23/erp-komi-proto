@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class CostingResource extends Resource
 {
@@ -97,15 +98,16 @@ class CostingResource extends Resource
 
             // --- Cost breakdown ---
             Forms\Components\TextInput::make('material_cost')
-                ->label(new \Illuminate\Support\HtmlString('Material Cost <span title="Total biaya bahan baku (material) per unit produk yang diimpor otomatis dari BOM" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric()
+                ->label(new HtmlString('Material Cost <span title="Total biaya bahan baku (material) per unit produk yang diimpor otomatis dari BOM" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->default(0)
                 ->prefix('IDR')
                 ->helperText('Auto-imported from BOM')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('mp_cost')
-                ->label(new \Illuminate\Support\HtmlString('Manufacturing Cost (MP) <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Manufacturing Cost (MP) <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
                 ->default((int) CostingCalculatorService::getMpRatePerUnit())
                 ->prefix('IDR')
@@ -115,8 +117,10 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_pct')
-                ->label(new \Illuminate\Support\HtmlString('Overhead % <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Overhead % <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
+                ->step(0.01)
+                ->minValue(0)
                 ->default(CostingCalculatorService::getDefaultOverheadPct())
                 ->suffix('%')
                 ->hint('Default: '.CostingCalculatorService::getDefaultOverheadPct().'%')
@@ -124,51 +128,59 @@ class CostingResource extends Resource
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('overhead_amount')
-                ->label(new \Illuminate\Support\HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + MP Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric()
+                ->label(new HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + MP Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('shipping_cost')
-                ->label(new \Illuminate\Support\HtmlString('Shipping Cost <span title="Biaya logistik pengiriman satu unit produk ke tujuan pelanggan" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Shipping Cost <span title="Biaya logistik pengiriman satu unit produk ke tujuan pelanggan" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
+                ->step(0.01)
+                ->minValue(0)
                 ->default(0)
                 ->prefix('IDR')
                 ->live(onBlur: true)
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_pct')
-                ->label(new \Illuminate\Support\HtmlString('Profit Margin % <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Profit Margin % <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->numeric()
+                ->step(0.01)
+                ->minValue(0)
                 ->default(20)
                 ->suffix('%')
                 ->live(onBlur: true)
                 ->disabled($isLocked)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
             Forms\Components\TextInput::make('profit_margin_amount')
-                ->label(new \Illuminate\Support\HtmlString('Profit Margin Amount <span title="Nilai nominal target keuntungan per unit: Landed Cost x Profit Margin %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric()
+                ->label(new HtmlString('Profit Margin Amount <span title="Nilai nominal target keuntungan per unit: Landed Cost x Profit Margin %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
 
             // --- Result ---
             Forms\Components\TextInput::make('landed_cost')
-                ->label(new \Illuminate\Support\HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + MP + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric()
+                ->label(new HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + MP + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('selling_price')
-                ->label(new \Illuminate\Support\HtmlString('Selling Price <span title="Harga jual final per unit produk ke pelanggan: Landed Cost + Profit Margin Amount" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric()
+                ->label(new HtmlString('Selling Price <span title="Harga jual final per unit produk ke pelanggan: Landed Cost + Profit Margin Amount" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('currency')
                 ->default('IDR')
                 ->maxLength(10)
@@ -199,23 +211,23 @@ class CostingResource extends Resource
 
     protected static function recalculate(Get $get, Set $set): void
     {
-        $materialCost = (float) $get('material_cost') ?: 0;
-        $mpCost = (float) $get('mp_cost') ?: 0;
-        $overheadPct = (float) $get('overhead_pct') ?: 0;
-        $shippingCost = (float) $get('shipping_cost') ?: 0;
-        $profitMarginPct = (float) $get('profit_margin_pct') ?: 0;
+        $materialCost = (float) str_replace(',', '', $get('material_cost') ?: 0);
+        $mpCost = (float) str_replace(',', '', $get('mp_cost') ?: 0);
+        $overheadPct = (float) str_replace(',', '', $get('overhead_pct') ?: 0);
+        $shippingCost = (float) str_replace(',', '', $get('shipping_cost') ?: 0);
+        $profitMarginPct = (float) str_replace(',', '', $get('profit_margin_pct') ?: 0);
 
         $overheadAmount = ($materialCost + $mpCost) * ($overheadPct / 100);
-        $set('overhead_amount', round($overheadAmount, 2));
+        $set('overhead_amount', number_format($overheadAmount, 2, '.', ','));
 
         $landedCost = $materialCost + $mpCost + $overheadAmount + $shippingCost;
-        $set('landed_cost', round($landedCost, 2));
+        $set('landed_cost', number_format($landedCost, 2, '.', ','));
 
         $profitMarginAmount = $landedCost * ($profitMarginPct / 100);
-        $set('profit_margin_amount', round($profitMarginAmount, 2));
+        $set('profit_margin_amount', number_format($profitMarginAmount, 2, '.', ','));
 
         $sellingPrice = $landedCost + $profitMarginAmount;
-        $set('selling_price', round($sellingPrice, 2));
+        $set('selling_price', number_format($sellingPrice, 2, '.', ','));
     }
 
     public static function table(Table $table): Table

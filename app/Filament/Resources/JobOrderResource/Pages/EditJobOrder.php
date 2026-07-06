@@ -1,6 +1,7 @@
 <?php
+
 namespace App\Filament\Resources\JobOrderResource\Pages;
-use App\Filament\Resources\JobOrderResource;
+
 use App\Models\JobOrderMaterial;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -8,30 +9,34 @@ use Filament\Resources\Pages\EditRecord;
 class EditJobOrder extends EditRecord
 {
     protected static string $resource = 'App\Filament\Resources\JobOrderResource';
-    protected function getHeaderActions(): array { return [Actions\DeleteAction::make()]; }
+
+    protected function getHeaderActions(): array
+    {
+        return [Actions\DeleteAction::make()];
+    }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record;
-        
+
         if ($record->merchandisingPlanning) {
             $items = $record->merchandisingPlanning->items;
             $existingMaterials = $record->materials->keyBy('merchandising_planning_item_id');
-            
+
             $materials = [];
             foreach ($items as $item) {
-                if (!$item->material_id) {
+                if (! $item->material_id) {
                     continue;
                 }
 
                 $existingMaterial = $existingMaterials->get($item->id);
-                
+
                 // Only include materials that were actually selected/saved
                 if ($existingMaterial && $existingMaterial->is_selected) {
                     $material = $item->material;
                     $supplier = $item->supplier;
                     $totalPrice = $item->planned_qty * $item->unit_price;
-                    
+
                     $materials[] = [
                         'is_selected' => true,
                         'material_name' => $material ? $material->name : 'N/A',
@@ -47,7 +52,7 @@ class EditJobOrder extends EditRecord
             }
             $data['materials'] = $materials;
         }
-        
+
         return $data;
     }
 
@@ -60,7 +65,7 @@ class EditJobOrder extends EditRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (isset($material['is_selected']) && $material['is_selected'] && !empty($material['material_id'])) {
+                if (isset($material['is_selected']) && $material['is_selected'] && ! empty($material['material_id'])) {
                     JobOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'job_order_id' => $record->id,

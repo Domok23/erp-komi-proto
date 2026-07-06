@@ -69,6 +69,7 @@ class InvoiceSalesResource extends Resource
             Forms\Components\DatePicker::make('due_date'),
             Forms\Components\TextInput::make('subtotal')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->prefix('IDR')
                 ->required()
@@ -76,34 +77,39 @@ class InvoiceSalesResource extends Resource
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('ppn_percent')
                 ->numeric()
+                ->step(0.01)
                 ->default(11)
                 ->suffix('%')
                 ->required()
                 ->live(onBlur: true)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('ppn_amount')
-                ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
                 ->dehydrated()
-                ->required(),
+                ->required()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('shipping_cost')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->prefix('IDR')
                 ->required()
                 ->live(onBlur: true)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
             Forms\Components\TextInput::make('grand_total')
-                ->numeric()
                 ->default(0)
                 ->prefix('IDR')
                 ->disabled()
                 ->dehydrated()
-                ->required(),
+                ->required()
+                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
             Forms\Components\TextInput::make('paid_amount')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->prefix('IDR')
                 ->required(),
@@ -132,8 +138,8 @@ class InvoiceSalesResource extends Resource
         $shipping = floatval($get('shipping_cost') ?? 0);
 
         $ppnAmount = $subtotal * ($ppnPercent / 100);
-        $set('ppn_amount', $ppnAmount);
-        $set('grand_total', $subtotal + $ppnAmount + $shipping);
+        $set('ppn_amount', number_format($ppnAmount, 2, '.', ','));
+        $set('grand_total', number_format($subtotal + $ppnAmount + $shipping, 2, '.', ','));
     }
 
     public static function table(Table $table): Table
@@ -143,8 +149,11 @@ class InvoiceSalesResource extends Resource
             Tables\Columns\TextColumn::make('invoice_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('salesOrder.so_number')->searchable(),
             Tables\Columns\TextColumn::make('invoice_date')->date()->sortable(),
-            Tables\Columns\TextColumn::make('grand_total')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('paid_amount')->numeric(),
+            Tables\Columns\TextColumn::make('grand_total')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('paid_amount')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'unpaid' => 'danger',

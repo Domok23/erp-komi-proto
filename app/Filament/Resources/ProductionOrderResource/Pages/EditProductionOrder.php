@@ -1,6 +1,7 @@
 <?php
+
 namespace App\Filament\Resources\ProductionOrderResource\Pages;
-use App\Filament\Resources\ProductionOrderResource;
+
 use App\Models\ProductionOrderMaterial;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -8,19 +9,23 @@ use Filament\Resources\Pages\EditRecord;
 class EditProductionOrder extends EditRecord
 {
     protected static string $resource = 'App\Filament\Resources\ProductionOrderResource';
-    protected function getHeaderActions(): array { return [Actions\DeleteAction::make()]; }
+
+    protected function getHeaderActions(): array
+    {
+        return [Actions\DeleteAction::make()];
+    }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record;
-        
+
         if ($record->merchandisingPlanning) {
             $items = $record->merchandisingPlanning->items;
             $existingMaterials = $record->materials->keyBy('merchandising_planning_item_id');
-            
+
             $materials = [];
             foreach ($items as $item) {
-                if (!$item->material_id) {
+                if (! $item->material_id) {
                     continue;
                 }
 
@@ -28,7 +33,7 @@ class EditProductionOrder extends EditRecord
                 $supplier = $item->supplier;
                 $totalPrice = $item->planned_qty * $item->unit_price;
                 $existingMaterial = $existingMaterials->get($item->id);
-                
+
                 $materials[] = [
                     'is_selected' => $existingMaterial ? $existingMaterial->is_selected : true,
                     'material_name' => $material ? $material->name : 'N/A',
@@ -43,7 +48,7 @@ class EditProductionOrder extends EditRecord
             }
             $data['materials'] = $materials;
         }
-        
+
         return $data;
     }
 
@@ -56,7 +61,7 @@ class EditProductionOrder extends EditRecord
 
         if (isset($data['materials']) && is_array($data['materials'])) {
             foreach ($data['materials'] as $material) {
-                if (!empty($material['material_id'])) {
+                if (! empty($material['material_id'])) {
                     ProductionOrderMaterial::create([
                         'company_id' => $record->company_id,
                         'production_order_id' => $record->id,

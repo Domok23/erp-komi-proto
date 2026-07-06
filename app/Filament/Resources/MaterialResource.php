@@ -56,12 +56,15 @@ class MaterialResource extends Resource
                 ->maxLength(20),
             Forms\Components\TextInput::make('stock')
                 ->numeric()
+                ->step(0.01)
                 ->default(0),
             Forms\Components\TextInput::make('min_stock')
                 ->numeric()
+                ->step(0.01)
                 ->default(0),
             Forms\Components\TextInput::make('price')
                 ->numeric()
+                ->step(0.01)
                 ->prefix('$')
                 ->default(0),
             Forms\Components\Select::make('supplier_id')
@@ -84,8 +87,11 @@ class MaterialResource extends Resource
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
             Tables\Columns\BadgeColumn::make('category'),
             Tables\Columns\TextColumn::make('unit'),
-            Tables\Columns\TextColumn::make('stock')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('min_stock')->numeric(),
+            Tables\Columns\TextColumn::make('stock')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('min_stock')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('price')->numeric()->money('USD')->sortable(),
             Tables\Columns\TextColumn::make('supplier.name')->searchable(),
             Tables\Columns\IconColumn::make('is_active')->boolean(),

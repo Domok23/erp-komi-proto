@@ -4,23 +4,25 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialLeftoverResource\Pages;
 use App\Models\MaterialLeftover;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class MaterialLeftoverResource extends Resource
 {
     protected static ?string $model = MaterialLeftover::class;
 
     protected static ?string $navigationLabel = 'Material Leftovers';
+
     protected static ?string $modelLabel = 'Material Leftover';
+
     protected static ?string $pluralModelLabel = 'Material Leftovers';
 
     public static function form(Schema $schema): Schema
@@ -42,6 +44,7 @@ class MaterialLeftoverResource extends Resource
                 ->required(),
             Forms\Components\TextInput::make('qty')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->required(),
             Forms\Components\TextInput::make('unit')
@@ -75,7 +78,8 @@ class MaterialLeftoverResource extends Resource
             Tables\Columns\TextColumn::make('jobOrder.job_order_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('leftover_date')->date(),
-            Tables\Columns\TextColumn::make('qty')->numeric(),
+            Tables\Columns\TextColumn::make('qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('unit'),
             Tables\Columns\BadgeColumn::make('condition')
                 ->color(fn (string $state): string => match ($state) {
@@ -108,7 +112,7 @@ class MaterialLeftoverResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

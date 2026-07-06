@@ -74,29 +74,34 @@ class PoSupplierResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('subtotal')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
                         ->dehydrated()
-                        ->prefix('IDR'),
+                        ->prefix('IDR')
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('ppn_percent')
                         ->numeric()
+                        ->step(0.01)
+                        ->minValue(0)
                         ->default(11)
                         ->suffix('%')
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
                         ->dehydrated()
-                        ->prefix('IDR'),
+                        ->prefix('IDR')
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('grand_total')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
                         ->dehydrated()
-                        ->prefix('IDR'),
+                        ->prefix('IDR')
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
 
             Forms\Components\Textarea::make('notes')
@@ -137,10 +142,11 @@ class PoSupplierResource extends Resource
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', $price);
                                     $qty = floatval($get('qty') ?? 1);
-                                    $set('total_price', $qty * $price);
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('qty')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
@@ -148,7 +154,7 @@ class PoSupplierResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
                                     $price = floatval($get('unit_price'));
-                                    $set('total_price', $qty * $price);
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('unit')
                                 ->default('pcs')
@@ -156,6 +162,7 @@ class PoSupplierResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('unit_price')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(0)
                                 ->prefix('IDR')
                                 ->required()
@@ -164,19 +171,21 @@ class PoSupplierResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $price = floatval($state);
                                     $qty = floatval($get('qty'));
-                                    $set('total_price', $qty * $price);
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('total_price')
-                                ->numeric()
                                 ->default(0)
                                 ->disabled()
                                 ->dehydrated()
-                                ->prefix('IDR'),
+                                ->prefix('IDR')
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\TextInput::make('qty_received')
-                                ->numeric()
                                 ->default(0)
                                 ->disabled()
-                                ->dehydrated(),
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                         ])
                         ->columns(3)
                         ->columnSpanFull()
@@ -184,15 +193,15 @@ class PoSupplierResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set, callable $get) {
                             $subtotal = 0;
                             foreach ($state as $item) {
-                                $subtotal += floatval($item['total_price'] ?? 0);
+                                $subtotal += floatval(str_replace(',', '', $item['total_price'] ?? 0));
                             }
-                            $set('subtotal', $subtotal);
+                            $set('subtotal', number_format($subtotal, 2, '.', ','));
 
-                            $ppnPct = floatval($get('ppn_percent') ?? 11);
+                            $ppnPct = floatval(str_replace(',', '', $get('ppn_percent') ?? 11));
                             $ppnAmount = $subtotal * ($ppnPct / 100);
-                            $set('ppn_amount', $ppnAmount);
+                            $set('ppn_amount', number_format($ppnAmount, 2, '.', ','));
 
-                            $set('grand_total', $subtotal + $ppnAmount);
+                            $set('grand_total', number_format($subtotal + $ppnAmount, 2, '.', ','));
                         }),
                 ]),
         ]);
@@ -200,11 +209,11 @@ class PoSupplierResource extends Resource
 
     protected static function recalculateTotals(Get $get, Set $set): void
     {
-        $subtotal = floatval($get('subtotal') ?? 0);
-        $ppnPct = floatval($get('ppn_percent') ?? 11);
+        $subtotal = floatval(str_replace(',', '', $get('subtotal') ?? 0));
+        $ppnPct = floatval(str_replace(',', '', $get('ppn_percent') ?? 11));
         $ppnAmount = $subtotal * ($ppnPct / 100);
-        $set('ppn_amount', $ppnAmount);
-        $set('grand_total', $subtotal + $ppnAmount);
+        $set('ppn_amount', number_format($ppnAmount, 2, '.', ','));
+        $set('grand_total', number_format($subtotal + $ppnAmount, 2, '.', ','));
     }
 
     public static function table(Table $table): Table

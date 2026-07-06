@@ -59,14 +59,17 @@ class InventoryStockResource extends Resource
                 }),
             Forms\Components\TextInput::make('quantity')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->required(),
             Forms\Components\TextInput::make('reserved_qty')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->required(),
             Forms\Components\TextInput::make('available_qty')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->required(),
             Forms\Components\TextInput::make('unit')
@@ -75,6 +78,7 @@ class InventoryStockResource extends Resource
                 ->default('pcs'),
             Forms\Components\TextInput::make('min_stock')
                 ->numeric()
+                ->step(0.01)
                 ->default(0)
                 ->required(),
             Forms\Components\TextInput::make('location')
@@ -91,8 +95,11 @@ class InventoryStockResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('warehouse.name')->sortable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('quantity')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('min_stock')->numeric(),
+            Tables\Columns\TextColumn::make('quantity')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('min_stock')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('stock_status')
                 ->label('Stock Status')
                 ->color(fn ($record) => $record->quantity < $record->min_stock ? 'danger' : 'success')

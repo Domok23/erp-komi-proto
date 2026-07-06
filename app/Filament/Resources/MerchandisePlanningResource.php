@@ -53,8 +53,8 @@ class MerchandisePlanningResource extends Resource
                     if (! $state) {
                         $set('design_id', null);
                         $set('items', []);
-                        $set('total_material_cost', 0);
-                        $set('total_subcon_cost', 0);
+                        $set('total_material_cost', number_format(0, 2, '.', ','));
+                        $set('total_subcon_cost', number_format(0, 2, '.', ','));
 
                         return;
                     }
@@ -74,8 +74,8 @@ class MerchandisePlanningResource extends Resource
                                     'material_id' => $bomItem->material_id,
                                     'planned_qty' => $plannedQty,
                                     'unit' => $bomItem->unit,
-                                    'unit_price' => $unitPrice,
-                                    'total_price' => $plannedQty * $unitPrice,
+                                    'unit_price' => number_format($unitPrice, 2, '.', ','),
+                                    'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
                                     'is_subcon' => false,
                                     'notes' => $bomItem->notes,
                                 ];
@@ -84,9 +84,9 @@ class MerchandisePlanningResource extends Resource
                             $set('items', $items);
 
                             // Calculate total planning costs
-                            $totalMat = array_sum(array_column($items, 'total_price'));
-                            $set('total_material_cost', $totalMat);
-                            $set('total_subcon_cost', 0);
+                            $totalMat = array_sum(array_map(fn ($i) => floatval(str_replace(',', '', $i['total_price'])), $items));
+                            $set('total_material_cost', number_format($totalMat, 2, '.', ','));
+                            $set('total_subcon_cost', number_format(0, 2, '.', ','));
                         }
                     }
                 }),
@@ -112,15 +112,17 @@ class MerchandisePlanningResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('total_material_cost')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('total_subcon_cost')
-                        ->numeric()
                         ->default(0)
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
 
             Forms\Components\Textarea::make('special_instructions')
@@ -151,11 +153,11 @@ class MerchandisePlanningResource extends Resource
                                     $material = $state ? Material::find($state, ['*']) : null;
                                     $set('unit', $material?->unit);
                                     $price = $material?->price ?? 0;
-                                    $set('unit_price', $price);
+                                    $set('unit_price', number_format($price, 2, '.', ','));
                                     $set('supplier_id', $material?->supplier_id);
 
                                     $qty = floatval($get('planned_qty') ?? 1);
-                                    $set('total_price', $qty * floatval($price));
+                                    $set('total_price', number_format($qty * floatval($price), 2, '.', ','));
                                 }),
                             Forms\Components\Select::make('supplier_id')
                                 ->relationship('supplier', 'name')
@@ -173,30 +175,33 @@ class MerchandisePlanningResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $qty = floatval($state);
-                                    $price = floatval($get('unit_price'));
-                                    $set('total_price', $qty * $price);
+                                    $price = floatval(str_replace(',', '', $get('unit_price')));
+                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('unit')
                                 ->default('pcs')
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('unit_price')
-                                ->numeric()
                                 ->default(0)
                                 ->required()
                                 ->disabled()
-                                ->dehydrated(),
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\TextInput::make('total_price')
-                                ->numeric()
                                 ->default(0)
                                 ->disabled()
-                                ->dehydrated(),
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\Toggle::make('is_subcon')
                                 ->default(false)
                                 ->label('Is Subcon Service')
@@ -218,15 +223,15 @@ class MerchandisePlanningResource extends Resource
                             $totalMat = 0;
                             $totalSub = 0;
                             foreach ($state as $item) {
-                                $total = floatval($item['total_price'] ?? 0);
+                                $total = floatval(str_replace(',', '', $item['total_price'] ?? 0));
                                 if (! empty($item['is_subcon'])) {
                                     $totalSub += $total;
                                 } else {
                                     $totalMat += $total;
                                 }
                             }
-                            $set('total_material_cost', $totalMat);
-                            $set('total_subcon_cost', $totalSub);
+                            $set('total_material_cost', number_format($totalMat, 2, '.', ','));
+                            $set('total_subcon_cost', number_format($totalSub, 2, '.', ','));
                         }),
                 ]),
         ]);
@@ -253,8 +258,10 @@ class MerchandisePlanningResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('total_material_cost')->numeric(),
-            Tables\Columns\TextColumn::make('total_subcon_cost')->numeric(),
+            Tables\Columns\TextColumn::make('total_material_cost')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('total_subcon_cost')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
         ])
             ->filters([
                 SelectFilter::make('status')->options([

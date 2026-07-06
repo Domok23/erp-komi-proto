@@ -3,11 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\GeneralLedger;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Filament\Widgets\StatsOverviewWidget;
 use Illuminate\Support\Facades\DB;
 
 class ProfitLossReport extends Page
@@ -64,6 +60,7 @@ class ProfitLossReport extends Page
     public function getProfitMargin(): float
     {
         $revenue = $this->getRevenue();
+
         return $revenue > 0 ? ($this->getGrossProfit() / $revenue) * 100 : 0;
     }
 

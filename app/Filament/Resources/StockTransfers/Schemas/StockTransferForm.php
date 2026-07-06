@@ -140,11 +140,13 @@ class StockTransferForm
                                 TextInput::make('qty_requested')
                                     ->label('Qty Requested')
                                     ->numeric()
+                                    ->step(0.01)
                                     ->default(1)
                                     ->required(),
                                 TextInput::make('qty_transferred')
                                     ->label('Qty Transferred')
                                     ->numeric()
+                                    ->step(0.01)
                                     ->default(1)
                                     ->required()
                                     ->rules([

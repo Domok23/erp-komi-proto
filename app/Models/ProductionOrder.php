@@ -40,6 +40,7 @@ class ProductionOrder extends Model
     {
         return $this->belongsTo(MerchandisePlanning::class);
     }
+
     public function jobOrders(): HasMany
     {
         return $this->hasMany(JobOrder::class);

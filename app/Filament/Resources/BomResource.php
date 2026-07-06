@@ -8,7 +8,6 @@ use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
-use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -17,17 +16,19 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\StateCasts\BooleanStateCast;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class NullableToggle extends Forms\Components\Toggle
 {
     public function getDefaultStateCasts(): array
     {
         return [
-            app(\Filament\Schemas\Components\StateCasts\BooleanStateCast::class, ['isNullable' => true]),
+            app(BooleanStateCast::class, ['isNullable' => true]),
         ];
     }
 }
@@ -131,6 +132,7 @@ class BomResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
                                 ->numeric()
+                                ->step(0.0001)
                                 ->required()
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
@@ -140,6 +142,7 @@ class BomResource extends Resource
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(0)
                                 ->suffix('%')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
@@ -156,9 +159,9 @@ class BomResource extends Resource
                         ->columns(3)
                         ->defaultItems(1)
                         ->columnSpanFull()
-                        ->itemLabel(function (array $state): ?\Illuminate\Support\HtmlString {
-                            return new \Illuminate\Support\HtmlString(view('filament.components.rnd-badge', [
-                                'visible' => !empty($state['is_from_rnd']),
+                        ->itemLabel(function (array $state): ?HtmlString {
+                            return new HtmlString(view('filament.components.rnd-badge', [
+                                'visible' => ! empty($state['is_from_rnd']),
                             ])->render());
                         }),
                 ]),

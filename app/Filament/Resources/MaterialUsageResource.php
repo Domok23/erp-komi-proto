@@ -3,24 +3,27 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialUsageResource\Pages;
+use App\Models\JobOrder;
 use App\Models\MaterialUsage;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class MaterialUsageResource extends Resource
 {
     protected static ?string $model = MaterialUsage::class;
 
     protected static ?string $navigationLabel = 'Material Usage';
+
     protected static ?string $modelLabel = 'Material Usage';
+
     protected static ?string $pluralModelLabel = 'Material Usage';
 
     public static function form(Schema $schema): Schema
@@ -45,7 +48,7 @@ class MaterialUsageResource extends Resource
             Forms\Components\Placeholder::make('no_materials')
                 ->label('No materials selected')
                 ->content('Select a job order to see materials')
-                ->visible(fn (callable $get) => !$get('job_order_id')),
+                ->visible(fn (callable $get) => ! $get('job_order_id')),
             Forms\Components\Repeater::make('materials')
                 ->label('Materials')
                 ->schema([
@@ -54,8 +57,9 @@ class MaterialUsageResource extends Resource
                         ->disabled(),
                     Forms\Components\TextInput::make('planned_qty')
                         ->label('Planned Qty')
-                        ->numeric()
-                        ->disabled(),
+                        ->disabled()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('unit')
                         ->label('Unit')
                         ->disabled(),
@@ -64,34 +68,38 @@ class MaterialUsageResource extends Resource
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : '0.00')
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('actual_qty')
                         ->label('Actual Qty')
                         ->numeric()
+                        ->step(0.01)
                         ->default(0)
                         ->required()
                         ->live(onBlur: true)
                         ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                            $plannedQty = (float)($get('planned_qty') ?? 0);
-                            $actualQty = (float)($state ?? 0);
+                            $plannedQty = (float) str_replace(',', '', $get('planned_qty') ?? 0);
+                            $actualQty = (float) ($state ?? 0);
                             $wasteQty = max(0, $plannedQty - $actualQty);
-                            $set('waste_qty', $wasteQty);
-                            
-                            $unitPrice = (float)($get('unit_price') ?? 0);
+                            $set('waste_qty', number_format($wasteQty, 2, '.', ','));
+
+                            $unitPrice = (float) str_replace(',', '', $get('unit_price') ?? 0);
                             $totalCost = $actualQty * $unitPrice;
-                            $set('total_cost', $totalCost);
+                            $set('total_cost', number_format($totalCost, 2, '.', ','));
                         }),
                     Forms\Components\TextInput::make('waste_qty')
                         ->label('Waste Qty')
-                        ->numeric()
+                        ->disabled()
                         ->default(0)
-                        ->disabled(),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('total_cost')
                         ->label('Total Cost')
                         ->disabled()
                         ->default(0)
                         ->prefix('IDR')
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format($state, 2, '.', ',') : '0.00'),
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : '0.00')
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\Hidden::make('material_id'),
                     Forms\Components\Hidden::make('merchandising_planning_item_id'),
                 ])
@@ -125,9 +133,12 @@ class MaterialUsageResource extends Resource
             Tables\Columns\TextColumn::make('jobOrder.job_order_number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('usage_date')->date(),
-            Tables\Columns\TextColumn::make('planned_qty')->numeric(),
-            Tables\Columns\TextColumn::make('actual_qty')->numeric(),
-            Tables\Columns\TextColumn::make('waste_qty')->numeric(),
+            Tables\Columns\TextColumn::make('planned_qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('actual_qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('waste_qty')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('unit'),
             Tables\Columns\TextColumn::make('unit_price')
                 ->money('IDR')
@@ -156,7 +167,7 @@ class MaterialUsageResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
@@ -193,7 +204,7 @@ class MaterialUsageResource extends Resource
     public static function loadJobOrderMaterials($state, callable $set): void
     {
         if ($state) {
-            $jobOrder = \App\Models\JobOrder::with('materials.material', 'materials.merchandisingPlanningItem')->find($state);
+            $jobOrder = JobOrder::with('materials.material', 'materials.merchandisingPlanningItem')->find($state);
             if ($jobOrder) {
                 $jobOrderMaterials = $jobOrder->materials;
                 if ($jobOrderMaterials->isNotEmpty()) {
@@ -201,15 +212,15 @@ class MaterialUsageResource extends Resource
                     foreach ($jobOrderMaterials as $jobOrderMaterial) {
                         $material = $jobOrderMaterial->material;
                         $merchandisingItem = $jobOrderMaterial->merchandisingPlanningItem;
-                        
+
                         $unitPrice = 0;
                         if ($merchandisingItem && $merchandisingItem->unit_price) {
-                            $unitPrice = (float)$merchandisingItem->unit_price;
+                            $unitPrice = (float) $merchandisingItem->unit_price;
                         }
-                        
-                        $plannedQty = (float)$jobOrderMaterial->planned_qty;
+
+                        $plannedQty = (float) $jobOrderMaterial->planned_qty;
                         $totalCost = $plannedQty * $unitPrice;
-                        
+
                         $materials[] = [
                             'material_name' => $material ? $material->name : 'N/A',
                             'planned_qty' => $plannedQty,
@@ -223,6 +234,7 @@ class MaterialUsageResource extends Resource
                         ];
                     }
                     $set('materials', $materials);
+
                     return;
                 }
             }

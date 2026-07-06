@@ -37,7 +37,7 @@ class InventoryStocksRelationManager extends RelationManager
                     ->searchable(),
                 TextColumn::make('quantity')
                     ->label('Stock Quantity')
-                    ->numeric()
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->sortable(),
                 TextColumn::make('unit')
                     ->label('Unit'),

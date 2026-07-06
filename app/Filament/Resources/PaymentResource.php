@@ -71,6 +71,7 @@ class PaymentResource extends Resource
                 ->required(),
             Forms\Components\TextInput::make('amount')
                 ->numeric()
+                ->step(0.01)
                 ->required()
                 ->prefix('IDR'),
             Forms\Components\Select::make('payment_method')
@@ -97,7 +98,9 @@ class PaymentResource extends Resource
             Tables\Columns\TextColumn::make('invoice_type')->badge(),
             Tables\Columns\TextColumn::make('invoice.invoice_number')->label('Invoice Number'),
             Tables\Columns\TextColumn::make('payment_date')->date()->sortable(),
-            Tables\Columns\TextColumn::make('amount')->numeric()->sortable(),
+            Tables\Columns\TextColumn::make('amount')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
             Tables\Columns\TextColumn::make('payment_method'),
         ])
             ->filters([

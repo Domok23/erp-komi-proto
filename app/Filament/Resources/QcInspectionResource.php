@@ -3,26 +3,28 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QcInspectionResource\Pages;
+use App\Models\JobOrder;
 use App\Models\QcInspection;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class QcInspectionResource extends Resource
 {
     protected static ?string $model = QcInspection::class;
 
     protected static ?string $navigationLabel = 'QC Inspections';
+
     protected static ?string $modelLabel = 'QC Inspection';
+
     protected static ?string $pluralModelLabel = 'QC Inspections';
 
     public static function form(Schema $schema): Schema
@@ -42,7 +44,7 @@ class QcInspectionResource extends Resource
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $jobOrder = \App\Models\JobOrder::find($state);
+                        $jobOrder = JobOrder::find($state);
                         if ($jobOrder) {
                             $set('sample_size', $jobOrder->planned_qty);
                         }
@@ -112,7 +114,7 @@ class QcInspectionResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

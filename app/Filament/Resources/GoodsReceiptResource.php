@@ -156,15 +156,18 @@ class GoodsReceiptResource extends Resource
                                 ->dehydrated()
                                 ->required(),
                             Forms\Components\TextInput::make('qty_ordered')
-                                ->numeric()
                                 ->disabled()
                                 ->dehydrated()
-                                ->required(),
+                                ->required()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\TextInput::make('qty_received')
                                 ->numeric()
+                                ->step(0.01)
                                 ->required(),
                             Forms\Components\TextInput::make('qty_rejected')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(0),
                             Forms\Components\TextInput::make('unit')
                                 ->disabled()
@@ -183,6 +186,7 @@ class GoodsReceiptResource extends Resource
                     Forms\Components\TextInput::make('tracking_number'),
                     Forms\Components\TextInput::make('shipping_cost')
                         ->numeric()
+                        ->step(0.01)
                         ->default(0),
                     Forms\Components\TextInput::make('received_condition')
                         ->default('good'),
@@ -247,6 +251,7 @@ class GoodsReceiptResource extends Resource
                                         ->required(),
                                     Forms\Components\TextInput::make('qty_returned')
                                         ->numeric()
+                                        ->step(0.01)
                                         ->required()
                                         ->minValue(0.01)
                                         ->rules([

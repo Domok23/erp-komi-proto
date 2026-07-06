@@ -12,17 +12,17 @@ use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptShipping;
 use App\Models\InventoryStock;
 use App\Models\InvoiceSales;
-use App\Models\InvoicePurchase;
 use App\Models\JobOrder;
+use App\Models\JobOrderMaterial;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
 use App\Models\MerchandisePlanningItem;
-use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSubconItem;
 use App\Models\PoSupplier;
 use App\Models\PoSupplierItem;
 use App\Models\ProductionOrder;
+use App\Models\ProductionOrderMaterial;
 use App\Models\Project;
 use App\Models\PurchaseShipment;
 use App\Models\QcInspection;
@@ -47,7 +47,7 @@ class DataSeeder extends Seeder
     {
         // Create companies if they don't exist
         $kei = Company::where('code', 'KEI')->first();
-        if (!$kei) {
+        if (! $kei) {
             $kei = Company::create([
                 'code' => 'KEI',
                 'name' => 'Karya Eka Indonesia',
@@ -59,7 +59,7 @@ class DataSeeder extends Seeder
         }
 
         $ktk = Company::where('code', 'KTK')->first();
-        if (!$ktk) {
+        if (! $ktk) {
             $ktk = Company::create([
                 'code' => 'KTK',
                 'name' => 'Karya Teknik Kencana',
@@ -567,7 +567,7 @@ class DataSeeder extends Seeder
 
         // 20. Seed Phase 2: Production Orders
         $merchandisingPlanning = MerchandisePlanning::where('project_id', $project->id)->first();
-        
+
         $productionOrder = ProductionOrder::create([
             'company_id' => $kei->id,
             'production_number' => CodeGenerator::generateProductionOrderNumber(),
@@ -584,7 +584,7 @@ class DataSeeder extends Seeder
         if ($merchandisingPlanning) {
             foreach ($merchandisingPlanning->items as $item) {
                 if ($item->material_id) {
-                    \App\Models\ProductionOrderMaterial::create([
+                    ProductionOrderMaterial::create([
                         'company_id' => $kei->id,
                         'production_order_id' => $productionOrder->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -637,7 +637,7 @@ class DataSeeder extends Seeder
         if ($merchandisingPlanning) {
             foreach ($merchandisingPlanning->items as $item) {
                 if ($item->material_id) {
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $kei->id,
                         'job_order_id' => $jobOrderCutting->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -646,7 +646,7 @@ class DataSeeder extends Seeder
                         'unit' => $item->unit,
                         'is_selected' => true,
                     ]);
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $kei->id,
                         'job_order_id' => $jobOrderSewing->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -655,7 +655,7 @@ class DataSeeder extends Seeder
                         'unit' => $item->unit,
                         'is_selected' => true,
                     ]);
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $kei->id,
                         'job_order_id' => $jobOrderFinishing->id,
                         'merchandising_planning_item_id' => $item->id,

@@ -16,6 +16,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class ConsumptionRatesRelationManager extends RelationManager
 {
@@ -45,18 +46,18 @@ class ConsumptionRatesRelationManager extends RelationManager
                     $set('unit', $material?->unit);
                 }),
             Forms\Components\TextInput::make('standard_rate')
-            ->numeric()
-            ->required()
-            ->label(new \Illuminate\Support\HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                ->numeric()
+                ->required()
+                ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->default('pcs')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('wastage_rate')
-            ->numeric()
-            ->default(0)
-            ->required()
-            ->label(new \Illuminate\Support\HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->numeric()
+                ->default(0)
+                ->required()
+                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Textarea::make('notes')
                 ->maxLength(65535)
@@ -69,9 +70,12 @@ class ConsumptionRatesRelationManager extends RelationManager
         return $table->columns([
             TextColumn::make('id')->sortable(),
             TextColumn::make('material.name')->sortable()->searchable(),
-            TextColumn::make('standard_rate')->sortable(),
+            TextColumn::make('standard_rate')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
             TextColumn::make('unit'),
-            TextColumn::make('wastage_rate'),
+            TextColumn::make('wastage_rate')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             TextColumn::make('notes')->limit(50),
         ])
             ->filters([])

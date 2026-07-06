@@ -3,7 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectResource\Pages;
+use App\Models\Bom;
 use App\Models\Project;
+use App\Models\RdDesign;
 use App\Services\CodeGenerator;
 use App\Services\ProjectTransitionService;
 use Filament\Actions\Action;
@@ -21,6 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class ProjectResource extends Resource
 {
@@ -77,7 +80,7 @@ class ProjectResource extends Resource
                 ->relationship('design', 'name')
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'approved'
                     ? $record->name
-                    : new \Illuminate\Support\HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
+                    : new HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
                 ->allowHtml()
                 ->searchable()
                 ->preload()
@@ -85,7 +88,7 @@ class ProjectResource extends Resource
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $design = \App\Models\RdDesign::find($state);
+                        $design = RdDesign::find($state);
                         if ($design && $design->status !== 'approved') {
                             $set('design_id', null);
                             $set('bom_id', null);
@@ -97,16 +100,17 @@ class ProjectResource extends Resource
                             };
 
                             $body = match ($design->status) {
-                                'draft' => 'Desain R&D "' . $design->name . '" masih berstatus draft dan belum disetujui.',
-                                'archived' => 'Desain R&D "' . $design->name . '" sudah diarsip.',
-                                default => 'Desain R&D "' . $design->name . '" tidak dapat digunakan (status: ' . $design->status . ').',
+                                'draft' => 'Desain R&D "'.$design->name.'" masih berstatus draft dan belum disetujui.',
+                                'archived' => 'Desain R&D "'.$design->name.'" sudah diarsip.',
+                                default => 'Desain R&D "'.$design->name.'" tidak dapat digunakan (status: '.$design->status.').',
                             };
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($title)
                                 ->body($body)
                                 ->warning()
                                 ->send();
+
                             return;
                         }
                     }
@@ -116,18 +120,18 @@ class ProjectResource extends Resource
                     function () {
                         return function (string $attribute, $value, $fail) {
                             if ($value) {
-                                $design = \App\Models\RdDesign::find($value);
+                                $design = RdDesign::find($value);
                                 if ($design && $design->status !== 'approved') {
                                     $errorMessage = match ($design->status) {
                                         'draft' => 'Desain R&D terpilih masih berstatus draft.',
                                         'archived' => 'Desain R&D terpilih sudah diarsip.',
-                                        default => 'Desain R&D terpilih tidak dapat digunakan (status: ' . $design->status . ').',
+                                        default => 'Desain R&D terpilih tidak dapat digunakan (status: '.$design->status.').',
                                     };
                                     $fail($errorMessage);
                                 }
                             }
                         };
-                    }
+                    },
                 ]),
             Forms\Components\Select::make('bom_id')
                 ->relationship('bom', 'name', function ($query, callable $get) {
@@ -135,11 +139,12 @@ class ProjectResource extends Resource
                     if ($designId) {
                         return $query->where('design_id', $designId);
                     }
+
                     return $query;
                 })
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'active'
                     ? $record->name
-                    : new \Illuminate\Support\HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
+                    : new HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
                 ->allowHtml()
                 ->searchable()
                 ->preload()
@@ -148,7 +153,7 @@ class ProjectResource extends Resource
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $bom = \App\Models\Bom::find($state);
+                        $bom = Bom::find($state);
                         if ($bom && $bom->status !== 'active') {
                             $set('bom_id', null);
 
@@ -159,12 +164,12 @@ class ProjectResource extends Resource
                             };
 
                             $body = match ($bom->status) {
-                                'draft' => 'BOM "' . $bom->name . '" masih berstatus draft dan belum aktif.',
-                                'archived', 'discontinued' => 'BOM "' . $bom->name . '" sudah tidak digunakan lagi (discontinued).',
-                                default => 'BOM "' . $bom->name . '" tidak dapat digunakan (status: ' . $bom->status . ').',
+                                'draft' => 'BOM "'.$bom->name.'" masih berstatus draft dan belum aktif.',
+                                'archived', 'discontinued' => 'BOM "'.$bom->name.'" sudah tidak digunakan lagi (discontinued).',
+                                default => 'BOM "'.$bom->name.'" tidak dapat digunakan (status: '.$bom->status.').',
                             };
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($title)
                                 ->body($body)
                                 ->warning()
@@ -176,28 +181,28 @@ class ProjectResource extends Resource
                     function () {
                         return function (string $attribute, $value, $fail) {
                             if ($value) {
-                                $bom = \App\Models\Bom::find($value);
+                                $bom = Bom::find($value);
                                 if ($bom && $bom->status !== 'active') {
                                     $errorMessage = match ($bom->status) {
                                         'draft' => 'BOM terpilih masih berstatus draft.',
                                         'archived', 'discontinued' => 'BOM terpilih sudah discontinue.',
-                                        default => 'BOM terpilih tidak dapat digunakan (status: ' . $bom->status . ').',
+                                        default => 'BOM terpilih tidak dapat digunakan (status: '.$bom->status.').',
                                     };
                                     $fail($errorMessage);
                                 }
                             }
                         };
-                    }
+                    },
                 ]),
             Forms\Components\Select::make('reference_project_id')
-                ->label(new \Illuminate\Support\HtmlString('Reference Project <span title="Proyek asal (referensi) yang otomatis terisi ketika proyek sampel/massal dibuat melalui approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Reference Project <span title="Proyek asal (referensi) yang otomatis terisi ketika proyek sampel/massal dibuat melalui approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->relationship('referenceProject', 'project_code')
-                ->getOptionLabelFromRecordUsing(fn ($record) => new \Illuminate\Support\HtmlString('
+                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('
                     <style>
                         .ref-project-link { color: inherit; text-decoration: none; pointer-events: auto !important; cursor: pointer; }
                         .ref-project-link:hover { text-decoration: underline !important; }
                     </style>
-                    <a href="' . self::getUrl('edit', ['record' => $record->id]) . '" class="ref-project-link">' . $record->project_code . '</a>
+                    <a href="'.self::getUrl('edit', ['record' => $record->id]).'" class="ref-project-link">'.$record->project_code.'</a>
                 '))
                 ->allowHtml()
                 ->searchable()

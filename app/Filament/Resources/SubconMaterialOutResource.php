@@ -95,6 +95,7 @@ class SubconMaterialOutResource extends Resource
                                 }),
                             Forms\Components\TextInput::make('qty_sent')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(1)
                                 ->required()
                                 ->minValue(0.01)
