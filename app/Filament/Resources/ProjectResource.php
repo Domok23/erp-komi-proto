@@ -153,12 +153,16 @@ class ProjectResource extends Resource
                         ->preload()
                         ->nullable()
                         ->disabled(fn (callable $get) => empty($get('design_id')))
-                        ->reactive()
+                        ->live()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            self::loadBomItems($state, $set);
+                        })
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $bom = Bom::find($state);
                                 if ($bom && $bom->status !== 'active') {
                                     $set('bom_id', null);
+                                    $set('bom_items', []);
 
                                     $title = match ($bom->status) {
                                         'draft' => 'BOM Masih Draft',
@@ -177,7 +181,11 @@ class ProjectResource extends Resource
                                         ->body($body)
                                         ->warning()
                                         ->send();
+                                } else {
+                                    self::loadBomItems($state, $set);
                                 }
+                            } else {
+                                $set('bom_items', []);
                             }
                         })
                         ->rules([
@@ -197,6 +205,41 @@ class ProjectResource extends Resource
                                 };
                             },
                         ]),
+                    Forms\Components\Placeholder::make('no_bom_items')
+                        ->label('BOM Items')
+                        ->content('Select a BOM to view its items')
+                        ->visible(fn (callable $get) => ! $get('bom_id'))
+                        ->columnSpanFull(),
+                    Forms\Components\Repeater::make('bom_items')
+                        ->label('BOM Items')
+                        ->dehydrated(false)
+                        ->schema([
+                            Forms\Components\TextInput::make('material_name')
+                                ->label('Material Name')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('category')
+                                ->label('Category')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('quantity_per_unit')
+                                ->label('Quantity Per Unit')
+                                ->disabled()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 4, '.', ',') : $state),
+                            Forms\Components\TextInput::make('unit')
+                                ->label('Unit')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('wastage_percent')
+                                ->label('Wastage (%)')
+                                ->disabled()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state),
+                        ])
+                        ->columns(5)
+                        ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)
+                        ->reorderable(false)
+                        ->addable(false)
+                        ->deletable(false)
+                        ->default([])
+                        ->visible(fn (callable $get) => $get('bom_id'))
+                        ->columnSpanFull(),
                     Forms\Components\Select::make('reference_project_id')
                         ->label(new HtmlString('Reference Project <span title="Proyek asal (referensi) yang otomatis terisi ketika proyek sampel/massal dibuat melalui approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->relationship('referenceProject', 'project_code')
@@ -338,5 +381,27 @@ class ProjectResource extends Resource
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
         ];
+    }
+
+    public static function loadBomItems($state, callable $set): void
+    {
+        if ($state) {
+            $bom = Bom::with('items.material')->find($state);
+            if ($bom) {
+                $items = [];
+                foreach ($bom->items as $item) {
+                    $items[] = [
+                        'material_name' => $item->material?->name ?? 'N/A',
+                        'category' => $item->category,
+                        'quantity_per_unit' => $item->quantity_per_unit,
+                        'unit' => $item->unit,
+                        'wastage_percent' => $item->wastage_percent,
+                    ];
+                }
+                $set('bom_items', $items);
+                return;
+            }
+        }
+        $set('bom_items', []);
     }
 }
