@@ -51,7 +51,7 @@ class GeneralLedgerForm
                             ->step(0.01)
                             ->required()
                             ->prefix('IDR')
-                            ->reactive()
+                            ->live(onBlur: true)
                             ->afterStateUpdated(function ($state, callable $set) {
                                 $set('credit_amount', $state);
                             })

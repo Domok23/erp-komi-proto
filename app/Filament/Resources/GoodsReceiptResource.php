@@ -214,7 +214,7 @@ class GoodsReceiptResource extends Resource
 
                                     return CodeGenerator::generateGRReturNumber($excludeNumbers);
                                 })
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->dehydrated()
                                 ->required(),
                             Forms\Components\Select::make('status')

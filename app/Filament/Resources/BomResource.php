@@ -86,7 +86,7 @@ class BomResource extends Resource
                         ->default('1.0')
                         ->required()
                         ->maxLength(20)
-                        ->reactive()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(function ($state, callable $set, Get $get) {
                             $designId = $get('design_id');
                             $set('bom_number', $designId ? CodeGenerator::generateBOMNumber((int) $designId, $state) : '');
