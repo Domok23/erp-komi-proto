@@ -37,35 +37,42 @@ class PoSubconResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('po_number')
-                ->default(fn () => CodeGenerator::generatePOSubconNo())
-                ->disabled()
-                ->dehydrated()
-                ->required(),
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'project_code')
-                ->searchable()
-                ->preload()
-                ->nullable(),
-            Forms\Components\Select::make('subcon_id')
-                ->relationship('subcon', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('po_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\DatePicker::make('delivery_date'),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'ordered' => 'Ordered',
-                    'partial' => 'Partial',
-                    'received' => 'Received',
-                    'cancelled' => 'Cancelled',
+            Section::make('PO Subcon Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('po_number')
+                        ->default(fn () => CodeGenerator::generatePOSubconNo())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'project_code')
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
+                    Forms\Components\Select::make('subcon_id')
+                        ->relationship('subcon', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('po_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'ordered' => 'Ordered',
+                            'partial' => 'Partial',
+                            'received' => 'Received',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
+                ->columns(2),
 
             Section::make('Subcon Costs')
                 ->columnSpanFull()
@@ -102,9 +109,6 @@ class PoSubconResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
-
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
 
             Section::make('PO Items')
                 ->columnSpanFull()

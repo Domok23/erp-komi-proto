@@ -14,6 +14,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -32,61 +33,66 @@ class PaymentResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('payment_number')
-                ->default(fn () => CodeGenerator::generatePaymentNumber('sales'))
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('invoice_type')
-                ->options([
-                    'purchase' => 'Purchase Invoice',
-                    'sales' => 'Sales Invoice',
-                ])
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $set('payment_number', CodeGenerator::generatePaymentNumber($state));
-                    }
-                    $set('invoice_id', null);
-                }),
-            Forms\Components\Select::make('invoice_id')
-                ->label('Invoice')
-                ->options(function (callable $get) {
-                    $type = $get('invoice_type');
-                    if ($type === 'purchase') {
-                        return InvoicePurchase::pluck('invoice_number', 'id');
-                    } elseif ($type === 'sales') {
-                        return InvoiceSales::pluck('invoice_number', 'id');
-                    }
+            Section::make('Payment Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('payment_number')
+                        ->default(fn () => CodeGenerator::generatePaymentNumber('sales'))
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('invoice_type')
+                        ->options([
+                            'purchase' => 'Purchase Invoice',
+                            'sales' => 'Sales Invoice',
+                        ])
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state) {
+                                $set('payment_number', CodeGenerator::generatePaymentNumber($state));
+                            }
+                            $set('invoice_id', null);
+                        }),
+                    Forms\Components\Select::make('invoice_id')
+                        ->label('Invoice')
+                        ->options(function (callable $get) {
+                            $type = $get('invoice_type');
+                            if ($type === 'purchase') {
+                                return InvoicePurchase::pluck('invoice_number', 'id');
+                            } elseif ($type === 'sales') {
+                                return InvoiceSales::pluck('invoice_number', 'id');
+                            }
 
-                    return [];
-                })
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('payment_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\TextInput::make('amount')
-                ->numeric()
-                ->step(0.01)
-                ->required()
-                ->prefix('IDR'),
-            Forms\Components\Select::make('payment_method')
-                ->options([
-                    'bank_transfer' => 'Bank Transfer',
-                    'cash' => 'Cash',
-                    'check' => 'Check',
-                    'credit' => 'Credit',
+                            return [];
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('payment_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\TextInput::make('amount')
+                        ->numeric()
+                        ->step(0.01)
+                        ->required()
+                        ->prefix('IDR'),
+                    Forms\Components\Select::make('payment_method')
+                        ->options([
+                            'bank_transfer' => 'Bank Transfer',
+                            'cash' => 'Cash',
+                            'check' => 'Check',
+                            'credit' => 'Credit',
+                        ])
+                        ->default('bank_transfer')
+                        ->required(),
+                    Forms\Components\TextInput::make('reference_number')
+                        ->maxLength(100),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('bank_transfer')
-                ->required(),
-            Forms\Components\TextInput::make('reference_number')
-                ->maxLength(100),
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
+                ->columns(2),
         ]);
     }
 

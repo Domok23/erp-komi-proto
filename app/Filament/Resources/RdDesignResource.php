@@ -32,46 +32,52 @@ class RdDesignResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('code')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(50),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\Select::make('bag_type')
-                ->options([
-                    'handbag' => 'Handbag',
-                    'sports_bag' => 'Sports Bag',
-                    'backpack' => 'Backpack',
-                    'messenger' => 'Messenger Bag',
-                    'tote' => 'Tote Bag',
-                    'other' => 'Other',
+            Section::make('Design Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\Select::make('bag_type')
+                        ->options([
+                            'handbag' => 'Handbag',
+                            'sports_bag' => 'Sports Bag',
+                            'backpack' => 'Backpack',
+                            'messenger' => 'Messenger Bag',
+                            'tote' => 'Tote Bag',
+                            'other' => 'Other',
+                        ])
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'approved' => 'Approved',
+                            'archived' => 'Archived',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\TextInput::make('brand')
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('size_range')
+                        ->maxLength(255),
+                    Forms\Components\FileUpload::make('reference_image')
+                        ->directory('designs')
+                        ->image(),
+                    Forms\Components\FileUpload::make('tech_pack')
+                        ->directory('techpacks'),
+                    Forms\Components\Textarea::make('description')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'approved' => 'Approved',
-                    'archived' => 'Archived',
-                ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\TextInput::make('brand')
-                ->maxLength(255),
-            Forms\Components\TextInput::make('size_range')
-                ->maxLength(255),
-            Forms\Components\FileUpload::make('reference_image')
-                ->directory('designs')
-                ->image(),
-            Forms\Components\FileUpload::make('tech_pack')
-                ->directory('techpacks'),
-            Forms\Components\Textarea::make('description')
-                ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
+
             Section::make('Cost Estimations (Read-Only)')
                 ->columnSpanFull()
                 ->schema([

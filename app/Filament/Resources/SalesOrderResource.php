@@ -38,59 +38,67 @@ class SalesOrderResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('so_number')
-                ->default(fn () => CodeGenerator::generateSONumber())
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'project_code')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if (! $state) {
-                        return;
-                    }
-                    $project = Project::find($state, ['*']);
-                    if ($project) {
-                        $set('customer_id', $project->customer_id);
-                    }
-                }),
-            Forms\Components\Select::make('costing_id')
-                ->relationship('costing', 'version')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $costing = Costing::find($state, ['*']);
-                    if ($costing) {
-                        $set('unit_price', $costing->selling_price);
-                    }
-                }),
-            Forms\Components\Select::make('customer_id')
-                ->relationship('customer', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('order_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\DatePicker::make('delivery_date'),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'confirmed' => 'Confirmed',
-                    'in_production' => 'In Production',
-                    'shipped' => 'Shipped',
-                    'delivered' => 'Delivered',
-                    'cancelled' => 'Cancelled',
+            Section::make('Sales Order Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('so_number')
+                        ->default(fn () => CodeGenerator::generateSONumber())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'project_code')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if (! $state) {
+                                return;
+                            }
+                            $project = Project::find($state, ['*']);
+                            if ($project) {
+                                $set('customer_id', $project->customer_id);
+                            }
+                        }),
+                    Forms\Components\Select::make('costing_id')
+                        ->relationship('costing', 'version')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $costing = Costing::find($state, ['*']);
+                            if ($costing) {
+                                $set('unit_price', $costing->selling_price);
+                            }
+                        }),
+                    Forms\Components\Select::make('customer_id')
+                        ->relationship('customer', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('order_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'confirmed' => 'Confirmed',
+                            'in_production' => 'In Production',
+                            'shipped' => 'Shipped',
+                            'delivered' => 'Delivered',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
+                ->columns(2),
 
             Section::make('Quantities & Unit Cost')
                 ->columnSpanFull()
@@ -173,10 +181,6 @@ class SalesOrderResource extends Resource
                         ->default('IDR')
                         ->maxLength(10),
                 ])->columns(2),
-
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
 
             Section::make('Sales Order Items')
                 ->columnSpanFull()

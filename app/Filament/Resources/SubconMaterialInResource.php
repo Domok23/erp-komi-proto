@@ -35,102 +35,107 @@ class SubconMaterialInResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('document_number')
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('po_subcon_id')
-                ->relationship('poSubcon', 'po_number')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $po = $state ? PoSubcon::find($state, ['*']) : null;
-                    if ($po) {
-                        $set('subcon_id', $po->subcon_id);
-                    } else {
-                        $set('subcon_id', null);
-                    }
-                    $set('subcon_material_out_id', null);
-                    $set('items', []);
-                }),
-            Forms\Components\Select::make('subcon_material_out_id')
-                ->relationship('subconMaterialOut', 'document_number', function ($query, callable $get) {
-                    $poId = $get('po_subcon_id');
-                    if ($poId) {
-                        return $query->where('po_subcon_id', $poId);
-                    }
-
-                    return $query;
-                })
-                ->label('Reference Material Out')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if (! $state) {
-                        $set('items', []);
-
-                        return;
-                    }
-                    $out = SubconMaterialOut::with('items')->find($state);
-                    if ($out) {
-                        $set('subcon_id', $out->subcon_id);
-                        $set('po_subcon_id', $out->po_subcon_id);
-
-                        $items = [];
-
-                        // 1. Load Processed Goods / Services from PoSubcon
-                        if ($out->po_subcon_id) {
-                            $po = PoSubcon::with('items')->find($out->po_subcon_id);
+            Section::make('Document Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('document_number')
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('po_subcon_id')
+                        ->relationship('poSubcon', 'po_number')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $po = $state ? PoSubcon::find($state, ['*']) : null;
                             if ($po) {
-                                foreach ($po->items as $poItem) {
+                                $set('subcon_id', $po->subcon_id);
+                            } else {
+                                $set('subcon_id', null);
+                            }
+                            $set('subcon_material_out_id', null);
+                            $set('items', []);
+                        }),
+                    Forms\Components\Select::make('subcon_material_out_id')
+                        ->relationship('subconMaterialOut', 'document_number', function ($query, callable $get) {
+                            $poId = $get('po_subcon_id');
+                            if ($poId) {
+                                return $query->where('po_subcon_id', $poId);
+                            }
+
+                            return $query;
+                        })
+                        ->label('Reference Material Out')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if (! $state) {
+                                $set('items', []);
+
+                                return;
+                            }
+                            $out = SubconMaterialOut::with('items')->find($state);
+                            if ($out) {
+                                $set('subcon_id', $out->subcon_id);
+                                $set('po_subcon_id', $out->po_subcon_id);
+
+                                $items = [];
+
+                                // 1. Load Processed Goods / Services from PoSubcon
+                                if ($out->po_subcon_id) {
+                                    $po = PoSubcon::with('items')->find($out->po_subcon_id);
+                                    if ($po) {
+                                        foreach ($po->items as $poItem) {
+                                            $items[] = [
+                                                'item_type' => 'processed',
+                                                'material_id' => null,
+                                                'description' => $poItem->description,
+                                                'qty_received' => $poItem->qty,
+                                                'qty_rejected' => 0.00,
+                                                'unit' => 'pcs',
+                                            ];
+                                        }
+                                    }
+                                }
+
+                                // 2. Load Raw Materials from SubconMaterialOut
+                                foreach ($out->items as $outItem) {
                                     $items[] = [
-                                        'item_type' => 'processed',
-                                        'material_id' => null,
-                                        'description' => $poItem->description,
-                                        'qty_received' => $poItem->qty,
+                                        'item_type' => 'raw_return',
+                                        'material_id' => $outItem->material_id,
+                                        'description' => null,
+                                        'qty_received' => 0.00,
                                         'qty_rejected' => 0.00,
-                                        'unit' => 'pcs',
+                                        'unit' => $outItem->unit,
                                     ];
                                 }
+
+                                $set('items', $items);
                             }
-                        }
-
-                        // 2. Load Raw Materials from SubconMaterialOut
-                        foreach ($out->items as $outItem) {
-                            $items[] = [
-                                'item_type' => 'raw_return',
-                                'material_id' => $outItem->material_id,
-                                'description' => null,
-                                'qty_received' => 0.00,
-                                'qty_rejected' => 0.00,
-                                'unit' => $outItem->unit,
-                            ];
-                        }
-
-                        $set('items', $items);
-                    }
-                }),
-            Forms\Components\Select::make('subcon_id')
-                ->relationship('subcon', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('receive_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'received' => 'Received',
-                    'verified' => 'Verified',
+                        }),
+                    Forms\Components\Select::make('subcon_id')
+                        ->relationship('subcon', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('receive_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'received' => 'Received',
+                            'verified' => 'Verified',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
+                ->columns(2),
 
             Section::make('Received Materials')
                 ->columnSpanFull()

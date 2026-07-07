@@ -20,73 +20,78 @@ class StockTransferForm
     {
         return $schema
             ->components([
-                TextInput::make('transfer_number')
-                    ->default(fn () => CodeGenerator::generateTransferNumber())
-                    ->disabled()
-                    ->dehydrated()
-                    ->required()
-                    ->maxLength(50),
-                DatePicker::make('transfer_date')
-                    ->default(now()->toDateString())
-                    ->required(),
-                Select::make('from_company_id')
-                    ->label('From Company')
-                    ->relationship('fromCompany', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('from_warehouse_id', null)),
-                Select::make('from_warehouse_id')
-                    ->label('From Warehouse')
-                    ->options(function (callable $get) {
-                        $companyId = $get('from_company_id');
-                        if (! $companyId) {
-                            return [];
-                        }
+                Section::make('Transfer Details')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('transfer_number')
+                            ->default(fn () => CodeGenerator::generateTransferNumber())
+                            ->disabled()
+                            ->dehydrated()
+                            ->required()
+                            ->maxLength(50),
+                        DatePicker::make('transfer_date')
+                            ->default(now()->toDateString())
+                            ->required(),
+                        Select::make('from_company_id')
+                            ->label('From Company')
+                            ->relationship('fromCompany', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn (callable $set) => $set('from_warehouse_id', null)),
+                        Select::make('from_warehouse_id')
+                            ->label('From Warehouse')
+                            ->options(function (callable $get) {
+                                $companyId = $get('from_company_id');
+                                if (! $companyId) {
+                                    return [];
+                                }
 
-                        return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
-                    })
-                    ->searchable()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('items', [])),
-                Select::make('to_company_id')
-                    ->label('To Company')
-                    ->relationship('toCompany', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('to_warehouse_id', null)),
-                Select::make('to_warehouse_id')
-                    ->label('To Warehouse')
-                    ->options(function (callable $get) {
-                        $companyId = $get('to_company_id');
-                        if (! $companyId) {
-                            return [];
-                        }
+                                return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn (callable $set) => $set('items', [])),
+                        Select::make('to_company_id')
+                            ->label('To Company')
+                            ->relationship('toCompany', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn (callable $set) => $set('to_warehouse_id', null)),
+                        Select::make('to_warehouse_id')
+                            ->label('To Warehouse')
+                            ->options(function (callable $get) {
+                                $companyId = $get('to_company_id');
+                                if (! $companyId) {
+                                    return [];
+                                }
 
-                        return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
-                    })
-                    ->searchable()
-                    ->required()
-                    ->different('from_warehouse_id')
-                    ->validationMessages([
-                        'different' => 'Destination warehouse must be different from source warehouse.',
-                    ]),
-                Select::make('status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'pending' => 'Pending Approval',
-                        'shipped' => 'Shipped (Stock Deducted)',
-                        'received' => 'Received (Stock Added)',
-                        'cancelled' => 'Cancelled',
+                                return Warehouse::withoutGlobalScope('company')->where('company_id', $companyId)->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->required()
+                            ->different('from_warehouse_id')
+                            ->validationMessages([
+                                'different' => 'Destination warehouse must be different from source warehouse.',
+                            ]),
+                        Select::make('status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'pending' => 'Pending Approval',
+                                'shipped' => 'Shipped (Stock Deducted)',
+                                'received' => 'Received (Stock Added)',
+                                'cancelled' => 'Cancelled',
+                            ])
+                            ->default('draft')
+                            ->required(),
+                        Textarea::make('notes')
+                            ->columnSpanFull(),
                     ])
-                    ->default('draft')
-                    ->required(),
-                Textarea::make('notes')
-                    ->columnSpanFull(),
+                    ->columns(2),
 
                 Section::make('Transfer Items')
                     ->columnSpanFull()

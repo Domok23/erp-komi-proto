@@ -18,6 +18,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -37,65 +38,70 @@ class InventoryMovementResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('type')
-                ->options([
-                    'purchase' => 'Purchase',
-                    'production_in' => 'Production In',
-                    'production_out' => 'Production Out',
-                    'adjustment' => 'Adjustment',
-                    'shipment' => 'Shipment',
-                    'return_in' => 'Return In',
-                    'return_out' => 'Return Out',
-                    'transfer_in' => 'Transfer In',
-                    'transfer_out' => 'Transfer Out',
-                ])
-                ->required(),
-            Forms\Components\Select::make('inventory_stock_id')
-                ->label(new HtmlString('Inventory Stock <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->relationship('inventoryStock', 'id')
-                ->disabled()
-                ->dehydrated()
-                ->nullable(),
-            Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
+            Section::make('Movement Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('type')
+                        ->options([
+                            'purchase' => 'Purchase',
+                            'production_in' => 'Production In',
+                            'production_out' => 'Production Out',
+                            'adjustment' => 'Adjustment',
+                            'shipment' => 'Shipment',
+                            'return_in' => 'Return In',
+                            'return_out' => 'Return Out',
+                            'transfer_in' => 'Transfer In',
+                            'transfer_out' => 'Transfer Out',
+                        ])
+                        ->required(),
+                    Forms\Components\Select::make('inventory_stock_id')
+                        ->label(new HtmlString('Inventory Stock <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->relationship('inventoryStock', 'id')
+                        ->disabled()
+                        ->dehydrated()
+                        ->nullable(),
+                    Forms\Components\Select::make('material_id')
+                        ->relationship('material', 'name')
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $companyId = CompanyContext::getCompanyId();
+                            $stock = InventoryStock::where('material_id', $record->id)
+                                ->where('company_id', $companyId)
+                                ->sum('quantity');
 
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\TextInput::make('quantity')
-                ->numeric()
-                ->step(0.01)
-                ->minValue(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('before_qty')
-                ->label(new HtmlString('Before Qty <span title="Jumlah stok fisik barang di gudang sesaat sebelum transaksi ini diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->disabled()
-                ->dehydrated()
-                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-            Forms\Components\TextInput::make('after_qty')
-                ->label(new HtmlString('After Qty <span title="Jumlah stok fisik barang di gudang setelah transaksi ini selesai diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->disabled()
-                ->dehydrated()
-                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-            Forms\Components\TextInput::make('reference_type')
-                ->label(new HtmlString('Reference Type <span title="Nama modul/dokumen asal yang memicu terjadinya pergerakan stok ini" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->maxLength(100),
-            Forms\Components\TextInput::make('reference_id')
-                ->label(new HtmlString('Reference ID <span title="Nomor ID dari dokumen pemicu yang tercatat di Reference Type" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                ->numeric(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\TextInput::make('quantity')
+                        ->numeric()
+                        ->step(0.01)
+                        ->minValue(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('before_qty')
+                        ->label(new HtmlString('Before Qty <span title="Jumlah stok fisik barang di gudang sesaat sebelum transaksi ini diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->disabled()
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                    Forms\Components\TextInput::make('after_qty')
+                        ->label(new HtmlString('After Qty <span title="Jumlah stok fisik barang di gudang setelah transaksi ini selesai diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->disabled()
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                    Forms\Components\TextInput::make('reference_type')
+                        ->label(new HtmlString('Reference Type <span title="Nama modul/dokumen asal yang memicu terjadinya pergerakan stok ini" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->maxLength(100),
+                    Forms\Components\TextInput::make('reference_id')
+                        ->label(new HtmlString('Reference ID <span title="Nomor ID dari dokumen pemicu yang tercatat di Reference Type" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->numeric(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
         ]);
     }
 

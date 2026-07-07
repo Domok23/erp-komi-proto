@@ -10,6 +10,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -28,46 +29,51 @@ class MaterialLeftoverResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('job_order_id')
-                ->relationship('jobOrder', 'job_order_number')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('leftover_date')
-                ->native(false)
-                ->default(now())
-                ->required(),
-            Forms\Components\TextInput::make('qty')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('unit')
-                ->default('pcs'),
-            Forms\Components\Select::make('condition')
-                ->options([
-                    'usable' => 'Usable',
-                    'damaged' => 'Damaged',
-                    'scrap' => 'Scrap',
+            Section::make('Leftover Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('job_order_id')
+                        ->relationship('jobOrder', 'job_order_number')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\Select::make('material_id')
+                        ->relationship('material', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('leftover_date')
+                        ->native(false)
+                        ->default(now())
+                        ->required(),
+                    Forms\Components\TextInput::make('qty')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('unit')
+                        ->default('pcs'),
+                    Forms\Components\Select::make('condition')
+                        ->options([
+                            'usable' => 'Usable',
+                            'damaged' => 'Damaged',
+                            'scrap' => 'Scrap',
+                        ])
+                        ->default('usable')
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'available' => 'Available',
+                            'reserved' => 'Reserved',
+                            'disposed' => 'Disposed',
+                        ])
+                        ->default('available')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('usable')
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'available' => 'Available',
-                    'reserved' => 'Reserved',
-                    'disposed' => 'Disposed',
-                ])
-                ->default('available')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
         ]);
     }
 

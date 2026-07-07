@@ -12,6 +12,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -30,52 +31,57 @@ class MaterialResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('code')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(50),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\Select::make('category')
-                ->options([
-                    'fabric' => 'Fabric',
-                    'zipper' => 'Zipper',
-                    'button' => 'Button',
-                    'thread' => 'Thread',
-                    'handle' => 'Handle',
-                    'label' => 'Label',
-                    'interlining' => 'Interlining',
-                    'semi_finished' => 'Semi-Finished Product',
-                    'finished' => 'Finished Product',
-                    'other' => 'Other',
+            Section::make('Material Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\Select::make('category')
+                        ->options([
+                            'fabric' => 'Fabric',
+                            'zipper' => 'Zipper',
+                            'button' => 'Button',
+                            'thread' => 'Thread',
+                            'handle' => 'Handle',
+                            'label' => 'Label',
+                            'interlining' => 'Interlining',
+                            'semi_finished' => 'Semi-Finished Product',
+                            'finished' => 'Finished Product',
+                            'other' => 'Other',
+                        ])
+                        ->required(),
+                    Forms\Components\TextInput::make('unit')
+                        ->default('pcs')
+                        ->maxLength(20),
+                    Forms\Components\TextInput::make('stock')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0),
+                    Forms\Components\TextInput::make('min_stock')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0),
+                    Forms\Components\TextInput::make('price')
+                        ->numeric()
+                        ->step(0.01)
+                        ->prefix('$')
+                        ->default(0),
+                    Forms\Components\Select::make('supplier_id')
+                        ->relationship('supplier', 'name')
+                        ->searchable()
+                        ->preload(),
+                    Forms\Components\Textarea::make('description')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                    Forms\Components\Toggle::make('is_active')
+                        ->default(true),
                 ])
-                ->required(),
-            Forms\Components\TextInput::make('unit')
-                ->default('pcs')
-                ->maxLength(20),
-            Forms\Components\TextInput::make('stock')
-                ->numeric()
-                ->step(0.01)
-                ->default(0),
-            Forms\Components\TextInput::make('min_stock')
-                ->numeric()
-                ->step(0.01)
-                ->default(0),
-            Forms\Components\TextInput::make('price')
-                ->numeric()
-                ->step(0.01)
-                ->prefix('$')
-                ->default(0),
-            Forms\Components\Select::make('supplier_id')
-                ->relationship('supplier', 'name')
-                ->searchable()
-                ->preload(),
-            Forms\Components\Textarea::make('description')
-                ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\Toggle::make('is_active')
-                ->default(true),
+                ->columns(2),
         ]);
     }
 

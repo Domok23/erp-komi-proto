@@ -33,64 +33,70 @@ class PurchaseShipmentResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('shipment_number')
-                ->default(fn () => CodeGenerator::generatePurchaseShipmentNo())
-                ->disabled()
-                ->dehydrated()
-                ->required(),
+            Section::make('Shipment Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('shipment_number')
+                        ->default(fn () => CodeGenerator::generatePurchaseShipmentNo())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    Forms\Components\Select::make('po_type')
+                        ->options([
+                            'supplier' => 'Supplier PO',
+                            'subcon' => 'Subcon PO',
+                        ])
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(fn (callable $set) => $set('po_id', null)),
+                    Forms\Components\Select::make('po_id')
+                        ->label('Purchase Order')
+                        ->options(function (callable $get) {
+                            $type = $get('po_type');
+                            if ($type === 'supplier') {
+                                return PoSupplier::pluck('po_number', 'id');
+                            } elseif ($type === 'subcon') {
+                                return PoSubcon::pluck('po_number', 'id');
+                            }
 
-            Forms\Components\Select::make('po_type')
-                ->options([
-                    'supplier' => 'Supplier PO',
-                    'subcon' => 'Subcon PO',
+                            return [];
+                        })
+                        ->required()
+                        ->reactive(),
+                    Forms\Components\DatePicker::make('shipment_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'shipped' => 'Shipped',
+                            'in_transit' => 'In Transit',
+                            'customs' => 'Customs Clearance',
+                            'arrived' => 'Arrived',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Select::make('shipping_method')
+                        ->options([
+                            'sea' => 'Sea',
+                            'air' => 'Air',
+                            'land' => 'Land',
+                            'courier' => 'Courier',
+                        ]),
+                    Forms\Components\TextInput::make('carrier')
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('tracking_number')
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('container_number')
+                        ->maxLength(100),
+                    Forms\Components\TextInput::make('bl_number')
+                        ->label('BL Number')
+                        ->maxLength(100),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(fn (callable $set) => $set('po_id', null)),
-            Forms\Components\Select::make('po_id')
-                ->label('Purchase Order')
-                ->options(function (callable $get) {
-                    $type = $get('po_type');
-                    if ($type === 'supplier') {
-                        return PoSupplier::pluck('po_number', 'id');
-                    } elseif ($type === 'subcon') {
-                        return PoSubcon::pluck('po_number', 'id');
-                    }
-
-                    return [];
-                })
-                ->required()
-                ->reactive(),
-            Forms\Components\DatePicker::make('shipment_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'shipped' => 'Shipped',
-                    'in_transit' => 'In Transit',
-                    'customs' => 'Customs Clearance',
-                    'arrived' => 'Arrived',
-                    'cancelled' => 'Cancelled',
-                ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\Select::make('shipping_method')
-                ->options([
-                    'sea' => 'Sea',
-                    'air' => 'Air',
-                    'land' => 'Land',
-                    'courier' => 'Courier',
-                ]),
-            Forms\Components\TextInput::make('carrier')
-                ->maxLength(255),
-            Forms\Components\TextInput::make('tracking_number')
-                ->maxLength(255),
-            Forms\Components\TextInput::make('container_number')
-                ->maxLength(100),
-            Forms\Components\TextInput::make('bl_number')
-                ->label('BL Number')
-                ->maxLength(100),
+                ->columns(2),
 
             Section::make('Schedule & Cost')
                 ->columnSpanFull()
@@ -124,9 +130,6 @@ class PurchaseShipmentResource extends Resource
                         ->prefix('IDR')
                         ->minValue(0),
                 ])->columns(3),
-
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
         ]);
     }
 

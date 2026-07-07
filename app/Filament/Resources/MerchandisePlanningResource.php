@@ -43,74 +43,82 @@ class MerchandisePlanningResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'name')
-                ->allowHtml()
-                ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} <span class='project-code-prefix'>[{$record->project_code}]</span>")
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if (! $state) {
-                        $set('design_id', null);
-                        $set('items', []);
-                        $set('total_material_cost', number_format(0, 2, '.', ','));
-                        $set('total_subcon_cost', number_format(0, 2, '.', ','));
+            Section::make('Planning Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'name')
+                        ->allowHtml()
+                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} <span class='project-code-prefix'>[{$record->project_code}]</span>")
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if (! $state) {
+                                $set('design_id', null);
+                                $set('items', []);
+                                $set('total_material_cost', number_format(0, 2, '.', ','));
+                                $set('total_subcon_cost', number_format(0, 2, '.', ','));
 
-                        return;
-                    }
-                    $project = Project::find($state, ['*']);
-                    if ($project) {
-                        $set('design_id', $project->design_id);
+                                return;
+                            }
+                            $project = Project::find($state, ['*']);
+                            if ($project) {
+                                $set('design_id', $project->design_id);
 
-                        // Auto-fill planning items from Project's BOM if available
-                        if ($project->bom) {
-                            $items = $project->bom->items->map(function ($bomItem) use ($project) {
-                                $unitPrice = $bomItem->material?->price ?? 0;
-                                $targetQty = max(1, (int) ($project->target_qty ?? 1));
-                                $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
-                                $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
+                                // Auto-fill planning items from Project's BOM if available
+                                if ($project->bom) {
+                                    $items = $project->bom->items->map(function ($bomItem) use ($project) {
+                                        $unitPrice = $bomItem->material?->price ?? 0;
+                                        $targetQty = max(1, (int) ($project->target_qty ?? 1));
+                                        $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
+                                        $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
 
-                                return [
-                                    'material_id' => $bomItem->material_id,
-                                    'supplier_id' => $bomItem->material?->supplier_id,
-                                    'planned_qty' => $plannedQty,
-                                    'unit' => $bomItem->unit,
-                                    'unit_price' => number_format($unitPrice, 2, '.', ','),
-                                    'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
-                                    'is_subcon' => false,
-                                    'notes' => $bomItem->notes,
-                                    'is_from_rnd' => $bomItem->is_from_rnd ?? true,
-                                ];
-                            })->toArray();
+                                        return [
+                                            'material_id' => $bomItem->material_id,
+                                            'supplier_id' => $bomItem->material?->supplier_id,
+                                            'planned_qty' => $plannedQty,
+                                            'unit' => $bomItem->unit,
+                                            'unit_price' => number_format($unitPrice, 2, '.', ','),
+                                            'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
+                                            'is_subcon' => false,
+                                            'notes' => $bomItem->notes,
+                                            'is_from_rnd' => $bomItem->is_from_rnd ?? true,
+                                        ];
+                                    })->toArray();
 
-                            $set('items', $items);
+                                    $set('items', $items);
 
-                            // Calculate total planning costs
-                            $totalMat = array_sum(array_map(fn ($i) => floatval(str_replace(',', '', $i['total_price'])), $items));
-                            $set('total_material_cost', number_format($totalMat, 2, '.', ','));
-                            $set('total_subcon_cost', number_format(0, 2, '.', ','));
-                        }
-                    }
-                }),
-            Forms\Components\Select::make('design_id')
-                ->relationship('design', 'name')
-                ->disabled()
-                ->dehydrated()
-                ->required(),
-            Forms\Components\DatePicker::make('planning_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'preliminary' => 'Preliminary',
-                    'tech_pack' => 'Tech Pack',
-                    'finalised' => 'Finalised',
-                    'cancelled' => 'Cancelled',
+                                    // Calculate total planning costs
+                                    $totalMat = array_sum(array_map(fn ($i) => floatval(str_replace(',', '', $i['total_price'])), $items));
+                                    $set('total_material_cost', number_format($totalMat, 2, '.', ','));
+                                    $set('total_subcon_cost', number_format(0, 2, '.', ','));
+                                }
+                            }
+                        }),
+                    Forms\Components\Select::make('design_id')
+                        ->relationship('design', 'name')
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    Forms\Components\DatePicker::make('planning_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'preliminary' => 'Preliminary',
+                            'tech_pack' => 'Tech Pack',
+                            'finalised' => 'Finalised',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('preliminary')
+                        ->required(),
+                    Forms\Components\Textarea::make('special_instructions')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('preliminary')
-                ->required(),
+                ->columns(2),
 
             Section::make('Planning Costs')
                 ->columnSpanFull()
@@ -128,10 +136,6 @@ class MerchandisePlanningResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
-
-            Forms\Components\Textarea::make('special_instructions')
-                ->maxLength(65535)
-                ->columnSpanFull(),
 
             Section::make('Materials & Services Planning')
                 ->columnSpanFull()

@@ -39,36 +39,43 @@ class PoSupplierResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('po_number')
-                ->default(fn () => CodeGenerator::generatePOSupplierNo())
-                ->disabled()
-                ->dehydrated()
-                ->required(),
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'project_code')
-                ->searchable()
-                ->preload()
-                ->nullable(),
-            Forms\Components\Select::make('supplier_id')
-                ->relationship('supplier', 'name')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive(),
-            Forms\Components\DatePicker::make('po_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\DatePicker::make('delivery_date'),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'ordered' => 'Ordered',
-                    'partial' => 'Partial',
-                    'received' => 'Received',
-                    'cancelled' => 'Cancelled',
+            Section::make('PO Supplier Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('po_number')
+                        ->default(fn () => CodeGenerator::generatePOSupplierNo())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'project_code')
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
+                    Forms\Components\Select::make('supplier_id')
+                        ->relationship('supplier', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive(),
+                    Forms\Components\DatePicker::make('po_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'ordered' => 'Ordered',
+                            'partial' => 'Partial',
+                            'received' => 'Received',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
+                ->columns(2),
 
             Section::make('Cost & Tax Totals')
                 ->columnSpanFull()
@@ -103,9 +110,6 @@ class PoSupplierResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                 ])->columns(2),
-
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
 
             Section::make('PO Items')
                 ->columnSpanFull()

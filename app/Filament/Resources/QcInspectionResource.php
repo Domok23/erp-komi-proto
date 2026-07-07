@@ -12,6 +12,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -30,55 +31,60 @@ class QcInspectionResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('inspection_number')
-                ->disabled()
-                ->dehydrated()
-                ->default(fn () => CodeGenerator::generateQcInspectionNumber())
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('job_order_id')
-                ->relationship('jobOrder', 'job_order_number')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $jobOrder = JobOrder::find($state);
-                        if ($jobOrder) {
-                            $set('sample_size', $jobOrder->planned_qty);
-                        }
-                    }
-                }),
-            Forms\Components\DatePicker::make('inspection_date')
-                ->native(false)
-                ->default(now())
-                ->required(),
-            Forms\Components\TextInput::make('sample_size')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\TextInput::make('passed_qty')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\TextInput::make('failed_qty')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\Select::make('result')
-                ->options([
-                    'pass' => 'Pass',
-                    'fail' => 'Fail',
-                    'conditional' => 'Conditional',
+            Section::make('Inspection Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('inspection_number')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default(fn () => CodeGenerator::generateQcInspectionNumber())
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('job_order_id')
+                        ->relationship('jobOrder', 'job_order_number')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state) {
+                                $jobOrder = JobOrder::find($state);
+                                if ($jobOrder) {
+                                    $set('sample_size', $jobOrder->planned_qty);
+                                }
+                            }
+                        }),
+                    Forms\Components\DatePicker::make('inspection_date')
+                        ->native(false)
+                        ->default(now())
+                        ->required(),
+                    Forms\Components\TextInput::make('sample_size')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\TextInput::make('passed_qty')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\TextInput::make('failed_qty')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\Select::make('result')
+                        ->options([
+                            'pass' => 'Pass',
+                            'fail' => 'Fail',
+                            'conditional' => 'Conditional',
+                        ])
+                        ->default('pass')
+                        ->required(),
+                    Forms\Components\TextInput::make('inspector')
+                        ->maxLength(255),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('pass')
-                ->required(),
-            Forms\Components\TextInput::make('inspector')
-                ->maxLength(255),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
         ]);
     }
 

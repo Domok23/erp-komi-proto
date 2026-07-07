@@ -37,104 +37,109 @@ class GoodsReceiptResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('gr_number')
-                ->default(fn () => CodeGenerator::generateGRNumber())
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('po_type')
-                ->options([
-                    'supplier' => 'Supplier PO',
-                    'subcon' => 'Subcon PO',
-                ])
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function (callable $set) {
-                    $set('po_id', null);
-                    $set('items', []);
-                    $set('shipping', null);
-                }),
-            Forms\Components\Select::make('po_id')
-                ->label('Purchase Order')
-                ->options(function (callable $get) {
-                    $type = $get('po_type');
-                    if ($type === 'supplier') {
-                        return PoSupplier::pluck('po_number', 'id');
-                    } elseif ($type === 'subcon') {
-                        return PoSubcon::pluck('po_number', 'id');
-                    }
-
-                    return [];
-                })
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    if (! $state) {
-                        $set('items', []);
-                        $set('shipping', null);
-
-                        return;
-                    }
-                    $type = $get('po_type');
-                    if ($type === 'supplier') {
-                        $po = PoSupplier::with('items')->find($state);
-                        if ($po) {
-                            $items = [];
-                            foreach ($po->items as $item) {
-                                $items[] = [
-                                    'material_id' => $item->material_id,
-                                    'qty_ordered' => $item->qty,
-                                    'qty_received' => $item->qty - $item->qty_received,
-                                    'qty_rejected' => 0,
-                                    'unit' => $item->unit,
-                                    'notes' => '',
-                                ];
+            Section::make('Goods Receipt Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('gr_number')
+                        ->default(fn () => CodeGenerator::generateGRNumber())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('po_type')
+                        ->options([
+                            'supplier' => 'Supplier PO',
+                            'subcon' => 'Subcon PO',
+                        ])
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (callable $set) {
+                            $set('po_id', null);
+                            $set('items', []);
+                            $set('shipping', null);
+                        }),
+                    Forms\Components\Select::make('po_id')
+                        ->label('Purchase Order')
+                        ->options(function (callable $get) {
+                            $type = $get('po_type');
+                            if ($type === 'supplier') {
+                                return PoSupplier::pluck('po_number', 'id');
+                            } elseif ($type === 'subcon') {
+                                return PoSubcon::pluck('po_number', 'id');
                             }
-                            $set('items', $items);
-                        }
-                    }
 
-                    // Auto-populate shipping details from latest PurchaseShipment
-                    $latestShipment = PurchaseShipment::where('po_type', $type)
-                        ->where('po_id', $state)
-                        ->latest()
-                        ->first();
+                            return [];
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            if (! $state) {
+                                $set('items', []);
+                                $set('shipping', null);
 
-                    if ($latestShipment) {
-                        $set('shipping', [
-                            'carrier' => $latestShipment->carrier,
-                            'tracking_number' => $latestShipment->tracking_number,
-                            'shipping_cost' => $latestShipment->shipping_cost,
-                            'received_condition' => 'good',
-                            'notes' => 'Auto-populated from '.$latestShipment->shipment_number,
-                        ]);
-                    }
-                }),
-            Forms\Components\Select::make('warehouse_id')
-                ->relationship('warehouse', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('receipt_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'received' => 'Received',
-                    'partial' => 'Partial',
-                    'verified' => 'Verified',
+                                return;
+                            }
+                            $type = $get('po_type');
+                            if ($type === 'supplier') {
+                                $po = PoSupplier::with('items')->find($state);
+                                if ($po) {
+                                    $items = [];
+                                    foreach ($po->items as $item) {
+                                        $items[] = [
+                                            'material_id' => $item->material_id,
+                                            'qty_ordered' => $item->qty,
+                                            'qty_received' => $item->qty - $item->qty_received,
+                                            'qty_rejected' => 0,
+                                            'unit' => $item->unit,
+                                            'notes' => '',
+                                        ];
+                                    }
+                                    $set('items', $items);
+                                }
+                            }
+
+                            // Auto-populate shipping details from latest PurchaseShipment
+                            $latestShipment = PurchaseShipment::where('po_type', $type)
+                                ->where('po_id', $state)
+                                ->latest()
+                                ->first();
+
+                            if ($latestShipment) {
+                                $set('shipping', [
+                                    'carrier' => $latestShipment->carrier,
+                                    'tracking_number' => $latestShipment->tracking_number,
+                                    'shipping_cost' => $latestShipment->shipping_cost,
+                                    'received_condition' => 'good',
+                                    'notes' => 'Auto-populated from '.$latestShipment->shipment_number,
+                                ]);
+                            }
+                        }),
+                    Forms\Components\Select::make('warehouse_id')
+                        ->relationship('warehouse', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('receipt_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'received' => 'Received',
+                            'partial' => 'Partial',
+                            'verified' => 'Verified',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\TextInput::make('received_by')
+                        ->maxLength(255),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\TextInput::make('received_by')
-                ->maxLength(255),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
 
             Section::make('Received Items')
                 ->columnSpanFull()

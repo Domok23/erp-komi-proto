@@ -15,6 +15,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -33,99 +34,104 @@ class JobOrderResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Hidden::make('id')
-                ->default(fn ($record) => $record ? $record->id : null),
-            Forms\Components\TextInput::make('job_order_number')
-                ->disabled()
-                ->dehydrated()
-                ->default(fn () => CodeGenerator::generateJobOrderNumber())
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('production_order_id')
-                ->relationship('productionOrder', 'production_number')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->live()
-                ->afterStateHydrated(function ($state, callable $set) {
-                    self::loadProductionOrderMaterials($state, $set);
-                })
-                ->afterStateUpdated(function ($state, callable $set) {
-                    self::loadProductionOrderMaterials($state, $set);
-                }),
-            Forms\Components\Select::make('merchandising_planning_id')
-                ->relationship('merchandisingPlanning', 'id')
-                ->searchable()
-                ->preload()
-                ->label('Merchandising Planning')
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $planning = MerchandisePlanning::find($state);
-                        if ($planning) {
-                            $items = $planning->items;
-                            if ($items->isNotEmpty()) {
-                                $materials = [];
-                                foreach ($items as $item) {
-                                    if (! $item->material_id) {
-                                        continue;
+            Section::make('Job Order Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Hidden::make('id')
+                        ->default(fn ($record) => $record ? $record->id : null),
+                    Forms\Components\TextInput::make('job_order_number')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default(fn () => CodeGenerator::generateJobOrderNumber())
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('production_order_id')
+                        ->relationship('productionOrder', 'production_number')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            self::loadProductionOrderMaterials($state, $set);
+                        })
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            self::loadProductionOrderMaterials($state, $set);
+                        }),
+                    Forms\Components\Select::make('merchandising_planning_id')
+                        ->relationship('merchandisingPlanning', 'id')
+                        ->searchable()
+                        ->preload()
+                        ->label('Merchandising Planning')
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state) {
+                                $planning = MerchandisePlanning::find($state);
+                                if ($planning) {
+                                    $items = $planning->items;
+                                    if ($items->isNotEmpty()) {
+                                        $materials = [];
+                                        foreach ($items as $item) {
+                                            if (! $item->material_id) {
+                                                continue;
+                                            }
+
+                                            $material = $item->material;
+                                            $supplier = $item->supplier;
+                                            $totalPrice = $item->planned_qty * $item->unit_price;
+
+                                            $materials[] = [
+                                                'is_selected' => true,
+                                                'material_name' => $material ? $material->name : 'N/A',
+                                                'supplier_name' => $supplier ? $supplier->name : 'N/A',
+                                                'planned_qty' => $item->planned_qty,
+                                                'unit' => $item->unit,
+                                                'unit_price' => $item->unit_price,
+                                                'total_price' => $totalPrice,
+                                                'material_id' => $item->material_id,
+                                                'merchandising_planning_item_id' => $item->id,
+                                            ];
+                                        }
+                                        $set('materials', $materials);
                                     }
-
-                                    $material = $item->material;
-                                    $supplier = $item->supplier;
-                                    $totalPrice = $item->planned_qty * $item->unit_price;
-
-                                    $materials[] = [
-                                        'is_selected' => true,
-                                        'material_name' => $material ? $material->name : 'N/A',
-                                        'supplier_name' => $supplier ? $supplier->name : 'N/A',
-                                        'planned_qty' => $item->planned_qty,
-                                        'unit' => $item->unit,
-                                        'unit_price' => $item->unit_price,
-                                        'total_price' => $totalPrice,
-                                        'material_id' => $item->material_id,
-                                        'merchandising_planning_item_id' => $item->id,
-                                    ];
                                 }
-                                $set('materials', $materials);
                             }
-                        }
-                    }
-                }),
-            Forms\Components\Select::make('task_type')
-                ->options([
-                    'cutting' => 'Cutting',
-                    'sewing' => 'Sewing',
-                    'finishing' => 'Finishing',
-                    'qc' => 'Quality Control',
-                    'packing' => 'Packing',
+                        }),
+                    Forms\Components\Select::make('task_type')
+                        ->options([
+                            'cutting' => 'Cutting',
+                            'sewing' => 'Sewing',
+                            'finishing' => 'Finishing',
+                            'qc' => 'Quality Control',
+                            'packing' => 'Packing',
+                        ])
+                        ->required(),
+                    Forms\Components\TextInput::make('planned_qty')
+                        ->required()
+                        ->numeric()
+                        ->step(1)
+                        ->default(0),
+                    Forms\Components\TextInput::make('completed_qty')
+                        ->default(0)
+                        ->disabled()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 0, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'pending' => 'Pending',
+                            'in_progress' => 'In Progress',
+                            'completed' => 'Completed',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('pending')
+                        ->required(),
+                    Forms\Components\DatePicker::make('start_date')
+                        ->native(false),
+                    Forms\Components\DatePicker::make('end_date')
+                        ->native(false),
+                    Forms\Components\TextInput::make('assigned_to')
+                        ->maxLength(255),
                 ])
-                ->required(),
-            Forms\Components\TextInput::make('planned_qty')
-                ->required()
-                ->numeric()
-                ->step(1)
-                ->default(0),
-            Forms\Components\TextInput::make('completed_qty')
-                ->default(0)
-                ->disabled()
-                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 0, '.', ',') : $state)
-                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'pending' => 'Pending',
-                    'in_progress' => 'In Progress',
-                    'completed' => 'Completed',
-                    'cancelled' => 'Cancelled',
-                ])
-                ->default('pending')
-                ->required(),
-            Forms\Components\DatePicker::make('start_date')
-                ->native(false),
-            Forms\Components\DatePicker::make('end_date')
-                ->native(false),
-            Forms\Components\TextInput::make('assigned_to')
-                ->maxLength(255),
+                ->columns(2),
             Forms\Components\Placeholder::make('no_materials')
                 ->label('No materials selected')
                 ->content('Select a merchandising planning to see materials')

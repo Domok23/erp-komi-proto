@@ -14,6 +14,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
@@ -38,23 +39,28 @@ class CompanyResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            TextInput::make('code')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(50),
-            TextInput::make('name')->required()->maxLength(255),
-            Select::make('type')
-                ->required()
-                ->options([
-                    'main' => 'Main Company',
-                    'branch' => 'Branch',
-                ]),
-            Textarea::make('address'),
-            TextInput::make('city')->maxLength(100),
-            TextInput::make('phone')->tel()->maxLength(30),
-            TextInput::make('email')->email()->maxLength(100),
-            TextInput::make('npwp')->maxLength(30),
-            Toggle::make('is_active')->default(true),
+            Section::make('Company Details')
+                ->columnSpanFull()
+                ->schema([
+                    TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    TextInput::make('name')->required()->maxLength(255),
+                    Select::make('type')
+                        ->required()
+                        ->options([
+                            'main' => 'Main Company',
+                            'branch' => 'Branch',
+                        ]),
+                    Textarea::make('address'),
+                    TextInput::make('city')->maxLength(100),
+                    TextInput::make('phone')->tel()->maxLength(30),
+                    TextInput::make('email')->email()->maxLength(100),
+                    TextInput::make('npwp')->maxLength(30),
+                    Toggle::make('is_active')->default(true),
+                ])
+                ->columns(2),
         ]);
     }
 

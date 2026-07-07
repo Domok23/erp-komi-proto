@@ -11,6 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -29,22 +30,38 @@ class MaterialUsageResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('job_order_id')
-                ->relationship('jobOrder', 'job_order_number')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->live()
-                ->afterStateHydrated(function ($state, callable $set) {
-                    self::loadJobOrderMaterials($state, $set);
-                })
-                ->afterStateUpdated(function ($state, callable $set) {
-                    self::loadJobOrderMaterials($state, $set);
-                }),
-            Forms\Components\DatePicker::make('usage_date')
-                ->native(false)
-                ->default(now())
-                ->required(),
+            Section::make('Usage Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('job_order_id')
+                        ->relationship('jobOrder', 'job_order_number')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            self::loadJobOrderMaterials($state, $set);
+                        })
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            self::loadJobOrderMaterials($state, $set);
+                        }),
+                    Forms\Components\DatePicker::make('usage_date')
+                        ->native(false)
+                        ->default(now())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'planned' => 'Planned',
+                            'in_progress' => 'In Progress',
+                            'completed' => 'Completed',
+                        ])
+                        ->default('planned')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
             Forms\Components\Placeholder::make('no_materials')
                 ->label('No materials selected')
                 ->content('Select a job order to see materials')
@@ -112,17 +129,6 @@ class MaterialUsageResource extends Resource
                 ->visible(fn (callable $get) => $get('job_order_id'))
                 ->columnSpanFull()
                 ->reactive(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'planned' => 'Planned',
-                    'in_progress' => 'In Progress',
-                    'completed' => 'Completed',
-                ])
-                ->default('planned')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
         ]);
     }
 

@@ -19,6 +19,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -37,110 +38,115 @@ class InvoicePurchaseResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('invoice_number')
-                ->default(fn () => CodeGenerator::generateInvoicePurchaseNo())
-                ->disabled()
-                ->dehydrated()
-                ->required(),
-            Forms\Components\Select::make('purchase_type')
-                ->options([
-                    'po_supplier' => 'Supplier PO',
-                    'po_subcon' => 'Subcon PO',
-                ])
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function (callable $set) {
-                    $set('reference_id', null);
-                    $set('subtotal', 0);
-                    $set('tax_amount', 0);
-                    $set('grand_total', 0);
-                }),
-            Forms\Components\Select::make('reference_id')
-                ->label('Purchase Order')
-                ->options(function (callable $get) {
-                    $type = $get('purchase_type');
-                    if ($type === 'po_supplier') {
-                        return PoSupplier::pluck('po_number', 'id');
-                    } elseif ($type === 'po_subcon') {
-                        return PoSubcon::pluck('po_number', 'id');
-                    }
-
-                    return [];
-                })
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    if (! $state) {
-                        $set('subtotal', 0);
-                        $set('tax_amount', 0);
-                        $set('grand_total', 0);
-
-                        return;
-                    }
-                    $type = $get('purchase_type');
-                    if ($type === 'po_supplier') {
-                        $po = PoSupplier::find($state, ['*']);
-                        if ($po) {
-                            $set('subtotal', $po->subtotal);
-                            $set('tax_amount', $po->ppn_amount);
-                            $set('grand_total', $po->grand_total);
-                        }
-                    } elseif ($type === 'po_subcon') {
-                        $po = PoSubcon::find($state, ['*']);
-                        if ($po) {
-                            $set('subtotal', $po->service_cost);
+            Section::make('Invoice Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('invoice_number')
+                        ->default(fn () => CodeGenerator::generateInvoicePurchaseNo())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    Forms\Components\Select::make('purchase_type')
+                        ->options([
+                            'po_supplier' => 'Supplier PO',
+                            'po_subcon' => 'Subcon PO',
+                        ])
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (callable $set) {
+                            $set('reference_id', null);
+                            $set('subtotal', 0);
                             $set('tax_amount', 0);
-                            $set('grand_total', $po->total_cost);
-                        }
-                    }
-                }),
-            Forms\Components\DatePicker::make('invoice_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\DatePicker::make('due_date'),
-            Forms\Components\TextInput::make('subtotal')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->prefix('IDR')
-                ->required()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
-            Forms\Components\TextInput::make('tax_amount')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->prefix('IDR')
-                ->required()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
-            Forms\Components\TextInput::make('grand_total')
-                ->default(0)
-                ->prefix('IDR')
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-            Forms\Components\TextInput::make('paid_amount')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->prefix('IDR')
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'unpaid' => 'Unpaid',
-                    'partial' => 'Partial Paid',
-                    'paid' => 'Paid',
-                    'overdue' => 'Overdue',
+                            $set('grand_total', 0);
+                        }),
+                    Forms\Components\Select::make('reference_id')
+                        ->label('Purchase Order')
+                        ->options(function (callable $get) {
+                            $type = $get('purchase_type');
+                            if ($type === 'po_supplier') {
+                                return PoSupplier::pluck('po_number', 'id');
+                            } elseif ($type === 'po_subcon') {
+                                return PoSubcon::pluck('po_number', 'id');
+                            }
+
+                            return [];
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            if (! $state) {
+                                $set('subtotal', 0);
+                                $set('tax_amount', 0);
+                                $set('grand_total', 0);
+
+                                return;
+                            }
+                            $type = $get('purchase_type');
+                            if ($type === 'po_supplier') {
+                                $po = PoSupplier::find($state, ['*']);
+                                if ($po) {
+                                    $set('subtotal', $po->subtotal);
+                                    $set('tax_amount', $po->ppn_amount);
+                                    $set('grand_total', $po->grand_total);
+                                }
+                            } elseif ($type === 'po_subcon') {
+                                $po = PoSubcon::find($state, ['*']);
+                                if ($po) {
+                                    $set('subtotal', $po->service_cost);
+                                    $set('tax_amount', 0);
+                                    $set('grand_total', $po->total_cost);
+                                }
+                            }
+                        }),
+                    Forms\Components\DatePicker::make('invoice_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\DatePicker::make('due_date'),
+                    Forms\Components\TextInput::make('subtotal')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->prefix('IDR')
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                    Forms\Components\TextInput::make('tax_amount')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->prefix('IDR')
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                    Forms\Components\TextInput::make('grand_total')
+                        ->default(0)
+                        ->prefix('IDR')
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                    Forms\Components\TextInput::make('paid_amount')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->prefix('IDR')
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'unpaid' => 'Unpaid',
+                            'partial' => 'Partial Paid',
+                            'paid' => 'Paid',
+                            'overdue' => 'Overdue',
+                        ])
+                        ->default('unpaid')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('unpaid')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
+                ->columns(2),
         ]);
     }
 

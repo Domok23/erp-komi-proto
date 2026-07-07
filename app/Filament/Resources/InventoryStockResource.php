@@ -13,6 +13,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -31,61 +32,66 @@ class InventoryStockResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('warehouse_id')
-                ->relationship('warehouse', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
+            Section::make('Stock Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('warehouse_id')
+                        ->relationship('warehouse', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\Select::make('material_id')
+                        ->relationship('material', 'name')
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $companyId = CompanyContext::getCompanyId();
+                            $stock = InventoryStock::where('material_id', $record->id)
+                                ->where('company_id', $companyId)
+                                ->sum('quantity');
 
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $material = Material::find($state);
-                    if ($material) {
-                        $set('unit', $material->unit);
-                        $set('min_stock', $material->min_stock);
-                    }
-                }),
-            Forms\Components\TextInput::make('quantity')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('reserved_qty')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('available_qty')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('unit')
-                ->disabled()
-                ->dehydrated()
-                ->default('pcs'),
-            Forms\Components\TextInput::make('min_stock')
-                ->numeric()
-                ->step(0.01)
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('location')
-                ->maxLength(100),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $material = Material::find($state);
+                            if ($material) {
+                                $set('unit', $material->unit);
+                                $set('min_stock', $material->min_stock);
+                            }
+                        }),
+                    Forms\Components\TextInput::make('quantity')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('reserved_qty')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('available_qty')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('unit')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default('pcs'),
+                    Forms\Components\TextInput::make('min_stock')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('location')
+                        ->maxLength(100),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
         ]);
     }
 

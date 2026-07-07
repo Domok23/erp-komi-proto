@@ -34,40 +34,45 @@ class SubconMaterialOutResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('document_number')
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('po_subcon_id')
-                ->relationship('poSubcon', 'po_number')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $po = $state ? PoSubcon::find($state, ['*']) : null;
-                    if ($po) {
-                        $set('subcon_id', $po->subcon_id);
-                    } else {
-                        $set('subcon_id', null);
-                    }
-                }),
-            Forms\Components\Select::make('subcon_id')
-                ->relationship('subcon', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('departure_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'sent' => 'Sent',
+            Section::make('Document Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('document_number')
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('po_subcon_id')
+                        ->relationship('poSubcon', 'po_number')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $po = $state ? PoSubcon::find($state, ['*']) : null;
+                            if ($po) {
+                                $set('subcon_id', $po->subcon_id);
+                            } else {
+                                $set('subcon_id', null);
+                            }
+                        }),
+                    Forms\Components\Select::make('subcon_id')
+                        ->relationship('subcon', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('departure_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'sent' => 'Sent',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->columnSpanFull(),
+                ->columns(2),
 
             Section::make('Sent Materials')
                 ->columnSpanFull()
