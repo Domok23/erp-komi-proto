@@ -56,7 +56,6 @@ class ProjectResource extends Resource
                     'planning' => 'Planning',
                     'development' => 'Development',
                     'sampling' => 'Sampling',
-                    'approved' => 'Approved',
                     'production' => 'Production',
                     'completed' => 'Completed',
                     'cancelled' => 'Cancelled',
