@@ -87,6 +87,22 @@ class DataSeeder extends Seeder
             'is_active' => true,
         ]);
 
+        $whMainKtk = Warehouse::create([
+            'company_id' => $ktk->id,
+            'code' => 'WH-MAIN-KTK',
+            'name' => 'Main Warehouse KTK',
+            'address' => 'Jakarta Main Office',
+            'is_active' => true,
+        ]);
+
+        $whBranchKtk = Warehouse::create([
+            'company_id' => $ktk->id,
+            'code' => 'WH-BRANCH-KTK',
+            'name' => 'Branch Warehouse KTK',
+            'address' => 'Jakarta Branch Office',
+            'is_active' => true,
+        ]);
+
         // 2. Seed Suppliers
         $supplierYKK = Supplier::create([
             'company_id' => $kei->id,
