@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class JobOrderResource extends Resource
 {
@@ -47,6 +48,8 @@ class JobOrderResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('production_order_id')
                         ->relationship('productionOrder', 'production_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProductionOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->production_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()
@@ -59,6 +62,8 @@ class JobOrderResource extends Resource
                         }),
                     Forms\Components\Select::make('merchandising_planning_id')
                         ->relationship('merchandisingPlanning', 'id')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MerchandisePlanningResource::getUrl('edit', ['record' => $record]).'" class="ref-link">Planning #'.$record->id.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->label('Merchandising Planning')

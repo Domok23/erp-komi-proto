@@ -108,6 +108,24 @@ class AppServiceProvider extends ServiceProvider
                         align-items: center !important;
                         overflow: hidden !important;
                     }
+                    /* Clickable link inside the select value display */
+                    .fi-select-input-value-label a.ref-link {
+                        color: var(--primary-600, var(--color-primary-600, #d97706)) !important;
+                        text-decoration: none !important;
+                        pointer-events: auto !important;
+                        cursor: pointer !important;
+                    }
+                    .fi-select-input-value-label a.ref-link:hover {
+                        text-decoration: underline !important;
+                    }
+                    /* Disable links inside the dropdown option list to prevent accidental navigation */
+                    .choices__item--choice a.ref-link,
+                    .fi-select-input-option a.ref-link {
+                        color: inherit !important;
+                        text-decoration: none !important;
+                        pointer-events: none !important;
+                        cursor: default !important;
+                    }
                 </style>
             ')
         );

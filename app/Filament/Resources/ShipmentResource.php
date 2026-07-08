@@ -40,6 +40,8 @@ class ShipmentResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('sales_order_id')
                         ->relationship('salesOrder', 'so_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SalesOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->so_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),

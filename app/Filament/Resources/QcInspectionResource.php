@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class QcInspectionResource extends Resource
 {
@@ -42,6 +43,8 @@ class QcInspectionResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('job_order_id')
                         ->relationship('jobOrder', 'job_order_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.JobOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->job_order_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()

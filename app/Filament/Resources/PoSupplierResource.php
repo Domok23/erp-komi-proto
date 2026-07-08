@@ -25,6 +25,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class PoSupplierResource extends Resource
 {
@@ -49,11 +50,15 @@ class PoSupplierResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'project_code')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('supplier_id')
                         ->relationship('supplier', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SupplierResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()

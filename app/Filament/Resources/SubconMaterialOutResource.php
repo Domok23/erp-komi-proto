@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class SubconMaterialOutResource extends Resource
 {
@@ -42,6 +43,8 @@ class SubconMaterialOutResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('po_subcon_id')
                         ->relationship('poSubcon', 'po_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.PoSubconResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->po_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -56,6 +59,8 @@ class SubconMaterialOutResource extends Resource
                         }),
                     Forms\Components\Select::make('subcon_id')
                         ->relationship('subcon', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SubconResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required(),

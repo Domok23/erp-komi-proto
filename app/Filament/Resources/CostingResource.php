@@ -45,6 +45,8 @@ class CostingResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'project_code')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()
@@ -76,6 +78,8 @@ class CostingResource extends Resource
                         }),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->disabled()
                         ->dehydrated()
                         ->required(),

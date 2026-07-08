@@ -24,6 +24,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class SalesOrderResource extends Resource
 {
@@ -49,6 +50,8 @@ class SalesOrderResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'project_code')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -72,6 +75,8 @@ class SalesOrderResource extends Resource
                         }),
                     Forms\Components\Select::make('costing_id')
                         ->relationship('costing', 'version')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CostingResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->version.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -91,6 +96,8 @@ class SalesOrderResource extends Resource
                         }),
                     Forms\Components\Select::make('customer_id')
                         ->relationship('customer', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CustomerResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required(),

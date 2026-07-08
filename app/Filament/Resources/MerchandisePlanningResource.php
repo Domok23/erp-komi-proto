@@ -48,8 +48,8 @@ class MerchandisePlanningResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->name} <span class='project-code-prefix'>[{$record->project_code}]</span>")
                         ->searchable()
                         ->preload()
                         ->required()
@@ -99,6 +99,8 @@ class MerchandisePlanningResource extends Resource
                         }),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->disabled()
                         ->dehydrated()
                         ->required(),

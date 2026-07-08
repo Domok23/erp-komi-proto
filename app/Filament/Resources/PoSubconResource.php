@@ -47,11 +47,15 @@ class PoSubconResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'project_code')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('subcon_id')
                         ->relationship('subcon', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SubconResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required(),

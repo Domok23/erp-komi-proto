@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class GoodsReceiptResource extends Resource
 {
@@ -47,7 +48,9 @@ class GoodsReceiptResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('po_id')
                         ->label('Purchase Order')
-                        ->options(fn () => PoSupplier::pluck('po_number', 'id'))
+                        ->relationship('po', 'po_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.PoSupplierResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->po_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()
@@ -93,6 +96,8 @@ class GoodsReceiptResource extends Resource
                         }),
                     Forms\Components\Select::make('warehouse_id')
                         ->relationship('warehouse', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.WarehouseResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required(),
