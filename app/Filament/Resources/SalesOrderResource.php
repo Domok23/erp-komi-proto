@@ -53,13 +53,20 @@ class SalesOrderResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set) {
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
                             if (! $state) {
+                                $set('customer_id', null);
+                                $set('quantity', 0);
+                                $set('payment_terms', null);
+                                self::recalculateTotals($get, $set);
                                 return;
                             }
-                            $project = Project::find($state, ['*']);
+                            $project = Project::with('customer')->find($state);
                             if ($project) {
                                 $set('customer_id', $project->customer_id);
+                                $set('quantity', $project->target_qty ?? 0);
+                                $set('payment_terms', $project->customer?->payment_terms);
+                                self::recalculateTotals($get, $set);
                             }
                         }),
                     Forms\Components\Select::make('costing_id')
@@ -68,10 +75,16 @@ class SalesOrderResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set) {
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                            if (! $state) {
+                                $set('unit_price', 0);
+                                self::recalculateTotals($get, $set);
+                                return;
+                            }
                             $costing = Costing::find($state, ['*']);
                             if ($costing) {
                                 $set('unit_price', $costing->selling_price);
+                                self::recalculateTotals($get, $set);
                             }
                         }),
                     Forms\Components\Select::make('customer_id')

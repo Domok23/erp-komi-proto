@@ -18,6 +18,8 @@ use App\Services\CodeGenerator;
 use App\Services\CostingCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Livewire\Livewire;
+use App\Filament\Resources\SalesOrderResource\Pages\CreateSalesOrder;
 
 class ErgonomicFixesTest extends TestCase
 {
@@ -345,5 +347,78 @@ class ErgonomicFixesTest extends TestCase
         $this->assertNotEmpty($items);
         $this->assertEquals($supplier->id, $items[0]['supplier_id']);
         $this->assertTrue($items[0]['is_from_rnd']);
+    }
+
+    /**
+     * 7. Test Sales Order project selection auto-fills quantity and payment terms, and resets on deselection
+     */
+    public function test_sales_order_project_selection_autofill_and_reset(): void
+    {
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'target_qty' => 125,
+        ]);
+
+        $this->customer->update(['payment_terms' => 'net_30']);
+
+        Livewire::test(CreateSalesOrder::class)
+            ->set('data.project_id', $project->id)
+            ->assertSet('data.customer_id', $this->customer->id)
+            ->assertSet('data.quantity', 125)
+            ->assertSet('data.payment_terms', 'net_30')
+            ->set('data.project_id', null)
+            ->assertSet('data.customer_id', null)
+            ->assertSet('data.quantity', 0)
+            ->assertSet('data.payment_terms', null)
+            ->assertSet('data.subtotal', 0);
+    }
+
+    /**
+     * 8. Test Sales Order costing selection auto-fills unit price and recalculates totals, and resets on deselection
+     */
+    public function test_sales_order_costing_selection_autofill_and_reset(): void
+    {
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'target_qty' => 10,
+        ]);
+
+        $costing = Costing::create([
+            'company_id' => $this->company->id,
+            'project_id' => $project->id,
+            'design_id' => $this->design->id,
+            'costing_date' => now()->toDateString(),
+            'version' => '1.0',
+            'status' => 'draft',
+            'material_cost' => 10000,
+            'mp_cost' => 5000,
+            'overhead_pct' => 10,
+            'shipping_cost' => 1000,
+            'profit_margin_pct' => 10,
+        ]);
+        CostingCalculatorService::recalculateCosting($costing);
+        $costing->refresh();
+
+        $sellingPrice = (float) $costing->selling_price;
+        $this->assertGreaterThan(0, $sellingPrice);
+
+        Livewire::test(CreateSalesOrder::class)
+            ->set('data.quantity', 10)
+            ->set('data.costing_id', $costing->id)
+            ->assertSet('data.unit_price', $sellingPrice)
+            ->assertSet('data.subtotal', 10 * $sellingPrice)
+            ->set('data.costing_id', null)
+            ->assertSet('data.unit_price', 0)
+            ->assertSet('data.subtotal', 0);
     }
 }
