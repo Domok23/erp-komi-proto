@@ -296,7 +296,7 @@ class MerchandisePlanningResource extends Resource
                     'finalised' => 'Finalised',
                     'cancelled' => 'Cancelled',
                 ]),
-                SelectFilter::make('project_id')->relationship('project', 'project_code'),
+                SelectFilter::make('project_id')->relationship('project', 'name'),
             ])
             ->actions([
                 ActionGroup::make([

@@ -49,8 +49,8 @@ class PoSupplierResource extends Resource
                         ->dehydrated()
                         ->required(),
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'project_code')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->relationship('project', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
                         ->preload()
@@ -230,7 +230,7 @@ class PoSupplierResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.project_code')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')

@@ -48,7 +48,7 @@ class ProductionOrderResource extends Resource
                         ->maxLength(50),
                     Forms\Components\Select::make('project_id')
                         ->relationship('project', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
                         ->preload()

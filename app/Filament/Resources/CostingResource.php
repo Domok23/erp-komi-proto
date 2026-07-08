@@ -44,8 +44,8 @@ class CostingResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'project_code')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->project_code.'</a>'))
+                        ->relationship('project', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
                         ->preload()
@@ -249,7 +249,7 @@ class CostingResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable(),
-                Tables\Columns\TextColumn::make('project.project_code')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('version')->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -283,7 +283,7 @@ class CostingResource extends Resource
                     'approved' => 'Approved',
                     'rejected' => 'Rejected',
                 ]),
-                SelectFilter::make('project_id')->relationship('project', 'project_code'),
+                SelectFilter::make('project_id')->relationship('project', 'name'),
             ])
             ->actions([
                 ActionGroup::make([
