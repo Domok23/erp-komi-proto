@@ -6,11 +6,13 @@ use App\Models\GoodsReceiptShipping;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
 use App\Models\JobOrder;
+use App\Models\MaterialReservation;
 use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Models\ProductionOrder;
 use App\Observers\JobOrderObserver;
+use App\Observers\MaterialReservationObserver;
 use App\Observers\PaymentObserver;
 use App\Observers\ProductionOrderObserver;
 use Filament\Support\Facades\FilamentView;
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         Payment::observe(PaymentObserver::class);
         JobOrder::observe(JobOrderObserver::class);
         ProductionOrder::observe(ProductionOrderObserver::class);
+        MaterialReservation::observe(MaterialReservationObserver::class);
 
         FilamentView::registerRenderHook(
             'panels::head.end',

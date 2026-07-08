@@ -3,9 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryStockResource\Pages;
+use App\Filament\Resources\InventoryStockResource\RelationManagers;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -91,8 +93,20 @@ class InventoryStockResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('warehouse.name')->sortable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('quantity')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('min_stock')->numeric(),
+            Tables\Columns\TextColumn::make('quantity')
+                ->label('Physical Qty')
+                ->numeric()
+                ->sortable(),
+            Tables\Columns\TextColumn::make('reserved_qty')
+                ->label('Reserved Qty')
+                ->numeric()
+                ->sortable()
+                ->color('warning'),
+            Tables\Columns\TextColumn::make('available_qty')
+                ->label('Available Qty')
+                ->numeric()
+                ->sortable()
+                ->color('success'),
             Tables\Columns\BadgeColumn::make('stock_status')
                 ->label('Stock Status')
                 ->color(fn ($record) => $record->quantity < $record->min_stock ? 'danger' : 'success')
@@ -106,6 +120,14 @@ class InventoryStockResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('quickReserve')
+                        ->label('Quick Reserve')
+                        ->icon('heroicon-o-lock-closed')
+                        ->color('primary')
+                        ->url(fn ($record) => \App\Filament\Resources\MaterialReservations\MaterialReservationResource::getUrl('create', [
+                            'warehouse_id' => $record->warehouse_id,
+                            'material_id' => $record->material_id,
+                        ])),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
@@ -134,6 +156,13 @@ class InventoryStockResource extends Resource
             'index' => Pages\ListInventoryStocks::route('/'),
             'create' => Pages\CreateInventoryStock::route('/create'),
             'edit' => Pages\EditInventoryStock::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ReservationsRelationManager::class,
         ];
     }
 }
