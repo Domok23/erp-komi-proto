@@ -6,7 +6,6 @@ use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
 use App\Models\InventoryStock;
 use App\Models\Material;
-use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
@@ -46,62 +45,38 @@ class GoodsReceiptResource extends Resource
                         ->dehydrated()
                         ->required()
                         ->maxLength(50),
-                    Forms\Components\Select::make('po_type')
-                        ->options([
-                            'supplier' => 'Supplier PO',
-                            'subcon' => 'Subcon PO',
-                        ])
-                        ->required()
-                        ->reactive()
-                        ->afterStateUpdated(function (callable $set) {
-                            $set('po_id', null);
-                            $set('items', []);
-                            $set('shipping', null);
-                        }),
                     Forms\Components\Select::make('po_id')
                         ->label('Purchase Order')
-                        ->options(function (callable $get) {
-                            $type = $get('po_type');
-                            if ($type === 'supplier') {
-                                return PoSupplier::pluck('po_number', 'id');
-                            } elseif ($type === 'subcon') {
-                                return PoSubcon::pluck('po_number', 'id');
-                            }
-
-                            return [];
-                        })
+                        ->options(fn () => PoSupplier::pluck('po_number', 'id'))
                         ->searchable()
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        ->afterStateUpdated(function ($state, callable $set) {
                             if (! $state) {
                                 $set('items', []);
                                 $set('shipping', null);
 
                                 return;
                             }
-                            $type = $get('po_type');
-                            if ($type === 'supplier') {
-                                $po = PoSupplier::with('items')->find($state);
-                                if ($po) {
-                                    $items = [];
-                                    foreach ($po->items as $item) {
-                                        $items[] = [
-                                            'material_id' => $item->material_id,
-                                            'qty_ordered' => $item->qty,
-                                            'qty_received' => $item->qty - $item->qty_received,
-                                            'qty_rejected' => 0,
-                                            'unit' => $item->unit,
-                                            'notes' => '',
-                                        ];
-                                    }
-                                    $set('items', $items);
+                            $po = PoSupplier::with('items')->find($state);
+                            if ($po) {
+                                $items = [];
+                                foreach ($po->items as $item) {
+                                    $items[] = [
+                                        'material_id' => $item->material_id,
+                                        'qty_ordered' => $item->qty,
+                                        'qty_received' => $item->qty - $item->qty_received,
+                                        'qty_rejected' => 0,
+                                        'unit' => $item->unit,
+                                        'notes' => '',
+                                    ];
                                 }
+                                $set('items', $items);
                             }
 
                             // Auto-populate shipping details from latest PurchaseShipment
-                            $latestShipment = PurchaseShipment::where('po_type', $type)
+                            $latestShipment = PurchaseShipment::where('po_type', 'supplier')
                                 ->where('po_id', $state)
                                 ->latest()
                                 ->first();
@@ -293,7 +268,6 @@ class GoodsReceiptResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('gr_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('po_type')->badge(),
             Tables\Columns\TextColumn::make('po.po_number')->label('PO Number')->searchable(),
             Tables\Columns\TextColumn::make('warehouse.name')->sortable(),
             Tables\Columns\TextColumn::make('receipt_date')->date()->sortable(),

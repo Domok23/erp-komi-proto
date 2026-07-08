@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
-use App\Models\Costing;
 use App\Models\Customer;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptRetur;
 use App\Models\GoodsReceiptReturItem;
-use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\JobOrder;
 use App\Models\Material;
@@ -29,8 +27,11 @@ class InventoryMovementIntegrationTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private Warehouse $warehouse;
+
     private Material $material;
+
     private InventoryStock $stock;
 
     protected function setUp(): void

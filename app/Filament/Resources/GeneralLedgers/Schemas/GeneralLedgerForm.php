@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\GeneralLedgers\Schemas;
 
 use Filament\Forms;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class GeneralLedgerForm
@@ -11,7 +12,7 @@ class GeneralLedgerForm
     {
         return $schema
             ->components([
-                \Filament\Schemas\Components\Section::make('General Ledger Details')
+                Section::make('General Ledger Details')
                     ->columnSpanFull()
                     ->schema([
                         Forms\Components\TextInput::make('entry_number')

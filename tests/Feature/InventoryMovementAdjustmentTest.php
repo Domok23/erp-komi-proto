@@ -7,7 +7,9 @@ use App\Models\Company;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -17,8 +19,11 @@ class InventoryMovementAdjustmentTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private Warehouse $warehouse;
+
     private Material $material;
+
     private InventoryStock $stock;
 
     protected function setUp(): void
@@ -57,9 +62,9 @@ class InventoryMovementAdjustmentTest extends TestCase
             'unit' => 'pcs',
         ]);
 
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
         $this->actingAs($user);
-        \App\Services\CompanyContext::setCompany($this->company);
+        CompanyContext::setCompany($this->company);
     }
 
     public function test_adjustment_addition_creates_positive_movement_and_adds_stock(): void

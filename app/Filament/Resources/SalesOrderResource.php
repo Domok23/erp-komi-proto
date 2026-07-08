@@ -59,6 +59,7 @@ class SalesOrderResource extends Resource
                                 $set('quantity', 0);
                                 $set('payment_terms', null);
                                 self::recalculateTotals($get, $set);
+
                                 return;
                             }
                             $project = Project::with('customer')->find($state);
@@ -79,6 +80,7 @@ class SalesOrderResource extends Resource
                             if (! $state) {
                                 $set('unit_price', 0);
                                 self::recalculateTotals($get, $set);
+
                                 return;
                             }
                             $costing = Costing::find($state, ['*']);

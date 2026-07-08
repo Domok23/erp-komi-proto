@@ -55,7 +55,7 @@ class PoSupplier extends Model
 
     public function goodsReceipts(): HasMany
     {
-        return $this->hasMany(GoodsReceipt::class, 'po_id')->where('po_type', 'supplier');
+        return $this->hasMany(GoodsReceipt::class, 'po_id');
     }
 
     public function purchaseShipments(): HasMany

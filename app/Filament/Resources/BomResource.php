@@ -3,13 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BomResource\Pages;
+use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
-use App\Services\CompanyContext;
 use App\Services\CodeGenerator;
-use Filament\Schemas\Components\Utilities\Get;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -18,13 +18,13 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\StateCasts\BooleanStateCast;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
-use App\Forms\Components\NullableToggle;
+use Illuminate\Validation\Rules\Unique;
 
 class BomResource extends Resource
 {
@@ -95,7 +95,7 @@ class BomResource extends Resource
                             table: 'boms',
                             column: 'version',
                             ignoreRecord: true,
-                            modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
+                            modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
                         ),
                     Forms\Components\Select::make('status')
                         ->options([

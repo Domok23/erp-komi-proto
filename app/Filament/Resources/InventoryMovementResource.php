@@ -10,6 +10,7 @@ use App\Models\InventoryStock;
 use App\Models\StockTransfer;
 use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialOut;
+use App\Models\Warehouse;
 use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -19,13 +20,13 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 
 class InventoryMovementResource extends Resource
 {
@@ -148,19 +149,21 @@ class InventoryMovementResource extends Resource
             $set('inventory_stock_id', null);
             $set('before_qty', 0);
             $set('after_qty', 0);
+
             return;
         }
 
         $companyId = CompanyContext::getCompanyId() ?? 1;
 
-        $warehouseId = \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')
+        $warehouseId = Warehouse::where('company_id', '=', $companyId, 'and')
             ->where('code', '=', 'WH-MAIN', 'and')
-            ->first()?->id ?? \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')->first()?->id;
+            ->first()?->id ?? Warehouse::where('company_id', '=', $companyId, 'and')->first()?->id;
 
         if (! $warehouseId) {
             $set('inventory_stock_id', null);
             $set('before_qty', 0);
             $set('after_qty', 0);
+
             return;
         }
 

@@ -3,17 +3,17 @@
 namespace App\Services;
 
 use App\Models\GoodsReceipt;
+use App\Models\GoodsReceiptRetur;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\MaterialUsage;
+use App\Models\ProductionOrder;
+use App\Models\Shipment;
 use App\Models\StockTransfer;
 use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialOut;
 use App\Models\Warehouse;
-use App\Models\Shipment;
-use App\Models\GoodsReceiptRetur;
-use App\Models\MaterialUsage;
-use App\Models\ProductionOrder;
 
 class InventoryService
 {
@@ -390,7 +390,7 @@ class InventoryService
             'quantity' => $so->quantity,
             'before_qty' => $beforeQty,
             'after_qty' => $afterQty,
-            'notes' => 'Shipped via Shipment ' . $shipment->shipment_number,
+            'notes' => 'Shipped via Shipment '.$shipment->shipment_number,
         ]);
 
         self::syncMaterialTotalStock($material->id);
@@ -461,7 +461,7 @@ class InventoryService
                     'quantity' => $item->qty_returned,
                     'before_qty' => $beforeQty,
                     'after_qty' => $afterQty,
-                    'notes' => 'Returned to supplier via Retur ' . $retur->retur_number,
+                    'notes' => 'Returned to supplier via Retur '.$retur->retur_number,
                 ]);
 
                 self::syncMaterialTotalStock($item->material_id);
@@ -536,7 +536,7 @@ class InventoryService
                 'quantity' => $usage->actual_qty,
                 'before_qty' => $beforeQty,
                 'after_qty' => $afterQty,
-                'notes' => 'Consumed for production in Job Order ' . $jobOrderNo,
+                'notes' => 'Consumed for production in Job Order '.$jobOrderNo,
             ]);
 
             self::syncMaterialTotalStock($usage->material_id);
@@ -636,7 +636,7 @@ class InventoryService
             'quantity' => $qtyToReceive,
             'before_qty' => $beforeQty,
             'after_qty' => $afterQty,
-            'notes' => 'Completed production from Production Order ' . $po->production_number,
+            'notes' => 'Completed production from Production Order '.$po->production_number,
         ]);
 
         self::syncMaterialTotalStock($material->id);

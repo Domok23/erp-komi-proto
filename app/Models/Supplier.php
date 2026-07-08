@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Supplier extends Model
 {
@@ -38,9 +39,16 @@ class Supplier extends Model
         return $this->hasMany(PoSupplier::class);
     }
 
-    public function goodsReceipts(): HasMany
+    public function goodsReceipts(): HasManyThrough
     {
-        return $this->hasMany(GoodsReceipt::class, 'po_id')->where('po_type', 'supplier');
+        return $this->hasManyThrough(
+            GoodsReceipt::class,
+            PoSupplier::class,
+            'supplier_id',
+            'po_id',
+            'id',
+            'id'
+        );
     }
 
     public function invoicePurchases(): HasMany

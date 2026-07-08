@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class GoodsReceipt extends Model
 {
@@ -34,6 +33,14 @@ class GoodsReceipt extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (GoodsReceipt $goodsReceipt) {
+            $goodsReceipt->po_type = 'supplier';
+        });
+
+        static::saving(function (GoodsReceipt $goodsReceipt) {
+            $goodsReceipt->po_type = 'supplier';
+        });
+
         static::updated(function (GoodsReceipt $goodsReceipt) {
             if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
                 InventoryService::receiveGoods($goodsReceipt);
@@ -68,7 +75,7 @@ class GoodsReceipt extends Model
 
     protected static function syncPoItemReceivedQty(GoodsReceipt $goodsReceipt): void
     {
-        if ($goodsReceipt->po_type !== 'supplier' || ! $goodsReceipt->po_id) {
+        if (! $goodsReceipt->po_id) {
             return;
         }
 
@@ -81,9 +88,9 @@ class GoodsReceipt extends Model
         $po->syncStatusFromItems();
     }
 
-    public function po(): MorphTo
+    public function po(): BelongsTo
     {
-        return $this->morphTo(__FUNCTION__, 'po_type', 'po_id');
+        return $this->belongsTo(PoSupplier::class, 'po_id');
     }
 
     public function warehouse(): BelongsTo

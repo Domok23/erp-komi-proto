@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Forms\Components\NullableToggle;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
@@ -27,7 +28,6 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use App\Forms\Components\NullableToggle;
 use Illuminate\Support\HtmlString;
 
 class MerchandisePlanningResource extends Resource

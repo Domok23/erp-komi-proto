@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ChartOfAccounts\Schemas;
 
 use Filament\Forms;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class ChartOfAccountForm
@@ -11,7 +12,7 @@ class ChartOfAccountForm
     {
         return $schema
             ->components([
-                \Filament\Schemas\Components\Section::make('Account Details')
+                Section::make('Account Details')
                     ->columnSpanFull()
                     ->schema([
                         Forms\Components\TextInput::make('account_code')

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\BelongsToCompany;
 use App\Services\InventoryService;
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -45,7 +45,7 @@ class Shipment extends Model
     protected static function booted(): void
     {
         static::updated(function (Shipment $shipment) {
-            if (in_array($shipment->status, ['in_transit', 'delivered']) && !in_array($shipment->getOriginal('status'), ['in_transit', 'delivered'])) {
+            if (in_array($shipment->status, ['in_transit', 'delivered']) && ! in_array($shipment->getOriginal('status'), ['in_transit', 'delivered'])) {
                 InventoryService::processShipment($shipment);
             } elseif ($shipment->status === 'cancelled' && $shipment->getOriginal('status') !== 'cancelled') {
                 InventoryService::reverseShipment($shipment);

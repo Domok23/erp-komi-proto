@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\SalesOrderResource\Pages\CreateSalesOrder;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
@@ -14,12 +15,12 @@ use App\Models\Payment;
 use App\Models\Project;
 use App\Models\RdDesign;
 use App\Models\SalesOrder;
+use App\Models\Supplier;
 use App\Services\CodeGenerator;
 use App\Services\CostingCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Livewire\Livewire;
-use App\Filament\Resources\SalesOrderResource\Pages\CreateSalesOrder;
+use Tests\TestCase;
 
 class ErgonomicFixesTest extends TestCase
 {
@@ -277,7 +278,7 @@ class ErgonomicFixesTest extends TestCase
      */
     public function test_merchandise_planning_autofills_supplier_id_from_bom(): void
     {
-        $supplier = \App\Models\Supplier::create([
+        $supplier = Supplier::create([
             'company_id' => $this->company->id,
             'name' => 'Test Supplier',
             'code' => 'SUP-TEST',

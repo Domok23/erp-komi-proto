@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Bom;
 use App\Models\Company;
 use App\Models\RdDesign;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class BomValidationTest extends TestCase
@@ -14,6 +14,7 @@ class BomValidationTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private RdDesign $design;
 
     protected function setUp(): void

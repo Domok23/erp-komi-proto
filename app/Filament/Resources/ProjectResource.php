@@ -399,6 +399,7 @@ class ProjectResource extends Resource
                     ];
                 }
                 $set('bom_items', $items);
+
                 return;
             }
         }

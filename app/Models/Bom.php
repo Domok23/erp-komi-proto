@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\BelongsToCompany;
 use App\Services\CodeGenerator;
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,4 +47,3 @@ class Bom extends Model
         return $this->hasMany(BomItem::class, 'bom_id');
     }
 }
-
