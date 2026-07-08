@@ -24,6 +24,8 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class InventoryMovementResource extends Resource
 {
@@ -37,6 +39,8 @@ class InventoryMovementResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $isDisabled = fn ($record) => $record && $record->reference_type !== null;
+
         return $schema->schema([
             Section::make('Movement Details')
                 ->columnSpanFull()
@@ -53,9 +57,23 @@ class InventoryMovementResource extends Resource
                             'transfer_in' => 'Transfer In',
                             'transfer_out' => 'Transfer Out',
                         ])
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->disabled($isDisabled),
+                    Forms\Components\Select::make('direction')
+                        ->options([
+                            'addition' => 'Addition (+)',
+                            'subtraction' => 'Subtraction (-)',
+                        ])
+                        ->default('addition')
+                        ->required(fn (Get $get) => $get('type') === 'adjustment')
+                        ->visible(fn (Get $get) => $get('type') === 'adjustment')
+                        ->live()
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->disabled($isDisabled),
                     Forms\Components\Select::make('inventory_stock_id')
-                        ->label(new HtmlString('Inventory Stock <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Inventory Stock ID <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->relationship('inventoryStock', 'id')
                         ->disabled()
                         ->dehydrated()
@@ -72,37 +90,98 @@ class InventoryMovementResource extends Resource
                         })
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->disabled($isDisabled),
                     Forms\Components\TextInput::make('quantity')
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0.01)
                         ->default(0)
-                        ->required(),
+                        ->required()
+                        ->helperText(fn (Get $get) => $get('type') === 'adjustment'
+                            ? 'Adjusts inventory stock up (addition) or down (subtraction) based on Direction.'
+                            : null)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->disabled($isDisabled),
                     Forms\Components\TextInput::make('before_qty')
                         ->label(new HtmlString('Before Qty <span title="Jumlah stok fisik barang di gudang sesaat sebelum transaksi ini diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->disabled()
                         ->dehydrated()
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                        ->dehydrateStateUsing(fn ($state) => is_numeric($state) ? str_replace(',', '', $state) : null),
                     Forms\Components\TextInput::make('after_qty')
                         ->label(new HtmlString('After Qty <span title="Jumlah stok fisik barang di gudang setelah transaksi ini selesai diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->disabled()
                         ->dehydrated()
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                        ->dehydrateStateUsing(fn ($state) => is_numeric($state) ? str_replace(',', '', $state) : null),
                     Forms\Components\TextInput::make('reference_type')
                         ->label(new HtmlString('Reference Type <span title="Nama modul/dokumen asal yang memicu terjadinya pergerakan stok ini" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                        ->maxLength(100),
+                        ->maxLength(100)
+                        ->hiddenOn('create')
+                        ->disabled(),
                     Forms\Components\TextInput::make('reference_id')
                         ->label(new HtmlString('Reference ID <span title="Nomor ID dari dokumen pemicu yang tercatat di Reference Type" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                        ->numeric(),
+                        ->numeric()
+                        ->hiddenOn('create')
+                        ->disabled(),
                     Forms\Components\Textarea::make('notes')
                         ->maxLength(65535)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->disabled($isDisabled),
                 ])
                 ->columns(2),
         ]);
+    }
+
+    public static function updateStockDetails(Get $get, Set $set): void
+    {
+        $materialId = $get('material_id');
+        $type = $get('type');
+        $direction = $get('direction') ?? 'addition';
+        $quantity = floatval($get('quantity') ?? 0);
+
+        if (! $materialId) {
+            $set('inventory_stock_id', null);
+            $set('before_qty', 0);
+            $set('after_qty', 0);
+            return;
+        }
+
+        $companyId = CompanyContext::getCompanyId() ?? 1;
+
+        $warehouseId = \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')
+            ->where('code', '=', 'WH-MAIN', 'and')
+            ->first()?->id ?? \App\Models\Warehouse::where('company_id', '=', $companyId, 'and')->first()?->id;
+
+        if (! $warehouseId) {
+            $set('inventory_stock_id', null);
+            $set('before_qty', 0);
+            $set('after_qty', 0);
+            return;
+        }
+
+        $stock = InventoryStock::where('company_id', $companyId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('material_id', $materialId)
+            ->first();
+
+        $beforeQty = $stock ? floatval($stock->quantity) : 0;
+        $set('inventory_stock_id', $stock?->id);
+        $set('before_qty', $beforeQty);
+
+        $isSubtraction = false;
+        if ($type === 'adjustment') {
+            $isSubtraction = $direction === 'subtraction';
+        } else {
+            $isSubtraction = in_array($type, ['production_out', 'shipment', 'return_out', 'transfer_out']);
+        }
+
+        $afterQty = $isSubtraction ? ($beforeQty - $quantity) : ($beforeQty + $quantity);
+        $set('after_qty', $afterQty);
     }
 
     public static function table(Table $table): Table
@@ -173,7 +252,8 @@ class InventoryMovementResource extends Resource
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->disabled(fn ($record) => $record && $record->reference_type !== null),
                 ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);

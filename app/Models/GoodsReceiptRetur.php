@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,27 @@ class GoodsReceiptRetur extends Model
         'status',
         'notes',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (GoodsReceiptRetur $retur) {
+            if ($retur->status === 'verified' && $retur->getOriginal('status') !== 'verified') {
+                InventoryService::processRetur($retur);
+            }
+        });
+
+        static::created(function (GoodsReceiptRetur $retur) {
+            if ($retur->status === 'verified') {
+                InventoryService::processRetur($retur);
+            }
+        });
+
+        static::deleted(function (GoodsReceiptRetur $retur) {
+            if ($retur->status === 'verified') {
+                InventoryService::reverseRetur($retur);
+            }
+        });
+    }
 
     public function goodsReceipt(): BelongsTo
     {
