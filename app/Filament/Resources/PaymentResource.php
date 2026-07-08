@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class PaymentResource extends Resource
 {
@@ -60,13 +61,45 @@ class PaymentResource extends Resource
                         ->options(function (callable $get) {
                             $type = $get('invoice_type');
                             if ($type === 'purchase') {
-                                return InvoicePurchase::pluck('invoice_number', 'id');
+                                return InvoicePurchase::all()->mapWithKeys(function ($inv) {
+                                    $url = InvoicePurchaseResource::getUrl('edit', ['record' => $inv]);
+
+                                    return [$inv->id => '<a href="'.$url.'" class="ref-link">'.$inv->invoice_number.'</a>'];
+                                })->toArray();
                             } elseif ($type === 'sales') {
-                                return InvoiceSales::pluck('invoice_number', 'id');
+                                return InvoiceSales::all()->mapWithKeys(function ($inv) {
+                                    $url = InvoiceSalesResource::getUrl('edit', ['record' => $inv]);
+
+                                    return [$inv->id => '<a href="'.$url.'" class="ref-link">'.$inv->invoice_number.'</a>'];
+                                })->toArray();
                             }
 
                             return [];
                         })
+                        ->getOptionLabelUsing(function ($value, callable $get) {
+                            if (! $value) {
+                                return null;
+                            }
+                            $type = $get('invoice_type');
+                            if ($type === 'purchase') {
+                                $inv = InvoicePurchase::find($value);
+                                if ($inv) {
+                                    $url = InvoicePurchaseResource::getUrl('edit', ['record' => $inv]);
+
+                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$inv->invoice_number.'</a>');
+                                }
+                            } elseif ($type === 'sales') {
+                                $inv = InvoiceSales::find($value);
+                                if ($inv) {
+                                    $url = InvoiceSalesResource::getUrl('edit', ['record' => $inv]);
+
+                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$inv->invoice_number.'</a>');
+                                }
+                            }
+
+                            return $value;
+                        })
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required(),
