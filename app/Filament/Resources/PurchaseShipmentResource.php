@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class PurchaseShipmentResource extends Resource
 {
@@ -54,15 +55,63 @@ class PurchaseShipmentResource extends Resource
                         ->options(function (callable $get) {
                             $type = $get('po_type');
                             if ($type === 'supplier') {
-                                return PoSupplier::pluck('po_number', 'id');
+                                return PoSupplier::all()->mapWithKeys(function ($po) {
+                                    $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
+
+                                    return [$po->id => '<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>'];
+                                })->toArray();
                             } elseif ($type === 'subcon') {
-                                return PoSubcon::pluck('po_number', 'id');
+                                return PoSubcon::all()->mapWithKeys(function ($po) {
+                                    $url = PoSubconResource::getUrl('edit', ['record' => $po]);
+
+                                    return [$po->id => '<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>'];
+                                })->toArray();
                             }
 
                             return [];
                         })
+                        ->getOptionLabelUsing(function ($value, callable $get) {
+                            if (! $value) {
+                                return null;
+                            }
+                            $type = $get('po_type');
+                            if ($type === 'supplier') {
+                                $po = PoSupplier::find($value);
+                                if ($po) {
+                                    $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
+
+                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>');
+                                }
+                            } elseif ($type === 'subcon') {
+                                $po = PoSubcon::find($value);
+                                if ($po) {
+                                    $url = PoSubconResource::getUrl('edit', ['record' => $po]);
+
+                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>');
+                                }
+                            }
+
+                            return $value;
+                        })
+                        ->allowHtml()
                         ->required()
-                        ->reactive(),
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                            if (! $state) {
+                                $set('shipping_cost', 0);
+
+                                return;
+                            }
+                            $type = $get('po_type');
+                            if ($type === 'subcon') {
+                                $po = PoSubcon::find($state);
+                                if ($po) {
+                                    $set('shipping_cost', $po->shipping_cost ?? 0);
+                                }
+                            } else {
+                                $set('shipping_cost', 0);
+                            }
+                        }),
                     Forms\Components\DatePicker::make('shipment_date')
                         ->default(now()->toDateString())
                         ->required(),
