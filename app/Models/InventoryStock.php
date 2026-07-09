@@ -6,6 +6,7 @@ use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InventoryStock extends Model
 {
@@ -52,5 +53,12 @@ class InventoryStock extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class, 'material_id');
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(MaterialReservation::class, 'material_id', 'material_id')
+            ->where('company_id', $this->company_id)
+            ->where('warehouse_id', $this->warehouse_id);
     }
 }

@@ -169,7 +169,15 @@ class SubconMaterialInResource extends Resource
                                 ->visible(fn (callable $get) => $get('item_type') === 'processed')
                                 ->maxLength(255),
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
+                                ->relationship(
+                                    'material',
+                                    'name',
+                                    fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
+                                        $companyId = CompanyContext::getCompanyId();
+                                        $q->where('company_id', $companyId)
+                                          ->where('quantity', '>', 0);
+                                    })
+                                )
                                 ->getOptionLabelFromRecordUsing(function ($record) {
                                     $companyId = CompanyContext::getCompanyId();
                                     $stock = InventoryStock::where('material_id', $record->id)

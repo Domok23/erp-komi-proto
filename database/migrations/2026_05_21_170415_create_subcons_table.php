@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->string('code')->unique();
             $table->string('name');
-            $table->enum('service_type', ['embroidery', 'printing', 'sewing', 'cutting', 'finishing', 'other']);
+            $table->enum('service_type', ['assembly', 'processing', 'finishing', 'quality_control', 'embroidery', 'printing', 'sewing', 'cutting', 'other']);
             $table->string('contact_person')->nullable();
             $table->text('address')->nullable();
             $table->string('phone')->nullable();

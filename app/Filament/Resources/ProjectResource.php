@@ -271,7 +271,6 @@ class ProjectResource extends Resource
                         ->columnSpanFull(),
                 ])
                 ->columns(2),
-
             Section::make('Approval Details')
                 ->columnSpanFull()
                 ->schema([

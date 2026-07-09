@@ -74,7 +74,15 @@ class SalesOrderResource extends Resource
                             }
                         }),
                     Forms\Components\Select::make('costing_id')
-                        ->relationship('costing', 'version')
+                        ->relationship(
+                            'costing',
+                            'version',
+                            fn ($query, Get $get) => $query->when(
+                                $get('project_id'),
+                                fn ($q) => $q->where('project_id', $get('project_id'))->where('status', 'approved'),
+                                fn ($q) => $q->where('status', 'approved')
+                            )
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CostingResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->version.'</a>'))
                         ->allowHtml()
                         ->searchable()

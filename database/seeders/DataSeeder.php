@@ -71,21 +71,27 @@ class DataSeeder extends Seeder
         }
 
         // 1. Seed Warehouses
-        $whMain = Warehouse::create([
-            'company_id' => $kei->id,
-            'code' => 'WH-MAIN',
-            'name' => 'Main Warehouse',
-            'address' => 'Bandung Main Office',
-            'is_active' => true,
-        ]);
+        $whMain = Warehouse::where('code', 'WH-MAIN')->where('company_id', $kei->id)->first();
+        if (!$whMain) {
+            $whMain = Warehouse::create([
+                'company_id' => $kei->id,
+                'code' => 'WH-MAIN',
+                'name' => 'Main Warehouse',
+                'address' => 'Bandung Main Office',
+                'is_active' => true,
+            ]);
+        }
 
-        $whBranch = Warehouse::create([
-            'company_id' => $kei->id,
-            'code' => 'WH-BRANCH',
-            'name' => 'Branch Warehouse',
-            'address' => 'Bandung Branch Office',
-            'is_active' => true,
-        ]);
+        $whBranch = Warehouse::where('code', 'WH-BRANCH')->where('company_id', $kei->id)->first();
+        if (!$whBranch) {
+            $whBranch = Warehouse::create([
+                'company_id' => $kei->id,
+                'code' => 'WH-BRANCH',
+                'name' => 'Branch Warehouse',
+                'address' => 'Bandung Branch Office',
+                'is_active' => true,
+            ]);
+        }
 
         $whMainKtk = Warehouse::create([
             'company_id' => $ktk->id,
@@ -104,90 +110,114 @@ class DataSeeder extends Seeder
         ]);
 
         // 2. Seed Suppliers
-        $supplierYKK = Supplier::create([
-            'company_id' => $kei->id,
-            'code' => 'SUP-001',
-            'name' => 'PT Aksesoris Utama',
-            'contact_person' => fake()->name(),
-            'address' => fake()->address(),
-            'is_active' => true,
-        ]);
+        $supplierYKK = Supplier::where('code', 'SUP-001')->where('company_id', $kei->id)->first();
+        if (!$supplierYKK) {
+            $supplierYKK = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-001',
+                'name' => 'PT Aksesoris Utama',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
 
-        $supplierDuraflex = Supplier::create([
-            'company_id' => $kei->id,
-            'code' => 'SUP-002',
-            'name' => 'PT Supplier Inc',
-            'contact_person' => fake()->name(),
-            'address' => fake()->address(),
-            'is_active' => true,
-        ]);
+        $supplierDuraflex = Supplier::where('code', 'SUP-002')->where('company_id', $kei->id)->first();
+        if (!$supplierDuraflex) {
+            $supplierDuraflex = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-002',
+                'name' => 'PT Supplier Inc',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
 
         // 3. Seed Subcons
-        $subconJaya = Subcon::create([
-            'company_id' => $kei->id,
-            'code' => 'SUB-001',
-            'name' => 'CV Bordir Indonesia',
-            'service_type' => 'embroidery',
-            'contact_person' => fake()->name(),
-            'address' => fake()->address(),
-            'is_active' => true,
-        ]);
+        $subconJaya = Subcon::where('code', 'SUB-001')->where('company_id', $kei->id)->first();
+        if (!$subconJaya) {
+            $subconJaya = Subcon::create([
+                'company_id' => $kei->id,
+                'code' => 'SUB-001',
+                'name' => 'CV Bordir Indonesia',
+                'service_type' => 'embroidery',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
 
         // 4. Seed Customers
-        $customerVera = Customer::create([
-            'company_id' => $kei->id,
-            'code' => 'CUS-001',
-            'name' => 'PT Nike inc',
-            'contact_person' => fake()->name(),
-            'address' => fake()->address(),
-            'payment_terms' => 'net_60',
-            'is_active' => true,
-        ]);
+        $customerVera = Customer::where('code', 'CUS-001')->where('company_id', $kei->id)->first();
+        if (!$customerVera) {
+            $customerVera = Customer::create([
+                'company_id' => $kei->id,
+                'code' => 'CUS-001',
+                'name' => 'PT Nike inc',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'payment_terms' => 'net_60',
+                'is_active' => true,
+            ]);
+        }
 
         // 5. Seed Materials
-        $matFabric = Material::create([
-            'code' => 'FAB-001',
-            'name' => 'Kain Polyester Hitam',
-            'category' => 'fabric',
-            'unit' => 'yard',
-            'stock' => 1000,
-            'min_stock' => 100,
-            'price' => 38000,
-            'supplier_id' => $supplierYKK->id,
-        ]);
+        $matFabric = Material::where('code', 'FAB-001')->first();
+        if (!$matFabric) {
+            $matFabric = Material::create([
+                'code' => 'FAB-001',
+                'name' => 'Kain Polyester Hitam',
+                'category' => 'fabric',
+                'unit' => 'yard',
+                'stock' => 1000,
+                'min_stock' => 100,
+                'price' => 38000,
+                'supplier_id' => $supplierYKK->id,
+            ]);
+        }
 
-        $matZipper = Material::create([
-            'code' => 'ZIP-001',
-            'name' => 'Metal Zipper',
-            'category' => 'zipper',
-            'unit' => 'pcs',
-            'stock' => 5000,
-            'min_stock' => 500,
-            'price' => 7500,
-            'supplier_id' => $supplierYKK->id,
-        ]);
+        $matZipper = Material::where('code', 'ZIP-001')->first();
+        if (!$matZipper) {
+            $matZipper = Material::create([
+                'code' => 'ZIP-001',
+                'name' => 'Metal Zipper',
+                'category' => 'zipper',
+                'unit' => 'pcs',
+                'stock' => 5000,
+                'min_stock' => 500,
+                'price' => 7500,
+                'supplier_id' => $supplierYKK->id,
+            ]);
+        }
 
-        $matWebbing = Material::create([
-            'code' => 'ACC-003',
-            'name' => 'Kancing Premium',
-            'category' => 'other',
-            'unit' => 'pcs',
-            'stock' => 2000,
-            'min_stock' => 200,
-            'price' => 2500,
-            'supplier_id' => $supplierDuraflex->id,
-        ]);
+        $matWebbing = Material::where('code', 'ACC-003')->first();
+        if (!$matWebbing) {
+            $matWebbing = Material::create([
+                'code' => 'ACC-003',
+                'name' => 'Kancing Premium',
+                'category' => 'other',
+                'unit' => 'pcs',
+                'stock' => 2000,
+                'min_stock' => 200,
+                'price' => 2500,
+                'supplier_id' => $supplierDuraflex->id,
+            ]);
+        }
 
-        $matFabricEmbroidered = Material::create([
-            'code' => 'FAB-001-EMB',
-            'name' => 'Kain Polyester Merah (Embroidered)',
-            'category' => 'semi_finished',
-            'unit' => 'pcs',
-            'stock' => 0,
-            'min_stock' => 0,
-            'price' => 45000,
-            'description' => 'Fabric after embroidery processing at subcontractor',
-        ]);
+        $matFabricEmbroidered = Material::where('code', 'FAB-001-EMB')->first();
+        if (!$matFabricEmbroidered) {
+            $matFabricEmbroidered = Material::create([
+                'code' => 'FAB-001-EMB',
+                'name' => 'Kain Polyester Merah (Embroidered)',
+                'category' => 'semi_finished',
+                'unit' => 'pcs',
+                'stock' => 0,
+                'min_stock' => 0,
+                'price' => 45000,
+                'description' => 'Fabric after embroidery processing at subcontractor',
+            ]);
+        }
 
         // 6. Seed RdDesigns
         $designBackpack = RdDesign::create([
@@ -217,7 +247,7 @@ class DataSeeder extends Seeder
             'material_id' => $matFabric->id,
             'category' => 'main_material',
             'quantity_per_unit' => 1.5,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'wastage_percent' => 5,
             'is_from_rnd' => true,
         ]);
@@ -225,7 +255,7 @@ class DataSeeder extends Seeder
         BomItem::create([
             'bom_id' => $bomBackpack->id,
             'material_id' => $matZipper->id,
-            'category' => 'hardware',
+            'category' => 'components',
             'quantity_per_unit' => 3,
             'unit' => 'pcs',
             'wastage_percent' => 2,
@@ -273,7 +303,7 @@ class DataSeeder extends Seeder
             'material_id' => $matFabric->id,
             'supplier_id' => $supplierYKK->id,
             'planned_qty' => 1500,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'unit_price' => 38000,
             'total_price' => 57000000,
             'is_subcon' => false,
@@ -383,9 +413,9 @@ class DataSeeder extends Seeder
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
             'material_id' => $matFabric->id,
-            'description' => '600D Recycled Polyester Dobby',
+            'description' => 'Steel Sheet 2mm',
             'qty' => 1500,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'unit_price' => 38000,
             'total_price' => 57000000,
             'qty_received' => 0,
@@ -419,7 +449,7 @@ class DataSeeder extends Seeder
 
         PoSubconItem::create([
             'po_subcon_id' => $poSubcon->id,
-            'description' => 'Logo Embroidery Service',
+            'description' => 'Assembly Service',
             'qty' => 1000,
             'unit_price' => 15000,
             'total_price' => 15000000,
@@ -459,7 +489,7 @@ class DataSeeder extends Seeder
             'qty_ordered' => 1500,
             'qty_received' => 1500,
             'qty_rejected' => 0,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         GoodsReceiptItem::create([
@@ -493,7 +523,7 @@ class DataSeeder extends Seeder
             'subcon_material_out_id' => $subconOut->id,
             'material_id' => $matFabric->id,
             'qty_sent' => 200,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         // 17. Seed Subcon Material IN
@@ -507,26 +537,26 @@ class DataSeeder extends Seeder
             'status' => 'draft',
         ]);
 
-        // Processed goods (Embroidered Panel) received
+        // Processed goods (Assembly) received
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => null,
-            'description' => 'Logo Embroidery Service',
+            'description' => 'Assembly Service',
             'item_type' => 'processed',
             'qty_received' => 195,
             'qty_rejected' => 2,
             'unit' => 'pcs',
         ]);
 
-        // Leftover raw material (Fabric) returned
+        // Leftover raw material (Steel) returned
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => $matFabric->id,
             'description' => null,
             'item_type' => 'raw_return',
-            'qty_received' => 3, // 3 yards leftover returned
+            'qty_received' => 3, // 3 kg leftover returned
             'qty_rejected' => 0,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         // 18. Seed Invoices & Payments
@@ -555,7 +585,7 @@ class DataSeeder extends Seeder
             'quantity' => 1000,
             'reserved_qty' => 0,
             'available_qty' => 1000,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'min_stock' => 100,
             'location' => 'Aisle A-1',
         ]);
@@ -622,11 +652,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'cutting',
+            'task_type' => 'preparation',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Cutting Team A',
+            'assigned_to' => 'Preparation Team A',
         ]);
 
         $jobOrderSewing = JobOrder::create([
@@ -634,11 +664,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'sewing',
+            'task_type' => 'assembly',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Sewing Team B',
+            'assigned_to' => 'Assembly Team B',
         ]);
 
         $jobOrderFinishing = JobOrder::create([
@@ -646,11 +676,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'finishing',
+            'task_type' => 'quality_control',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Finishing Team C',
+            'assigned_to' => 'Quality Control Team C',
         ]);
 
         if ($merchandisingPlanning) {

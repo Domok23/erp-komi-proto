@@ -7,6 +7,7 @@ use App\Models\GoodsReceiptRetur;
 use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
 use App\Models\JobOrder;
+use App\Models\MaterialReservation;
 use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
@@ -187,5 +188,17 @@ class CodeGenerator
         $year = Carbon::now()->year;
 
         return sprintf('BOM-%d-%d-%s', $year, $designId, $version);
+    }
+
+    public static function generateReservationNumber(): string
+    {
+        $year = Carbon::now()->year;
+        $count = MaterialReservation::whereYear('created_at', $year)->count() + 1;
+        do {
+            $number = sprintf('RES-%d-%03d', $year, $count);
+            $count++;
+        } while (MaterialReservation::where('document_number', $number)->exists());
+
+        return $number;
     }
 }
