@@ -5,6 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MaterialResource\Pages;
 use App\Filament\Resources\MaterialResource\RelationManagers;
 use App\Models\Material;
+use App\Models\Supplier;
+use OpenSpout\Reader\XLSX\Reader as XLSXReader;
+use OpenSpout\Writer\XLSX\Writer as XLSXWriter;
+use OpenSpout\Common\Entity\Row;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Illuminate\Support\Facades\Storage;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -141,6 +148,65 @@ class MaterialResource extends Resource
     public static function getNavigationSort(): ?int
     {
         return 6;
+    }
+
+    public static function normalizeCategory(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $cleaned = strtolower(trim(strval($value)));
+
+        $validCategories = [
+            'fabric' => ['fabric'],
+            'zipper' => ['zipper'],
+            'button' => ['button'],
+            'thread' => ['thread'],
+            'handle' => ['handle'],
+            'label' => ['label'],
+            'interlining' => ['interlining'],
+            'semi_finished' => ['semi-finished product', 'semi_finished', 'semi finished', 'semi-finished', 'semi finished product'],
+            'finished' => ['finished product', 'finished', 'finished_product'],
+            'other' => ['other'],
+        ];
+
+        foreach ($validCategories as $key => $mappings) {
+            if ($cleaned === $key || in_array($cleaned, $mappings)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    public static function normalizeDecimal(mixed $value): ?float
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $state = str_replace(' ', '', trim(strval($value)));
+
+        if (preg_match('/^\d{1,3}(\.\d{3})+,\d+$/', $state)) {
+            $state = str_replace('.', '', $state);
+            $state = str_replace(',', '.', $state);
+        } elseif (preg_match('/^\d{1,3}(,\d{3})+\.\d+$/', $state)) {
+            $state = str_replace(',', '', $state);
+        } elseif (str_contains($state, ',') && !str_contains($state, '.')) {
+            $parts = explode(',', $state);
+            if (count($parts) === 2 && strlen($parts[1]) === 3 && (int)$parts[0] > 0) {
+                $state = str_replace(',', '', $state);
+            } else {
+                $state = str_replace(',', '.', $state);
+            }
+        }
+
+        return is_numeric($state) ? (float) $state : null;
     }
 
     public static function getRelations(): array
