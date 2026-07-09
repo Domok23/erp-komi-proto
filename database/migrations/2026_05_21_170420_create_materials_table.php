@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->string('code')->unique();
             $table->string('name');
-            $table->enum('category', ['raw_material', 'components', 'consumables', 'semi_finished', 'finished', 'other']);
+            $table->enum('category', ['raw_material', 'components', 'consumables', 'fabric', 'zipper', 'button', 'thread', 'handle', 'label', 'interlining', 'semi_finished', 'finished', 'other']);
             $table->string('unit')->default('pcs');
             $table->decimal('stock', 15, 2)->default(0);
             $table->decimal('min_stock', 15, 2)->default(0);

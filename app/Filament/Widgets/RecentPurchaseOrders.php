@@ -35,7 +35,7 @@ class RecentPurchaseOrders extends BaseWidget
                     ->sortable(),
                 Tables\Columns\TextColumn::make('grand_total')
                     ->label('Total Amount')
-                    ->numeric()
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('status')
                     ->color(fn (string $state): string => match ($state) {

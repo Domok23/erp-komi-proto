@@ -25,7 +25,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 
@@ -72,7 +72,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 
@@ -106,6 +106,7 @@ class ConsumptionRatesTest extends TestCase
                 'unit' => $rate->unit,
                 'wastage_percent' => $rate->wastage_rate,
                 'notes' => $rate->notes,
+                'is_from_rnd' => true,
             ];
         })->toArray();
 
@@ -116,6 +117,7 @@ class ConsumptionRatesTest extends TestCase
         $this->assertEquals('yard', $items[0]['unit']);
         $this->assertEquals(10, $items[0]['wastage_percent']);
         $this->assertEquals('Test Notes', $items[0]['notes']);
+        $this->assertTrue($items[0]['is_from_rnd']);
     }
 
     public function test_design_cost_estimation_triggers_on_consumption_rate_change(): void
@@ -130,7 +132,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 
@@ -179,5 +181,20 @@ class ConsumptionRatesTest extends TestCase
         // (0 + 33000) * 1.15 * 1.20 = 33000 * 1.15 * 1.20 = 45540
         $this->assertEquals(0, $design->estimated_material_cost);
         $this->assertEquals(45540, $design->estimated_selling_price);
+    }
+
+    public function test_decimal_sanitization(): void
+    {
+        $managerClass = \App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager::class;
+
+        // Test normalizeDecimal with various formats
+        $this->assertEquals(1.5, $managerClass::normalizeDecimal('1.5'));
+        $this->assertEquals(1.5, $managerClass::normalizeDecimal('1,5'));
+        $this->assertEquals(1500.5, $managerClass::normalizeDecimal('1.500,50'));
+        $this->assertEquals(1500.5, $managerClass::normalizeDecimal('1,500.50'));
+        $this->assertEquals(1500.0, $managerClass::normalizeDecimal('1,500'));
+        $this->assertNull($managerClass::normalizeDecimal(''));
+        $this->assertEquals(10.5, $managerClass::normalizeDecimal('10.5'));
+        $this->assertEquals(10.5, $managerClass::normalizeDecimal('10,5'));
     }
 }

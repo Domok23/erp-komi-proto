@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\ChartOfAccount;
 use App\Models\Company;
 use App\Models\GeneralLedger;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class GeneralLedgerSeeder extends Seeder
@@ -17,8 +16,9 @@ class GeneralLedgerSeeder extends Seeder
     {
         $company = Company::first();
 
-        if (!$company) {
+        if (! $company) {
             $this->command->warn('No company found. Skipping General Ledger seeder.');
+
             return;
         }
 
@@ -27,8 +27,8 @@ class GeneralLedgerSeeder extends Seeder
         // Sample entries for January 2026
         $entries = [
             [
-                'entry_number' => 'GL-20260101-001',
-                'entry_date' => '2026-01-05',
+                'entry_number' => 'GL-' . now()->subDays(25)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(25)->toDateString(),
                 'description' => 'Sales Revenue - Order SO-2026-001',
                 'debit_account' => 'Accounts Receivable',
                 'credit_account' => 'Sales Revenue',
@@ -38,8 +38,8 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Sales to Customer ABC',
             ],
             [
-                'entry_number' => 'GL-20260102-001',
-                'entry_date' => '2026-01-10',
+                'entry_number' => 'GL-' . now()->subDays(22)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(22)->toDateString(),
                 'description' => 'Material Cost - Purchase PO-SUP-2026-001',
                 'debit_account' => 'Material Cost',
                 'credit_account' => 'Accounts Payable',
@@ -49,9 +49,9 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Raw materials purchase',
             ],
             [
-                'entry_number' => 'GL-20260103-001',
-                'entry_date' => '2026-01-15',
-                'description' => 'Labor Cost - January Wages',
+                'entry_number' => 'GL-' . now()->subDays(18)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(18)->toDateString(),
+                'description' => 'Labor Cost - wages',
                 'debit_account' => 'Labor Cost',
                 'credit_account' => 'Bank BCA',
                 'amount' => 35000000,
@@ -60,8 +60,8 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Monthly salary payment',
             ],
             [
-                'entry_number' => 'GL-20260104-001',
-                'entry_date' => '2026-01-20',
+                'entry_number' => 'GL-' . now()->subDays(15)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(15)->toDateString(),
                 'description' => 'Overhead - Utilities',
                 'debit_account' => 'Utilities',
                 'credit_account' => 'Bank BCA',
@@ -71,9 +71,9 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Electricity and water bills',
             ],
             [
-                'entry_number' => 'GL-20260105-001',
-                'entry_date' => '2026-01-25',
-                'description' => 'Shipping Cost - Export to US',
+                'entry_number' => 'GL-' . now()->subDays(12)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(12)->toDateString(),
+                'description' => 'Shipping Cost - Export',
                 'debit_account' => 'Shipping Cost',
                 'credit_account' => 'Cash',
                 'amount' => 12000000,
@@ -82,9 +82,9 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'International shipping',
             ],
             [
-                'entry_number' => 'GL-20260106-001',
-                'entry_date' => '2026-01-28',
-                'description' => 'Rent Payment - February',
+                'entry_number' => 'GL-' . now()->subDays(8)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(8)->toDateString(),
+                'description' => 'Rent Payment',
                 'debit_account' => 'Rent',
                 'credit_account' => 'Bank BCA',
                 'amount' => 25000000,
@@ -93,8 +93,8 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Monthly rent',
             ],
             [
-                'entry_number' => 'GL-20260107-001',
-                'entry_date' => '2026-01-30',
+                'entry_number' => 'GL-' . now()->subDays(4)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(4)->toDateString(),
                 'description' => 'Sales Revenue - Order SO-2026-002',
                 'debit_account' => 'Accounts Receivable',
                 'credit_account' => 'Sales Revenue',
@@ -104,8 +104,8 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Sales to Customer XYZ',
             ],
             [
-                'entry_number' => 'GL-20260108-001',
-                'entry_date' => '2026-01-31',
+                'entry_number' => 'GL-' . now()->subDays(2)->format('Ymd') . '-001',
+                'entry_date' => now()->subDays(2)->toDateString(),
                 'description' => 'Material Cost - Purchase PO-SUP-2026-002',
                 'debit_account' => 'Material Cost',
                 'credit_account' => 'Accounts Payable',
@@ -120,8 +120,9 @@ class GeneralLedgerSeeder extends Seeder
             $debitAccount = $accounts->get($entry['debit_account']);
             $creditAccount = $accounts->get($entry['credit_account']);
 
-            if (!$debitAccount || !$creditAccount) {
+            if (! $debitAccount || ! $creditAccount) {
                 $this->command->warn("Skipping entry {$entry['entry_number']}: Missing accounts");
+
                 continue;
             }
 

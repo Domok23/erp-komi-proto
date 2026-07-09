@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class RdDesignResource extends Resource
 {
@@ -31,46 +32,52 @@ class RdDesignResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('code')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(50),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\Select::make('bag_type')
-                ->options([
-                    'handbag' => 'Handbag',
-                    'sports_bag' => 'Sports Bag',
-                    'backpack' => 'Backpack',
-                    'messenger' => 'Messenger Bag',
-                    'tote' => 'Tote Bag',
-                    'other' => 'Other',
+            Section::make('Design Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\Select::make('product_type')
+                        ->options([
+                            'jacket' => 'Jacket',
+                            'shirt' => 'Shirt',
+                            'trousers' => 'Trousers',
+                            'dress' => 'Dress',
+                            'tshirt' => 'T-Shirt',
+                            'other' => 'Other',
+                        ])
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'approved' => 'Approved',
+                            'archived' => 'Archived',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\TextInput::make('brand')
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('size_range')
+                        ->maxLength(255),
+                    Forms\Components\FileUpload::make('reference_image')
+                        ->directory('designs')
+                        ->image(),
+                    Forms\Components\FileUpload::make('tech_pack')
+                        ->directory('techpacks'),
+                    Forms\Components\Textarea::make('description')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->required(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'approved' => 'Approved',
-                    'archived' => 'Archived',
-                ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\TextInput::make('brand')
-                ->maxLength(255),
-            Forms\Components\TextInput::make('size_range')
-                ->maxLength(255),
-            Forms\Components\FileUpload::make('reference_image')
-                ->directory('designs')
-                ->image(),
-            Forms\Components\FileUpload::make('tech_pack')
-                ->directory('techpacks'),
-            Forms\Components\Textarea::make('description')
-                ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
+
             Section::make('Cost Estimations (Read-Only)')
                 ->columnSpanFull()
                 ->schema([
@@ -79,17 +86,17 @@ class RdDesignResource extends Resource
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_mp_cost')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_overhead_pct')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_profit_margin_pct')
-                        ->label(new \Illuminate\Support\HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
@@ -107,7 +114,7 @@ class RdDesignResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('bag_type')->sortable(),
+            Tables\Columns\TextColumn::make('product_type')->sortable(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'draft' => 'gray',
@@ -125,12 +132,12 @@ class RdDesignResource extends Resource
                     'approved' => 'Approved',
                     'archived' => 'Archived',
                 ]),
-                SelectFilter::make('bag_type')->options([
-                    'handbag' => 'Handbag',
-                    'sports_bag' => 'Sports Bag',
-                    'backpack' => 'Backpack',
-                    'messenger' => 'Messenger Bag',
-                    'tote' => 'Tote Bag',
+                SelectFilter::make('product_type')->options([
+                    'jacket' => 'Jacket',
+                    'shirt' => 'Shirt',
+                    'trousers' => 'Trousers',
+                    'dress' => 'Dress',
+                    'tshirt' => 'T-Shirt',
                     'other' => 'Other',
                 ]),
             ])

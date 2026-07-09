@@ -109,6 +109,7 @@ class CodeGenerator
     {
         $year = Carbon::now()->year;
         $count = ProductionOrder::whereYear('created_at', $year)->count() + 1;
+
         return sprintf('PO-%d-%03d', $year, $count);
     }
 
@@ -116,6 +117,7 @@ class CodeGenerator
     {
         $year = Carbon::now()->year;
         $count = QcInspection::whereYear('created_at', $year)->count() + 1;
+
         return sprintf('QC-%d-%03d', $year, $count);
     }
 
@@ -123,6 +125,7 @@ class CodeGenerator
     {
         $year = Carbon::now()->year;
         $count = JobOrder::whereYear('created_at', $year)->count() + 1;
+
         return sprintf('JO-%d-%03d', $year, $count);
     }
 
@@ -178,6 +181,13 @@ class CodeGenerator
         } while (Payment::where('payment_number', $number)->exists());
 
         return $number;
+    }
+
+    public static function generateBOMNumber(int $designId, string $version): string
+    {
+        $year = Carbon::now()->year;
+
+        return sprintf('BOM-%d-%d-%s', $year, $designId, $version);
     }
 
     public static function generateReservationNumber(): string

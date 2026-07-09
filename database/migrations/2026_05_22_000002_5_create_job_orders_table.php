@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('production_order_id')->constrained('production_orders')->onDelete('cascade');
             $table->foreignId('merchandising_planning_id')->constrained('merchandise_plannings')->onDelete('cascade')->nullable();
             $table->string('job_order_number')->unique();
-            $table->enum('task_type', ['preparation', 'assembly', 'finishing', 'quality_control', 'packing']);
+            $table->enum('task_type', ['preparation', 'assembly', 'finishing', 'quality_control', 'packing', 'cutting', 'sewing', 'qc']);
             $table->integer('planned_qty')->default(0);
             $table->integer('completed_qty')->default(0);
             $table->enum('status', ['pending', 'in_progress', 'completed', 'cancelled'])->default('pending');

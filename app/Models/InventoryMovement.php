@@ -14,9 +14,15 @@ class InventoryMovement extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (InventoryMovement $movement) {
+            if ($movement->type !== 'adjustment' && floatval($movement->quantity) < 0) {
+                throw new \InvalidArgumentException('Quantity for non-adjustment movements must be positive.');
+            }
+        });
+
         static::creating(function (InventoryMovement $movement) {
-            // Only perform auto-calculations and stock updates if before_qty/after_qty are null (meaning it's a manual creation)
-            if ($movement->before_qty === null || $movement->after_qty === null) {
+            // Only perform auto-calculations and stock updates if it's a manual creation (reference_type is null) or if before/after qty are not set
+            if ($movement->reference_type === null || $movement->before_qty === null || $movement->after_qty === null) {
                 // If inventory_stock_id is null, find or create it
                 if ($movement->inventory_stock_id === null) {
                     // Find main warehouse or first warehouse of the company

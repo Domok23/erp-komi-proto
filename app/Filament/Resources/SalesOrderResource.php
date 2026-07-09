@@ -24,6 +24,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class SalesOrderResource extends Resource
 {
@@ -38,67 +39,96 @@ class SalesOrderResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('so_number')
-                ->default(fn () => CodeGenerator::generateSONumber())
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'project_code')
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if (! $state) {
-                        return;
-                    }
-                    $project = Project::find($state, ['*']);
-                    if ($project) {
-                        $set('customer_id', $project->customer_id);
-                    }
-                }),
-            Forms\Components\Select::make('costing_id')
-                ->relationship(
-                    'costing',
-                    'version',
-                    fn ($query, Get $get) => $query->when(
-                        $get('project_id'),
-                        fn ($q) => $q->where('project_id', $get('project_id'))->where('status', 'approved'),
-                        fn ($q) => $q->where('status', 'approved')
-                    )
-                )
-                ->searchable()
-                ->preload()
-                ->nullable()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $costing = Costing::find($state, ['*']);
-                    if ($costing) {
-                        $set('unit_price', $costing->selling_price);
-                    }
-                }),
-            Forms\Components\Select::make('customer_id')
-                ->relationship('customer', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\DatePicker::make('order_date')
-                ->default(now()->toDateString())
-                ->required(),
-            Forms\Components\DatePicker::make('delivery_date'),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'confirmed' => 'Confirmed',
-                    'in_production' => 'In Production',
-                    'shipped' => 'Shipped',
-                    'delivered' => 'Delivered',
-                    'cancelled' => 'Cancelled',
+            Section::make('Sales Order Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('so_number')
+                        ->default(fn () => CodeGenerator::generateSONumber())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                            if (! $state) {
+                                $set('customer_id', null);
+                                $set('quantity', 0);
+                                $set('payment_terms', null);
+                                self::recalculateTotals($get, $set);
+
+                                return;
+                            }
+                            $project = Project::with('customer')->find($state);
+                            if ($project) {
+                                $set('customer_id', $project->customer_id);
+                                $set('quantity', $project->target_qty ?? 0);
+                                $set('payment_terms', $project->customer?->payment_terms);
+                                self::recalculateTotals($get, $set);
+                            }
+                        }),
+                    Forms\Components\Select::make('costing_id')
+                        ->relationship(
+                            'costing',
+                            'version',
+                            fn ($query, Get $get) => $query->when(
+                                $get('project_id'),
+                                fn ($q) => $q->where('project_id', $get('project_id'))->where('status', 'approved'),
+                                fn ($q) => $q->where('status', 'approved')
+                            )
+                        )
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CostingResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->version.'</a>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                            if (! $state) {
+                                $set('unit_price', 0);
+                                self::recalculateTotals($get, $set);
+
+                                return;
+                            }
+                            $costing = Costing::find($state, ['*']);
+                            if ($costing) {
+                                $set('unit_price', $costing->selling_price);
+                                self::recalculateTotals($get, $set);
+                            }
+                        }),
+                    Forms\Components\Select::make('customer_id')
+                        ->relationship('customer', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CustomerResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\DatePicker::make('order_date')
+                        ->default(now()->toDateString())
+                        ->required(),
+                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'confirmed' => 'Confirmed',
+                            'in_production' => 'In Production',
+                            'shipped' => 'Shipped',
+                            'delivered' => 'Delivered',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
+                ->columns(2),
 
             Section::make('Quantities & Unit Cost')
                 ->columnSpanFull()
@@ -181,10 +211,6 @@ class SalesOrderResource extends Resource
                         ->default('IDR')
                         ->maxLength(10),
                 ])->columns(2),
-
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
 
             Section::make('Sales Order Items')
                 ->columnSpanFull()
@@ -277,7 +303,7 @@ class SalesOrderResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('so_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.project_code')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('customer.name')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('order_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')

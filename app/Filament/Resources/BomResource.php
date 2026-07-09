@@ -3,10 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BomResource\Pages;
+use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -16,10 +18,13 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class BomResource extends Resource
 {
@@ -34,50 +39,77 @@ class BomResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('design_id')
-                ->relationship('design', 'name')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $rates = ConsumptionRate::where('design_id', $state)->get();
+            Section::make('BOM Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('bom_number')
+                        ->label('BOM Number')
+                        ->placeholder('Generated automatically on selection')
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('design_id')
+                        ->relationship('design', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                            if ($state) {
+                                $rates = ConsumptionRate::where('design_id', $state)->get();
 
-                        $items = $rates->map(function ($rate) {
-                            return [
-                                'material_id' => $rate->material_id,
-                                'category' => 'main_material', // default category
-                                'quantity_per_unit' => $rate->standard_rate,
-                                'unit' => $rate->unit,
-                                'wastage_percent' => $rate->wastage_rate,
-                                'notes' => $rate->notes,
-                            ];
-                        })->toArray();
+                                $items = $rates->map(function ($rate) {
+                                    return [
+                                        'material_id' => $rate->material_id,
+                                        'category' => 'main_material', // default category
+                                        'quantity_per_unit' => $rate->standard_rate,
+                                        'unit' => $rate->unit,
+                                        'wastage_percent' => $rate->wastage_rate,
+                                        'notes' => $rate->notes,
+                                        'is_from_rnd' => true,
+                                    ];
+                                })->toArray();
 
-                        $set('items', $items);
-                    } else {
-                        $set('items', []);
-                    }
-                }),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\TextInput::make('version')
-                ->default('1.0')
-                ->required()
-                ->maxLength(20),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'draft' => 'Draft',
-                    'active' => 'Active',
-                    'discontinued' => 'Discontinued',
+                                $set('items', $items);
+                            } else {
+                                $set('items', []);
+                            }
+
+                            $version = $get('version') ?: '1.0';
+                            $set('bom_number', $state ? CodeGenerator::generateBOMNumber((int) $state, $version) : '');
+                        }),
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('version')
+                        ->default('1.0')
+                        ->required()
+                        ->maxLength(20)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                            $designId = $get('design_id');
+                            $set('bom_number', $designId ? CodeGenerator::generateBOMNumber((int) $designId, $state) : '');
+                        })
+                        ->unique(
+                            table: 'boms',
+                            column: 'version',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
+                        ),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'active' => 'Active',
+                            'discontinued' => 'Discontinued',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('draft')
-                ->required(),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
 
             Section::make('BOM Items')
                 ->columnSpanFull()
@@ -104,7 +136,9 @@ class BomResource extends Resource
                                     if ($material) {
                                         $set('unit', $material->unit);
                                     }
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\Select::make('category')
                                 ->options([
                                     'main_material' => 'Main Material',
@@ -112,23 +146,43 @@ class BomResource extends Resource
                                     'trim' => 'Trim',
                                     'packaging' => 'Packaging',
                                 ])
-                                ->required(),
+                                ->required()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
                                 ->numeric()
-                                ->required(),
+                                ->step(0.0001)
+                                ->required()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('unit')
                                 ->default('pcs')
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
                                 ->numeric()
+                                ->step(0.01)
                                 ->default(0)
-                                ->suffix('%'),
-                            Forms\Components\TextInput::make('notes'),
+                                ->suffix('%')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('notes')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            NullableToggle::make('is_from_rnd')
+                                ->label('from R&D')
+                                ->default(null)
+                                ->reactive()
+                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
                         ])
                         ->columns(3)
                         ->defaultItems(1)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->itemLabel(function (array $state): ?HtmlString {
+                            return new HtmlString(view('filament.components.rnd-badge', [
+                                'visible' => ! empty($state['is_from_rnd']),
+                            ])->render());
+                        }),
                 ]),
         ]);
     }
@@ -137,6 +191,7 @@ class BomResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
+            Tables\Columns\TextColumn::make('bom_number')->label('BOM Number')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('version')->sortable(),

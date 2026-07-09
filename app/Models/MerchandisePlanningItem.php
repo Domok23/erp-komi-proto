@@ -18,6 +18,7 @@ class MerchandisePlanningItem extends Model
         'total_price',
         'is_subcon',
         'notes',
+        'is_from_rnd',
     ];
 
     protected $casts = [
@@ -25,6 +26,7 @@ class MerchandisePlanningItem extends Model
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'is_subcon' => 'boolean',
+        'is_from_rnd' => 'boolean',
     ];
 
     public function planning(): BelongsTo

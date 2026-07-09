@@ -31,11 +31,11 @@ class LowStockMaterials extends BaseWidget
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock')
                     ->label('Stock')
-                    ->numeric(2)
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->suffix(fn ($record) => ' '.$record->unit),
                 Tables\Columns\TextColumn::make('min_stock')
                     ->label('Min')
-                    ->numeric(2)
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->suffix(fn ($record) => ' '.$record->unit),
             ]);
     }

@@ -15,11 +15,13 @@ class BomItem extends Model
         'unit',
         'wastage_percent',
         'notes',
+        'is_from_rnd',
     ];
 
     protected $casts = [
         'quantity_per_unit' => 'decimal:4',
         'wastage_percent' => 'decimal:2',
+        'is_from_rnd' => 'boolean',
     ];
 
     public function bom(): BelongsTo

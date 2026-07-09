@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Filament\Resources\MaterialUsageResource\Pages;
-use App\Filament\Resources\MaterialUsageResource;
-use App\Models\MaterialUsage;
+
 use App\Models\MaterialLeftover;
+use App\Models\MaterialUsage;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateMaterialUsage extends CreateRecord
@@ -23,10 +24,10 @@ class CreateMaterialUsage extends CreateRecord
                     continue;
                 }
 
-                $plannedQty = (float)($material['planned_qty'] ?? 0);
-                $actualQty = (float)($material['actual_qty'] ?? 0);
-                $wasteQty = (float)($material['waste_qty'] ?? 0);
-                $unitPrice = (float)($material['unit_price'] ?? 0);
+                $plannedQty = (float) ($material['planned_qty'] ?? 0);
+                $actualQty = (float) ($material['actual_qty'] ?? 0);
+                $wasteQty = (float) ($material['waste_qty'] ?? 0);
+                $unitPrice = (float) ($material['unit_price'] ?? 0);
                 $totalCost = $actualQty * $unitPrice;
                 $leftoverQty = max(0, $plannedQty - $actualQty - $wasteQty);
 

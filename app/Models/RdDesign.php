@@ -16,7 +16,7 @@ class RdDesign extends Model
         'code',
         'name',
         'description',
-        'bag_type',
+        'product_type',
         'status',
         'sample_photo',
         'tech_drawing',

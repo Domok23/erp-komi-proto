@@ -17,10 +17,12 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->enum('bag_type', [
-                'standard',
-                'custom',
-                'prototype',
+            $table->enum('product_type', [
+                'jacket',
+                'shirt',
+                'trousers',
+                'dress',
+                'tshirt',
                 'other',
             ]);
             $table->enum('status', ['draft', 'approved', 'archived'])->default('draft');
@@ -40,7 +42,7 @@ return new class extends Migration
 
             $table->index(['company_id', 'code']);
             $table->index(['company_id', 'status']);
-            $table->index(['company_id', 'bag_type']);
+            $table->index(['company_id', 'product_type']);
         });
     }
 

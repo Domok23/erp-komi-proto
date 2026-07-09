@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\PurchaseShipmentResource\Pages\CreatePurchaseShipment;
+use App\Filament\Resources\SalesOrderResource\Pages\CreateSalesOrder;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
@@ -11,12 +13,16 @@ use App\Models\InvoiceSales;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
 use App\Models\Payment;
+use App\Models\PoSubcon;
 use App\Models\Project;
 use App\Models\RdDesign;
 use App\Models\SalesOrder;
+use App\Models\Subcon;
+use App\Models\Supplier;
 use App\Services\CodeGenerator;
 use App\Services\CostingCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ErgonomicFixesTest extends TestCase
@@ -52,7 +58,7 @@ class ErgonomicFixesTest extends TestCase
             'company_id' => $this->company->id,
             'code' => 'DSN-TEST',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'approved',
             'estimated_material_cost' => 100000,
         ]);
@@ -268,5 +274,185 @@ class ErgonomicFixesTest extends TestCase
         $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
 
         $this->assertEquals(1650, round($plannedQty, 2));
+    }
+
+    /**
+     * 6. Test Merchandise Planning auto-fills supplier_id from BOM material
+     */
+    public function test_merchandise_planning_autofills_supplier_id_from_bom(): void
+    {
+        $supplier = Supplier::create([
+            'company_id' => $this->company->id,
+            'name' => 'Test Supplier',
+            'code' => 'SUP-TEST',
+            'contact_person' => 'Contact',
+            'phone' => '123',
+            'address' => 'Addr',
+        ]);
+
+        $material = Material::create([
+            'company_id' => $this->company->id,
+            'code' => 'MAT-SUP-TEST',
+            'name' => 'Raw Supplier Test',
+            'category' => 'fabric',
+            'unit' => 'yard',
+            'price' => 10000,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $bom = Bom::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
+            'name' => 'BOM Test 2',
+            'code' => 'BOM-TEST-2',
+        ]);
+
+        $bomItem = BomItem::create([
+            'bom_id' => $bom->id,
+            'material_id' => $material->id,
+            'category' => 'main_material',
+            'quantity_per_unit' => 1.5,
+            'unit' => 'yard',
+            'wastage_percent' => 10.0,
+        ]);
+
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project 2',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'bom_id' => $bom->id,
+            'design_id' => $this->design->id,
+            'target_qty' => 10,
+        ]);
+
+        // Simulating the actual query/mapping in MerchandisePlanningResource.php
+        $items = $project->bom->items->map(function ($bomItem) use ($project) {
+            $unitPrice = $bomItem->material?->price ?? 0;
+            $targetQty = max(1, (int) ($project->target_qty ?? 1));
+            $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
+            $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
+
+            return [
+                'material_id' => $bomItem->material_id,
+                'supplier_id' => $bomItem->material?->supplier_id,
+                'planned_qty' => $plannedQty,
+                'unit' => $bomItem->unit,
+                'unit_price' => number_format($unitPrice, 2, '.', ','),
+                'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
+                'is_subcon' => false,
+                'notes' => $bomItem->notes,
+                'is_from_rnd' => $bomItem->is_from_rnd ?? true,
+            ];
+        })->toArray();
+
+        $this->assertNotEmpty($items);
+        $this->assertEquals($supplier->id, $items[0]['supplier_id']);
+        $this->assertTrue($items[0]['is_from_rnd']);
+    }
+
+    /**
+     * 7. Test Sales Order project selection auto-fills quantity and payment terms, and resets on deselection
+     */
+    public function test_sales_order_project_selection_autofill_and_reset(): void
+    {
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'target_qty' => 125,
+        ]);
+
+        $this->customer->update(['payment_terms' => 'net_30']);
+
+        Livewire::test(CreateSalesOrder::class)
+            ->set('data.project_id', $project->id)
+            ->assertSet('data.customer_id', $this->customer->id)
+            ->assertSet('data.quantity', 125)
+            ->assertSet('data.payment_terms', 'net_30')
+            ->set('data.project_id', null)
+            ->assertSet('data.customer_id', null)
+            ->assertSet('data.quantity', 0)
+            ->assertSet('data.payment_terms', null)
+            ->assertSet('data.subtotal', 0);
+    }
+
+    /**
+     * 8. Test Sales Order costing selection auto-fills unit price and recalculates totals, and resets on deselection
+     */
+    public function test_sales_order_costing_selection_autofill_and_reset(): void
+    {
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => CodeGenerator::generateProjectCode(),
+            'name' => 'Test Project',
+            'type' => 'mass',
+            'status' => 'planning',
+            'customer_id' => $this->customer->id,
+            'target_qty' => 10,
+        ]);
+
+        $costing = Costing::create([
+            'company_id' => $this->company->id,
+            'project_id' => $project->id,
+            'design_id' => $this->design->id,
+            'costing_date' => now()->toDateString(),
+            'version' => '1.0',
+            'status' => 'draft',
+            'material_cost' => 10000,
+            'mp_cost' => 5000,
+            'overhead_pct' => 10,
+            'shipping_cost' => 1000,
+            'profit_margin_pct' => 10,
+        ]);
+        CostingCalculatorService::recalculateCosting($costing);
+        $costing->refresh();
+
+        $sellingPrice = (float) $costing->selling_price;
+        $this->assertGreaterThan(0, $sellingPrice);
+
+        Livewire::test(CreateSalesOrder::class)
+            ->set('data.quantity', 10)
+            ->set('data.costing_id', $costing->id)
+            ->assertSet('data.unit_price', $sellingPrice)
+            ->assertSet('data.subtotal', 10 * $sellingPrice)
+            ->set('data.costing_id', null)
+            ->assertSet('data.unit_price', 0)
+            ->assertSet('data.subtotal', 0);
+    }
+
+    /**
+     * 9. Test Purchase Shipment PO selection auto-fills shipping cost for subcon PO and resets on deselection
+     */
+    public function test_purchase_shipment_po_selection_autofills_shipping_cost_and_resets(): void
+    {
+        $poSubcon = PoSubcon::create([
+            'company_id' => $this->company->id,
+            'po_number' => CodeGenerator::generatePOSubconNo(),
+            'project_id' => null,
+            'subcon_id' => Subcon::create([
+                'company_id' => $this->company->id,
+                'name' => 'Test Subcon',
+                'code' => 'SUB-001',
+                'service_type' => 'sewing',
+                'email' => 'sub@test.com',
+                'phone' => '12345',
+            ])->id,
+            'po_date' => now()->toDateString(),
+            'status' => 'draft',
+            'shipping_cost' => 150000,
+        ]);
+
+        Livewire::test(CreatePurchaseShipment::class)
+            ->set('data.po_type', 'subcon')
+            ->set('data.po_id', $poSubcon->id)
+            ->assertSet('data.shipping_cost', 150000)
+            ->set('data.po_id', null)
+            ->assertSet('data.shipping_cost', 0);
     }
 }

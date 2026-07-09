@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,29 @@ class MaterialUsage extends Model
         'status',
         'notes',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (MaterialUsage $usage) {
+            if ($usage->status === 'completed' && $usage->getOriginal('status') !== 'completed') {
+                InventoryService::processMaterialUsage($usage);
+            } elseif ($usage->status !== 'completed' && $usage->getOriginal('status') === 'completed') {
+                InventoryService::reverseMaterialUsage($usage);
+            }
+        });
+
+        static::created(function (MaterialUsage $usage) {
+            if ($usage->status === 'completed') {
+                InventoryService::processMaterialUsage($usage);
+            }
+        });
+
+        static::deleted(function (MaterialUsage $usage) {
+            if ($usage->status === 'completed') {
+                InventoryService::reverseMaterialUsage($usage);
+            }
+        });
+    }
 
     protected $casts = [
         'planned_qty' => 'decimal:3',

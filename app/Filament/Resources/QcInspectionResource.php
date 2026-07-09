@@ -3,80 +3,91 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QcInspectionResource\Pages;
+use App\Models\JobOrder;
 use App\Models\QcInspection;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class QcInspectionResource extends Resource
 {
     protected static ?string $model = QcInspection::class;
 
     protected static ?string $navigationLabel = 'QC Inspections';
+
     protected static ?string $modelLabel = 'QC Inspection';
+
     protected static ?string $pluralModelLabel = 'QC Inspections';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\TextInput::make('inspection_number')
-                ->disabled()
-                ->dehydrated()
-                ->default(fn () => CodeGenerator::generateQcInspectionNumber())
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('job_order_id')
-                ->relationship('jobOrder', 'job_order_number')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $jobOrder = \App\Models\JobOrder::find($state);
-                        if ($jobOrder) {
-                            $set('sample_size', $jobOrder->planned_qty);
-                        }
-                    }
-                }),
-            Forms\Components\DatePicker::make('inspection_date')
-                ->native(false)
-                ->default(now())
-                ->required(),
-            Forms\Components\TextInput::make('sample_size')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\TextInput::make('passed_qty')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\TextInput::make('failed_qty')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\Select::make('result')
-                ->options([
-                    'pass' => 'Pass',
-                    'fail' => 'Fail',
-                    'conditional' => 'Conditional',
+            Section::make('Inspection Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('inspection_number')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default(fn () => CodeGenerator::generateQcInspectionNumber())
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('job_order_id')
+                        ->relationship('jobOrder', 'job_order_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.JobOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->job_order_number.'</a>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state) {
+                                $jobOrder = JobOrder::find($state);
+                                if ($jobOrder) {
+                                    $set('sample_size', $jobOrder->planned_qty);
+                                }
+                            }
+                        }),
+                    Forms\Components\DatePicker::make('inspection_date')
+                        ->native(false)
+                        ->default(now())
+                        ->required(),
+                    Forms\Components\TextInput::make('sample_size')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\TextInput::make('passed_qty')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\TextInput::make('failed_qty')
+                        ->required()
+                        ->numeric()
+                        ->default(0),
+                    Forms\Components\Select::make('result')
+                        ->options([
+                            'pass' => 'Pass',
+                            'fail' => 'Fail',
+                            'conditional' => 'Conditional',
+                        ])
+                        ->default('pass')
+                        ->required(),
+                    Forms\Components\TextInput::make('inspector')
+                        ->maxLength(255),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('pass')
-                ->required(),
-            Forms\Components\TextInput::make('inspector')
-                ->maxLength(255),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->columns(2),
         ]);
     }
 
@@ -112,7 +123,7 @@ class QcInspectionResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

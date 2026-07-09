@@ -15,10 +15,12 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class InventoryStockResource extends Resource
 {
@@ -33,57 +35,79 @@ class InventoryStockResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('warehouse_id')
-                ->relationship('warehouse', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
+            Section::make('Stock Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('warehouse_id')
+                        ->relationship('warehouse', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\Select::make('material_id')
+                        ->relationship(
+                            name: 'material',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query) {
+                                $companyId = CompanyContext::getCompanyId();
 
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $material = Material::find($state);
-                    if ($material) {
-                        $set('unit', $material->unit);
-                        $set('min_stock', $material->min_stock);
-                    }
-                }),
-            Forms\Components\TextInput::make('quantity')
-                ->numeric()
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('reserved_qty')
-                ->numeric()
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('available_qty')
-                ->numeric()
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('unit')
-                ->disabled()
-                ->dehydrated()
-                ->default('pcs'),
-            Forms\Components\TextInput::make('min_stock')
-                ->numeric()
-                ->default(0)
-                ->required(),
-            Forms\Components\TextInput::make('location')
-                ->maxLength(100),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                                return $query->where(function (Builder $q) use ($companyId) {
+                                    $q->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
+                                        $subQ->where('company_id', $companyId);
+                                    })
+                                        ->orWhereDoesntHave('inventoryStocks');
+                                });
+                            }
+                        )
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $companyId = CompanyContext::getCompanyId();
+                            $stock = InventoryStock::where('material_id', $record->id)
+                                ->where('company_id', $companyId)
+                                ->sum('quantity');
+
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $material = Material::find($state);
+                            if ($material) {
+                                $set('unit', $material->unit);
+                                $set('min_stock', $material->min_stock);
+                            }
+                        }),
+                    Forms\Components\TextInput::make('quantity')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('reserved_qty')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('available_qty')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('unit')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default('pcs'),
+                    Forms\Components\TextInput::make('min_stock')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required(),
+                    Forms\Components\TextInput::make('location')
+                        ->maxLength(100),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
         ]);
     }
 
@@ -95,18 +119,20 @@ class InventoryStockResource extends Resource
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('quantity')
                 ->label('Physical Qty')
-                ->numeric()
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             Tables\Columns\TextColumn::make('reserved_qty')
                 ->label('Reserved Qty')
-                ->numeric()
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable()
                 ->color('warning'),
             Tables\Columns\TextColumn::make('available_qty')
                 ->label('Available Qty')
-                ->numeric()
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable()
                 ->color('success'),
+            Tables\Columns\TextColumn::make('min_stock')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\BadgeColumn::make('stock_status')
                 ->label('Stock Status')
                 ->color(fn ($record) => $record->quantity < $record->min_stock ? 'danger' : 'success')
@@ -116,7 +142,18 @@ class InventoryStockResource extends Resource
         ])
             ->filters([
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
-                SelectFilter::make('material_id')->relationship('material', 'name'),
+                SelectFilter::make('material_id')
+                    ->relationship(
+                        name: 'material',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $companyId = CompanyContext::getCompanyId();
+
+                            return $query->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
+                                $subQ->where('company_id', $companyId);
+                            });
+                        }
+                    ),
             ])
             ->actions([
                 ActionGroup::make([

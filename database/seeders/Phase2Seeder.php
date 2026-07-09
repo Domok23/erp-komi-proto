@@ -3,11 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
-use App\Models\Project;
-use App\Models\ProductionOrder;
-use App\Models\QcInspection;
 use App\Models\JobOrder;
+use App\Models\JobOrderMaterial;
 use App\Models\MerchandisePlanning;
+use App\Models\ProductionOrder;
+use App\Models\ProductionOrderMaterial;
+use App\Models\Project;
+use App\Models\QcInspection;
 use App\Services\CodeGenerator;
 use Illuminate\Database\Seeder;
 
@@ -16,14 +18,16 @@ class Phase2Seeder extends Seeder
     public function run(): void
     {
         $company = Company::where('code', 'KEI')->first();
-        if (!$company) {
+        if (! $company) {
             $this->command->error('Company KEI not found. Please run DataSeeder first.');
+
             return;
         }
 
         $project = Project::where('type', 'mass')->first();
-        if (!$project) {
+        if (! $project) {
             $this->command->error('Mass production project not found. Please run DataSeeder first.');
+
             return;
         }
 
@@ -40,13 +44,13 @@ class Phase2Seeder extends Seeder
             'status' => 'planned',
             'start_date' => now()->addDays(5)->toDateString(),
             'end_date' => now()->addDays(45)->toDateString(),
-            'notes' => 'Mass production for Vera Bradley order',
+            'notes' => 'Mass production for Nike order',
         ]);
 
         if ($merchandisingPlanning) {
             foreach ($merchandisingPlanning->items as $item) {
                 if ($item->material_id) {
-                    \App\Models\ProductionOrderMaterial::create([
+                    ProductionOrderMaterial::create([
                         'company_id' => $company->id,
                         'production_order_id' => $productionOrder->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -59,7 +63,7 @@ class Phase2Seeder extends Seeder
             }
         }
 
-        $this->command->info('Production Order created: ' . $productionOrder->production_number);
+        $this->command->info('Production Order created: '.$productionOrder->production_number);
 
         // Seed Phase 2: Job Orders
         $jobOrderCutting = JobOrder::create([
@@ -101,7 +105,7 @@ class Phase2Seeder extends Seeder
         if ($merchandisingPlanning) {
             foreach ($merchandisingPlanning->items as $item) {
                 if ($item->material_id) {
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $company->id,
                         'job_order_id' => $jobOrderCutting->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -110,7 +114,7 @@ class Phase2Seeder extends Seeder
                         'unit' => $item->unit,
                         'is_selected' => true,
                     ]);
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $company->id,
                         'job_order_id' => $jobOrderSewing->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -119,7 +123,7 @@ class Phase2Seeder extends Seeder
                         'unit' => $item->unit,
                         'is_selected' => true,
                     ]);
-                    \App\Models\JobOrderMaterial::create([
+                    JobOrderMaterial::create([
                         'company_id' => $company->id,
                         'job_order_id' => $jobOrderFinishing->id,
                         'merchandising_planning_item_id' => $item->id,
@@ -132,7 +136,7 @@ class Phase2Seeder extends Seeder
             }
         }
 
-        $this->command->info('Job Orders created: ' . $jobOrderCutting->job_order_number . ', ' . $jobOrderSewing->job_order_number . ', ' . $jobOrderFinishing->job_order_number);
+        $this->command->info('Job Orders created: '.$jobOrderCutting->job_order_number.', '.$jobOrderSewing->job_order_number.', '.$jobOrderFinishing->job_order_number);
 
         // Seed Phase 2: QC Inspections
         $qcInspection = QcInspection::create([
@@ -148,7 +152,7 @@ class Phase2Seeder extends Seeder
             'notes' => 'Initial quality check passed with minor defects',
         ]);
 
-        $this->command->info('QC Inspection created: ' . $qcInspection->inspection_number);
+        $this->command->info('QC Inspection created: '.$qcInspection->inspection_number);
 
         $this->command->info('Phase 2 seeding completed successfully!');
     }

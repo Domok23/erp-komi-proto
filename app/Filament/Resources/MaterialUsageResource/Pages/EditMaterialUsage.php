@@ -1,7 +1,8 @@
 <?php
+
 namespace App\Filament\Resources\MaterialUsageResource\Pages;
-use App\Filament\Resources\MaterialUsageResource;
-use App\Models\MaterialUsage;
+
+use App\Models\JobOrderMaterial;
 use App\Models\MaterialLeftover;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -9,33 +10,37 @@ use Filament\Resources\Pages\EditRecord;
 class EditMaterialUsage extends EditRecord
 {
     protected static string $resource = 'App\Filament\Resources\MaterialUsageResource';
-    protected function getHeaderActions(): array { return [Actions\DeleteAction::make()]; }
+
+    protected function getHeaderActions(): array
+    {
+        return [Actions\DeleteAction::make()];
+    }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record;
-        
+
         $materials = [];
         $material = $record->material;
-        
-        $jobOrderMaterial = \App\Models\JobOrderMaterial::where('job_order_id', $record->job_order_id)
+
+        $jobOrderMaterial = JobOrderMaterial::where('job_order_id', $record->job_order_id)
             ->where('material_id', $record->material_id)
             ->first();
-            
+
         $materials[] = [
             'material_name' => $material ? $material->name : 'N/A',
-            'planned_qty' => (float)$record->planned_qty,
+            'planned_qty' => (float) $record->planned_qty,
             'unit' => $record->unit,
             'unit_price' => $record->unit_price,
             'total_cost' => $record->total_cost,
-            'actual_qty' => (float)$record->actual_qty,
-            'waste_qty' => (float)$record->waste_qty,
+            'actual_qty' => (float) $record->actual_qty,
+            'waste_qty' => (float) $record->waste_qty,
             'material_id' => $record->material_id,
             'merchandising_planning_item_id' => $jobOrderMaterial?->merchandising_planning_item_id,
         ];
-        
+
         $data['materials'] = $materials;
-        
+
         return $data;
     }
 

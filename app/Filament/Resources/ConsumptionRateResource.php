@@ -14,10 +14,12 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class ConsumptionRateResource extends Resource
 {
@@ -37,48 +39,55 @@ class ConsumptionRateResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Select::make('design_id')
-                ->relationship('design', 'name')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
+            Section::make('Consumption Rate Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('design_id')
+                        ->relationship('design', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Forms\Components\Select::make('material_id')
+                        ->relationship('material', 'name')
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $companyId = CompanyContext::getCompanyId();
+                            $stock = InventoryStock::where('material_id', $record->id)
+                                ->where('company_id', $companyId)
+                                ->sum('quantity');
 
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
-                ->preload()
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $material = Material::find($state);
-                    if ($material) {
-                        $set('unit', $material->unit);
-                    }
-                }),
-            Forms\Components\TextInput::make('standard_rate')
-            ->numeric()
-            ->required()
-            ->label(new \Illuminate\Support\HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
-            Forms\Components\TextInput::make('unit')
-                ->default('pcs')
-                ->disabled()
-                ->dehydrated(),
-            Forms\Components\TextInput::make('wastage_rate')
-            ->numeric()
-            ->default(0)
-            ->required()
-            ->label(new \Illuminate\Support\HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-            ->suffix('%'),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $material = Material::find($state);
+                            if ($material) {
+                                $set('unit', $material->unit);
+                            }
+                        }),
+                    Forms\Components\TextInput::make('standard_rate')
+                        ->numeric()
+                        ->step(0.01)
+                        ->required()
+                        ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                    Forms\Components\TextInput::make('unit')
+                        ->default('pcs')
+                        ->disabled()
+                        ->dehydrated(),
+                    Forms\Components\TextInput::make('wastage_rate')
+                        ->numeric()
+                        ->step(0.01)
+                        ->default(0)
+                        ->required()
+                        ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->suffix('%'),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
         ]);
     }
 
@@ -88,9 +97,12 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('standard_rate')->sortable(),
+            Tables\Columns\TextColumn::make('standard_rate')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->sortable(),
             Tables\Columns\TextColumn::make('unit'),
-            Tables\Columns\TextColumn::make('wastage_rate'),
+            Tables\Columns\TextColumn::make('wastage_rate')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([

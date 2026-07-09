@@ -3,94 +3,139 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductionOrderResource\Pages;
+use App\Models\MerchandisePlanning;
 use App\Models\ProductionOrder;
+use App\Models\Project;
 use App\Services\CodeGenerator;
-use Filament\Forms;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class ProductionOrderResource extends Resource
 {
     protected static ?string $model = ProductionOrder::class;
 
     protected static ?string $navigationLabel = 'Production Orders';
+
     protected static ?string $modelLabel = 'Production Order';
+
     protected static ?string $pluralModelLabel = 'Production Orders';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Hidden::make('id')
-                ->default(fn ($record) => $record ? $record->id : null),
-            Forms\Components\TextInput::make('production_number')
-                ->disabled()
-                ->dehydrated()
-                ->default(fn () => CodeGenerator::generateProductionOrderNumber())
-                ->required()
-                ->maxLength(50),
-            Forms\Components\Select::make('project_id')
-                ->relationship('project', 'name')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->live()
-                ->afterStateHydrated(function ($state, callable $set) {
-                    self::loadProjectMaterials($state, $set);
-                })
-                ->afterStateUpdated(function ($state, callable $set) {
-                    self::loadProjectMaterials($state, $set);
-                }),
-            Forms\Components\Select::make('merchandising_planning_id')
-                ->relationship('merchandisingPlanning', 'id')
-                ->searchable()
-                ->preload()
-                ->label('Merchandising Planning')
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $planning = \App\Models\MerchandisePlanning::find($state);
-                        if ($planning) {
-                            $items = $planning->items;
-                            if ($items->isNotEmpty()) {
-                                $materials = [];
-                                foreach ($items as $item) {
-                                    if (!$item->material_id) {
-                                        continue;
-                                    }
+            Section::make('Production Order Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Hidden::make('id')
+                        ->default(fn ($record) => $record ? $record->id : null),
+                    Forms\Components\TextInput::make('production_number')
+                        ->disabled()
+                        ->dehydrated()
+                        ->default(fn () => CodeGenerator::generateProductionOrderNumber())
+                        ->required()
+                        ->maxLength(50),
+                    Forms\Components\Select::make('project_id')
+                        ->relationship('project', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->live()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            self::loadProjectMaterials($state, $set);
+                        })
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            self::loadProjectMaterials($state, $set);
+                        }),
+                    Forms\Components\Select::make('merchandising_planning_id')
+                        ->relationship('merchandisingPlanning', 'id')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MerchandisePlanningResource::getUrl('edit', ['record' => $record]).'" class="ref-link">Planning #'.$record->id.'</a>'))
+                        ->allowHtml()
+                        ->searchable()
+                        ->preload()
+                        ->label('Merchandising Planning')
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state) {
+                                $planning = MerchandisePlanning::find($state);
+                                if ($planning) {
+                                    $items = $planning->items;
+                                    if ($items->isNotEmpty()) {
+                                        $materials = [];
+                                        foreach ($items as $item) {
+                                            if (! $item->material_id) {
+                                                continue;
+                                            }
 
-                                    $material = $item->material;
-                                    $supplier = $item->supplier;
-                                    $totalPrice = $item->planned_qty * $item->unit_price;
-                                    
-                                    $materials[] = [
-                                        'is_selected' => true,
-                                        'material_name' => $material ? $material->name : 'N/A',
-                                        'supplier_name' => $supplier ? $supplier->name : 'N/A',
-                                        'planned_qty' => $item->planned_qty,
-                                        'unit' => $item->unit,
-                                        'unit_price' => number_format($item->unit_price, 2, '.', ','),
-                                        'total_price' => number_format($totalPrice, 2, '.', ','),
-                                        'material_id' => $item->material_id,
-                                        'merchandising_planning_item_id' => $item->id,
-                                    ];
+                                            $material = $item->material;
+                                            $supplier = $item->supplier;
+                                            $totalPrice = $item->planned_qty * $item->unit_price;
+
+                                            $materials[] = [
+                                                'is_selected' => true,
+                                                'material_name' => $material ? $material->name : 'N/A',
+                                                'supplier_name' => $supplier ? $supplier->name : 'N/A',
+                                                'planned_qty' => $item->planned_qty,
+                                                'unit' => $item->unit,
+                                                'unit_price' => number_format($item->unit_price, 2, '.', ','),
+                                                'total_price' => number_format($totalPrice, 2, '.', ','),
+                                                'material_id' => $item->material_id,
+                                                'merchandising_planning_item_id' => $item->id,
+                                            ];
+                                        }
+                                        $set('materials', $materials);
+                                    }
                                 }
-                                $set('materials', $materials);
                             }
-                        }
-                    }
-                }),
+                        }),
+                    Forms\Components\TextInput::make('planned_qty')
+                        ->required()
+                        ->numeric()
+                        ->step(1)
+                        ->minValue(1)
+                        ->default(0),
+                    Forms\Components\TextInput::make('completed_qty')
+                        ->default(0)
+                        ->disabled()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 0, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'planned' => 'Planned',
+                            'in_progress' => 'In Progress',
+                            'qc_passed' => 'QC Passed',
+                            'qc_failed' => 'QC Failed',
+                            'completed' => 'Completed',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('planned')
+                        ->required(),
+                    Forms\Components\DatePicker::make('start_date')
+                        ->native(false),
+                    Forms\Components\DatePicker::make('end_date')
+                        ->native(false),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
             Forms\Components\Placeholder::make('no_materials')
                 ->label('No materials selected')
                 ->content('Select a merchandising planning to see materials')
-                ->visible(fn (callable $get) => !$get('merchandising_planning_id')),
+                ->visible(fn (callable $get) => ! $get('merchandising_planning_id')),
             Forms\Components\Repeater::make('materials')
                 ->label('Materials from Merchandising')
                 ->schema([
@@ -102,9 +147,10 @@ class ProductionOrderResource extends Resource
                         ->disabled(),
                     Forms\Components\TextInput::make('planned_qty')
                         ->label('Planned Qty')
-                        ->numeric()
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('unit')
                         ->label('Unit')
                         ->disabled()
@@ -142,32 +188,6 @@ class ProductionOrderResource extends Resource
                     }
                     $set('selected_materials', $materials);
                 }),
-            Forms\Components\TextInput::make('planned_qty')
-                ->required()
-                ->numeric()
-                ->default(0),
-            Forms\Components\TextInput::make('completed_qty')
-                ->numeric()
-                ->default(0)
-                ->disabled(),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'planned' => 'Planned',
-                    'in_progress' => 'In Progress',
-                    'qc_passed' => 'QC Passed',
-                    'qc_failed' => 'QC Failed',
-                    'completed' => 'Completed',
-                    'cancelled' => 'Cancelled',
-                ])
-                ->default('planned')
-                ->required(),
-            Forms\Components\DatePicker::make('start_date')
-                ->native(false),
-            Forms\Components\DatePicker::make('end_date')
-                ->native(false),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
         ]);
     }
 
@@ -213,7 +233,7 @@ class ProductionOrderResource extends Resource
                     ->visible(fn ($record) => $record->status === 'planned')
                     ->action(function ($record) {
                         $record->update(['status' => 'in_progress', 'start_date' => now()]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Production Started')
                             ->success()
                             ->send();
@@ -226,14 +246,14 @@ class ProductionOrderResource extends Resource
                     ->visible(fn ($record) => $record->status === 'in_progress')
                     ->action(function ($record) {
                         $record->update(['status' => 'completed', 'end_date' => now()]);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Production Completed')
                             ->success()
                             ->send();
                     })
                     ->requiresConfirmation(),
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
@@ -270,23 +290,23 @@ class ProductionOrderResource extends Resource
     public static function loadProjectMaterials($state, callable $set): void
     {
         if ($state) {
-            $project = \App\Models\Project::find($state);
+            $project = Project::find($state);
             $planning = $project?->merchandisePlannings()->latest()->first();
             if ($planning) {
                 $set('merchandising_planning_id', $planning->id);
-                
+
                 $items = $planning->items;
                 if ($items->isNotEmpty()) {
                     $materials = [];
                     foreach ($items as $item) {
-                        if (!$item->material_id) {
+                        if (! $item->material_id) {
                             continue;
                         }
 
                         $material = $item->material;
                         $supplier = $item->supplier;
                         $totalPrice = $item->planned_qty * $item->unit_price;
-                        
+
                         $materials[] = [
                             'is_selected' => true,
                             'material_name' => $material ? $material->name : 'N/A',
@@ -300,6 +320,7 @@ class ProductionOrderResource extends Resource
                         ];
                     }
                     $set('materials', $materials);
+
                     return;
                 }
             }
