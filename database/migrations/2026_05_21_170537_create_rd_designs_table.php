@@ -18,11 +18,9 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->enum('bag_type', [
-                'handbag',
-                'sports_bag',
-                'backpack',
-                'messenger',
-                'tote',
+                'standard',
+                'custom',
+                'prototype',
                 'other',
             ]);
             $table->enum('status', ['draft', 'approved', 'archived'])->default('draft');

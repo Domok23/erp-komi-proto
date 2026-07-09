@@ -71,118 +71,148 @@ class DataSeeder extends Seeder
         }
 
         // 1. Seed Warehouses
-        $whMain = Warehouse::create([
-            'company_id' => $kei->id,
-            'code' => 'WH-MAIN',
-            'name' => 'Main Warehouse',
-            'address' => 'Bandung Main Office',
-            'is_active' => true,
-        ]);
+        $whMain = Warehouse::where('code', 'WH-MAIN')->where('company_id', $kei->id)->first();
+        if (!$whMain) {
+            $whMain = Warehouse::create([
+                'company_id' => $kei->id,
+                'code' => 'WH-MAIN',
+                'name' => 'Main Warehouse',
+                'address' => 'Bandung Main Office',
+                'is_active' => true,
+            ]);
+        }
 
-        $whBranch = Warehouse::create([
-            'company_id' => $kei->id,
-            'code' => 'WH-BRANCH',
-            'name' => 'Branch Warehouse',
-            'address' => 'Bandung Branch Office',
-            'is_active' => true,
-        ]);
+        $whBranch = Warehouse::where('code', 'WH-BRANCH')->where('company_id', $kei->id)->first();
+        if (!$whBranch) {
+            $whBranch = Warehouse::create([
+                'company_id' => $kei->id,
+                'code' => 'WH-BRANCH',
+                'name' => 'Branch Warehouse',
+                'address' => 'Bandung Branch Office',
+                'is_active' => true,
+            ]);
+        }
 
         // 2. Seed Suppliers
-        $supplierYKK = Supplier::create([
-            'company_id' => $kei->id,
-            'code' => 'SUP-001',
-            'name' => 'PT YKK Indonesia',
-            'contact_person' => 'Budi Santoso',
-            'address' => 'Jakarta Timur',
-            'is_active' => true,
-        ]);
+        $supplierYKK = Supplier::where('code', 'SUP-001')->where('company_id', $kei->id)->first();
+        if (!$supplierYKK) {
+            $supplierYKK = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-001',
+                'name' => 'PT Global Components',
+                'contact_person' => 'Budi Santoso',
+                'address' => 'Jakarta Timur',
+                'is_active' => true,
+            ]);
+        }
 
-        $supplierDuraflex = Supplier::create([
-            'company_id' => $kei->id,
-            'code' => 'SUP-002',
-            'name' => 'PT Duraflex Belting',
-            'contact_person' => 'Siti Nurhaliza',
-            'address' => 'Bandung',
-            'is_active' => true,
-        ]);
+        $supplierDuraflex = Supplier::where('code', 'SUP-002')->where('company_id', $kei->id)->first();
+        if (!$supplierDuraflex) {
+            $supplierDuraflex = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-002',
+                'name' => 'PT Industrial Supplies',
+                'contact_person' => 'Siti Nurhaliza',
+                'address' => 'Bandung',
+                'is_active' => true,
+            ]);
+        }
 
         // 3. Seed Subcons
-        $subconJaya = Subcon::create([
-            'company_id' => $kei->id,
-            'code' => 'SUB-001',
-            'name' => 'CV Jaya Bordir',
-            'service_type' => 'embroidery',
-            'contact_person' => 'Tono Rahardjo',
-            'address' => 'Jakarta Barat',
-            'is_active' => true,
-        ]);
+        $subconJaya = Subcon::where('code', 'SUB-001')->where('company_id', $kei->id)->first();
+        if (!$subconJaya) {
+            $subconJaya = Subcon::create([
+                'company_id' => $kei->id,
+                'code' => 'SUB-001',
+                'name' => 'CV Precision Manufacturing',
+                'service_type' => 'assembly',
+                'contact_person' => 'Tono Rahardjo',
+                'address' => 'Jakarta Barat',
+                'is_active' => true,
+            ]);
+        }
 
         // 4. Seed Customers
-        $customerVera = Customer::create([
-            'company_id' => $kei->id,
-            'code' => 'CUS-001',
-            'name' => 'Vera Bradley Exports, Inc.',
-            'contact_person' => 'Sarah Mitchell',
-            'address' => 'United States',
-            'payment_terms' => 'net_60',
-            'is_active' => true,
-        ]);
+        $customerVera = Customer::where('code', 'CUS-001')->where('company_id', $kei->id)->first();
+        if (!$customerVera) {
+            $customerVera = Customer::create([
+                'company_id' => $kei->id,
+                'code' => 'CUS-001',
+                'name' => 'Global Trading Corporation',
+                'contact_person' => 'Sarah Mitchell',
+                'address' => 'United States',
+                'payment_terms' => 'net_60',
+                'is_active' => true,
+            ]);
+        }
 
         // 5. Seed Materials
-        $matFabric = Material::create([
-            'code' => 'FAB-001',
-            'name' => '600D Recycled Polyester Dobby',
-            'category' => 'fabric',
-            'unit' => 'yard',
-            'stock' => 1000,
-            'min_stock' => 100,
-            'price' => 38000,
-            'supplier_id' => $supplierYKK->id,
-        ]);
+        $matFabric = Material::where('code', 'RAW-001')->first();
+        if (!$matFabric) {
+            $matFabric = Material::create([
+                'code' => 'RAW-001',
+                'name' => 'Steel Sheet 2mm',
+                'category' => 'raw_material',
+                'unit' => 'kg',
+                'stock' => 1000,
+                'min_stock' => 100,
+                'price' => 38000,
+                'supplier_id' => $supplierYKK->id,
+            ]);
+        }
 
-        $matZipper = Material::create([
-            'code' => 'ZIP-001',
-            'name' => 'YKK #5 Metal Zipper, Nickel',
-            'category' => 'zipper',
-            'unit' => 'pcs',
-            'stock' => 5000,
-            'min_stock' => 500,
-            'price' => 7500,
-            'supplier_id' => $supplierYKK->id,
-        ]);
+        $matZipper = Material::where('code', 'COM-001')->first();
+        if (!$matZipper) {
+            $matZipper = Material::create([
+                'code' => 'COM-001',
+                'name' => 'Steel Bolts M10',
+                'category' => 'components',
+                'unit' => 'pcs',
+                'stock' => 5000,
+                'min_stock' => 500,
+                'price' => 7500,
+                'supplier_id' => $supplierYKK->id,
+            ]);
+        }
 
-        $matWebbing = Material::create([
-            'code' => 'ACC-003',
-            'name' => 'Webbing Tape 38mm Nylon, Black',
-            'category' => 'other',
-            'unit' => 'meter',
-            'stock' => 2000,
-            'min_stock' => 200,
-            'price' => 2500,
-            'supplier_id' => $supplierDuraflex->id,
-        ]);
+        $matWebbing = Material::where('code', 'ACC-003')->first();
+        if (!$matWebbing) {
+            $matWebbing = Material::create([
+                'code' => 'ACC-003',
+                'name' => 'Industrial Paint 5L',
+                'category' => 'consumables',
+                'unit' => 'liter',
+                'stock' => 2000,
+                'min_stock' => 200,
+                'price' => 2500,
+                'supplier_id' => $supplierDuraflex->id,
+            ]);
+        }
 
-        $matFabricEmbroidered = Material::create([
-            'code' => 'FAB-001-EMB',
-            'name' => '600D Recycled Polyester Dobby (Embroidered)',
-            'category' => 'semi_finished',
-            'unit' => 'pcs',
-            'stock' => 0,
-            'min_stock' => 0,
-            'price' => 45000,
-            'description' => 'Fabric after embroidery processing at subcontractor',
-        ]);
+        $matFabricEmbroidered = Material::where('code', 'SFM-001')->first();
+        if (!$matFabricEmbroidered) {
+            $matFabricEmbroidered = Material::create([
+                'code' => 'SFM-001',
+                'name' => 'Steel Sheet 2mm (Processed)',
+                'category' => 'semi_finished',
+                'unit' => 'pcs',
+                'stock' => 0,
+                'min_stock' => 0,
+                'price' => 45000,
+                'description' => 'Steel sheet after processing at subcontractor',
+            ]);
+        }
 
         // 6. Seed RdDesigns
         $designBackpack = RdDesign::create([
             'company_id' => $kei->id,
-            'code' => 'DSN-EBP-001',
-            'name' => 'Explorer Backpack Pro',
-            'description' => 'High-performance backpack design',
-            'bag_type' => 'backpack',
+            'code' => 'DSN-PRD-001',
+            'name' => 'Industrial Product A',
+            'description' => 'Standard industrial product design',
+            'bag_type' => 'standard',
             'status' => 'approved',
-            'brand' => 'Explorer',
-            'size_range' => '30L',
+            'brand' => 'Generic',
+            'size_range' => 'Standard',
             'notes' => 'Initial approved R&D model',
         ]);
 
@@ -190,7 +220,7 @@ class DataSeeder extends Seeder
         $bomBackpack = Bom::create([
             'company_id' => $kei->id,
             'design_id' => $designBackpack->id,
-            'name' => 'Main BOM Explorer Backpack',
+            'name' => 'Main BOM Industrial Product A',
             'version' => '1.0',
             'status' => 'active',
         ]);
@@ -200,14 +230,14 @@ class DataSeeder extends Seeder
             'material_id' => $matFabric->id,
             'category' => 'main_material',
             'quantity_per_unit' => 1.5,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'wastage_percent' => 5,
         ]);
 
         BomItem::create([
             'bom_id' => $bomBackpack->id,
             'material_id' => $matZipper->id,
-            'category' => 'hardware',
+            'category' => 'components',
             'quantity_per_unit' => 3,
             'unit' => 'pcs',
             'wastage_percent' => 2,
@@ -216,9 +246,9 @@ class DataSeeder extends Seeder
         BomItem::create([
             'bom_id' => $bomBackpack->id,
             'material_id' => $matWebbing->id,
-            'category' => 'trim',
+            'category' => 'consumables',
             'quantity_per_unit' => 2.5,
-            'unit' => 'meter',
+            'unit' => 'liter',
             'wastage_percent' => 0,
         ]);
 
@@ -226,7 +256,7 @@ class DataSeeder extends Seeder
         $project = Project::create([
             'company_id' => $kei->id,
             'project_code' => CodeGenerator::generateProjectCode(),
-            'name' => 'Vera Bradley Q3 Backpack',
+            'name' => 'Global Trading Q3 Production',
             'description' => 'Mass production order for 1,000 units',
             'type' => 'mass',
             'status' => 'production',
@@ -245,7 +275,7 @@ class DataSeeder extends Seeder
             'status' => 'finalised',
             'total_material_cost' => 120000,
             'total_subcon_cost' => 50000,
-            'special_instructions' => 'Embroidery to be done by CV Jaya Bordir',
+            'special_instructions' => 'Assembly to be done by CV Precision Manufacturing',
         ]);
 
         MerchandisePlanningItem::create([
@@ -253,7 +283,7 @@ class DataSeeder extends Seeder
             'material_id' => $matFabric->id,
             'supplier_id' => $supplierYKK->id,
             'planned_qty' => 1500,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'unit_price' => 38000,
             'total_price' => 57000000,
             'is_subcon' => false,
@@ -332,7 +362,7 @@ class DataSeeder extends Seeder
 
         SalesOrderItem::create([
             'sales_order_id' => $salesOrder->id,
-            'description' => 'Explorer Backpack Pro 30L',
+            'description' => 'Industrial Product A Standard',
             'quantity' => 1000,
             'unit' => 'pcs',
             'unit_price' => $costing->selling_price,
@@ -355,15 +385,15 @@ class DataSeeder extends Seeder
             'ppn_percent' => 11,
             'ppn_amount' => 79500000 * 0.11,
             'grand_total' => 79500000 * 1.11,
-            'notes' => 'Zippers and fabric for Backpack production',
+            'notes' => 'Bolts and steel sheet for Industrial Product production',
         ]);
 
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
             'material_id' => $matFabric->id,
-            'description' => '600D Recycled Polyester Dobby',
+            'description' => 'Steel Sheet 2mm',
             'qty' => 1500,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'unit_price' => 38000,
             'total_price' => 57000000,
             'qty_received' => 0,
@@ -372,7 +402,7 @@ class DataSeeder extends Seeder
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
             'material_id' => $matZipper->id,
-            'description' => 'YKK #5 Metal Zipper',
+            'description' => 'Steel Bolts M10',
             'qty' => 3000,
             'unit' => 'pcs',
             'unit_price' => 7500,
@@ -397,7 +427,7 @@ class DataSeeder extends Seeder
 
         PoSubconItem::create([
             'po_subcon_id' => $poSubcon->id,
-            'description' => 'Logo Embroidery Service',
+            'description' => 'Assembly Service',
             'qty' => 1000,
             'unit_price' => 15000,
             'total_price' => 15000000,
@@ -437,7 +467,7 @@ class DataSeeder extends Seeder
             'qty_ordered' => 1500,
             'qty_received' => 1500,
             'qty_rejected' => 0,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         GoodsReceiptItem::create([
@@ -471,7 +501,7 @@ class DataSeeder extends Seeder
             'subcon_material_out_id' => $subconOut->id,
             'material_id' => $matFabric->id,
             'qty_sent' => 200,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         // 17. Seed Subcon Material IN
@@ -485,26 +515,26 @@ class DataSeeder extends Seeder
             'status' => 'draft',
         ]);
 
-        // Processed goods (Embroidered Panel) received
+        // Processed goods (Assembly) received
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => null,
-            'description' => 'Logo Embroidery Service',
+            'description' => 'Assembly Service',
             'item_type' => 'processed',
             'qty_received' => 195,
             'qty_rejected' => 2,
             'unit' => 'pcs',
         ]);
 
-        // Leftover raw material (Fabric) returned
+        // Leftover raw material (Steel) returned
         SubconMaterialInItem::create([
             'subcon_material_in_id' => $subconIn->id,
             'material_id' => $matFabric->id,
             'description' => null,
             'item_type' => 'raw_return',
-            'qty_received' => 3, // 3 yards leftover returned
+            'qty_received' => 3, // 3 kg leftover returned
             'qty_rejected' => 0,
-            'unit' => 'yard',
+            'unit' => 'kg',
         ]);
 
         // 18. Seed Invoices & Payments
@@ -533,7 +563,7 @@ class DataSeeder extends Seeder
             'quantity' => 1000,
             'reserved_qty' => 0,
             'available_qty' => 1000,
-            'unit' => 'yard',
+            'unit' => 'kg',
             'min_stock' => 100,
             'location' => 'Aisle A-1',
         ]);
@@ -557,7 +587,7 @@ class DataSeeder extends Seeder
             'quantity' => 2000,
             'reserved_qty' => 0,
             'available_qty' => 2000,
-            'unit' => 'meter',
+            'unit' => 'liter',
             'min_stock' => 200,
             'location' => 'Rack C-3',
         ]);
@@ -575,7 +605,7 @@ class DataSeeder extends Seeder
             'status' => 'planned',
             'start_date' => now()->addDays(5)->toDateString(),
             'end_date' => now()->addDays(45)->toDateString(),
-            'notes' => 'Mass production for Vera Bradley order',
+            'notes' => 'Mass production for Global Trading order',
         ]);
 
         if ($merchandisingPlanning) {
@@ -600,11 +630,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'cutting',
+            'task_type' => 'preparation',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Cutting Team A',
+            'assigned_to' => 'Preparation Team A',
         ]);
 
         $jobOrderSewing = JobOrder::create([
@@ -612,11 +642,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'sewing',
+            'task_type' => 'assembly',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Sewing Team B',
+            'assigned_to' => 'Assembly Team B',
         ]);
 
         $jobOrderFinishing = JobOrder::create([
@@ -624,11 +654,11 @@ class DataSeeder extends Seeder
             'production_order_id' => $productionOrder->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'job_order_number' => CodeGenerator::generateJobOrderNumber(),
-            'task_type' => 'finishing',
+            'task_type' => 'quality_control',
             'planned_qty' => 1000,
             'completed_qty' => 0,
             'status' => 'pending',
-            'assigned_to' => 'Finishing Team C',
+            'assigned_to' => 'Quality Control Team C',
         ]);
 
         if ($merchandisingPlanning) {
