@@ -182,4 +182,19 @@ class ConsumptionRatesTest extends TestCase
         $this->assertEquals(0, $design->estimated_material_cost);
         $this->assertEquals(45540, $design->estimated_selling_price);
     }
+
+    public function test_decimal_sanitization(): void
+    {
+        $managerClass = \App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager::class;
+
+        // Test normalizeDecimal with various formats
+        $this->assertEquals(1.5, $managerClass::normalizeDecimal('1.5'));
+        $this->assertEquals(1.5, $managerClass::normalizeDecimal('1,5'));
+        $this->assertEquals(1500.5, $managerClass::normalizeDecimal('1.500,50'));
+        $this->assertEquals(1500.5, $managerClass::normalizeDecimal('1,500.50'));
+        $this->assertEquals(1500.0, $managerClass::normalizeDecimal('1,500'));
+        $this->assertNull($managerClass::normalizeDecimal(''));
+        $this->assertEquals(10.5, $managerClass::normalizeDecimal('10.5'));
+        $this->assertEquals(10.5, $managerClass::normalizeDecimal('10,5'));
+    }
 }
