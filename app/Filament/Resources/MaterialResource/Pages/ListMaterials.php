@@ -32,7 +32,7 @@ class ListMaterials extends ListRecords
                     $writer->openToFile($tempFilePath);
                     
                     $writer->addRow(Row::fromValues(['Code', 'Name', 'Category', 'Unit', 'Stock', 'Min Stock', 'Price', 'Supplier', 'Description']));
-                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'Fabric', 'yard', '100', '10', '5.50', 'SUP-001', 'High quality cotton fabric']));
+                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'Fabric', 'kg', '100', '10', '5.50', 'SUP-001', 'High quality cotton fabric']));
                     $writer->addRow(Row::fromValues(['ZIP-001', 'YKK Zipper 20cm', 'Zipper', 'pcs', '500', '50', '0.80', 'SUP-002', 'YKK nylon coil zipper']));
                     
                     $writer->close();
