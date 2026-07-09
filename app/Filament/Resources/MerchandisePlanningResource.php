@@ -305,11 +305,62 @@ class MerchandisePlanningResource extends Resource
                         ->icon('heroicon-o-document-plus')
                         ->color('success')
                         ->visible(fn ($record) => $record->status === 'finalised')
+                        ->modalHeading('Confirm PO Generation')
+                        ->modalSubmitActionLabel('Generate POs')
+                        ->modalContent(function ($record) {
+                            $record->load(['items.material', 'items.supplier', 'items.subcon']);
+                            
+                            $materialIds = $record->items->pluck('material_id')->filter()->unique();
+                            $companyId = CompanyContext::getCompanyId();
+                            $stocks = InventoryStock::whereIn('material_id', $materialIds)
+                                ->where('company_id', $companyId)
+                                ->select('material_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_qty'))
+                                ->groupBy('material_id')
+                                ->pluck('total_qty', 'material_id')
+                                ->toArray();
+
+                            return view('filament.components.generate-po-modal', [
+                                'record' => $record,
+                                'stocks' => $stocks,
+                            ]);
+                        })
                         ->action(function ($record) {
+                            $generatedPoNumbers = [];
+
                             // Group items by supplier for supplier POs
                             $supplierItems = $record->items->where('is_subcon', false)->groupBy('supplier_id');
                             foreach ($supplierItems as $supplierId => $items) {
                                 if (! $supplierId) {
+                                    continue;
+                                }
+
+                                $poItemsData = [];
+                                $subtotal = 0;
+
+                                foreach ($items as $item) {
+                                    $stock = InventoryStock::where('material_id', $item->material_id)
+                                        ->where('company_id', $record->company_id)
+                                        ->sum('quantity');
+                                    $shortage = max(0, floatval($item->planned_qty) - floatval($stock));
+
+                                    if ($shortage <= 0) {
+                                        continue;
+                                    }
+
+                                    $itemTotalPrice = $shortage * floatval($item->unit_price);
+                                    $poItemsData[] = [
+                                        'material_id' => $item->material_id,
+                                        'description' => $item->notes ?? 'Raw material',
+                                        'qty' => $shortage,
+                                        'unit' => $item->unit ?? 'pcs',
+                                        'unit_price' => $item->unit_price,
+                                        'total_price' => $itemTotalPrice,
+                                        'qty_received' => 0,
+                                    ];
+                                    $subtotal += $itemTotalPrice;
+                                }
+
+                                if (empty($poItemsData)) {
                                     continue;
                                 }
 
@@ -322,19 +373,11 @@ class MerchandisePlanningResource extends Resource
                                     'status' => 'draft',
                                 ]);
 
-                                $subtotal = 0;
-                                foreach ($items as $item) {
-                                    PoSupplierItem::create([
-                                        'po_supplier_id' => $po->id,
-                                        'material_id' => $item->material_id,
-                                        'description' => $item->notes ?? 'Raw material',
-                                        'qty' => $item->planned_qty,
-                                        'unit' => $item->unit ?? 'pcs',
-                                        'unit_price' => $item->unit_price,
-                                        'total_price' => $item->total_price,
-                                        'qty_received' => 0,
-                                    ]);
-                                    $subtotal += $item->total_price;
+                                $generatedPoNumbers[] = $po->po_number;
+
+                                foreach ($poItemsData as $itemData) {
+                                    $itemData['po_supplier_id'] = $po->id;
+                                    PoSupplierItem::create($itemData);
                                 }
 
                                 $ppn = $subtotal * 0.11; // 11% PPN
@@ -362,6 +405,8 @@ class MerchandisePlanningResource extends Resource
                                     'status' => 'draft',
                                 ]);
 
+                                $generatedPoNumbers[] = $po->po_number;
+
                                 $serviceCost = 0;
                                 foreach ($items as $item) {
                                     PoSubconItem::create([
@@ -380,12 +425,21 @@ class MerchandisePlanningResource extends Resource
                                 ]);
                             }
 
-                            Notification::make()
-                                ->title('POs generated successfully!')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
+                            if (empty($generatedPoNumbers)) {
+                                Notification::make()
+                                    ->title('No POs generated')
+                                    ->body('All planning items are fully stocked or have no supplier/subcon assigned.')
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $poList = implode(', ', $generatedPoNumbers);
+                                Notification::make()
+                                    ->title('POs generated successfully!')
+                                    ->body("Created: {$poList}")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
