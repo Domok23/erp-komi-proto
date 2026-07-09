@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,17 @@ class InventoryStock extends Model
     use BelongsToCompany;
 
     protected $table = 'inventory_stocks';
+
+    protected static function booted(): void
+    {
+        static::saved(function (InventoryStock $stock) {
+            InventoryService::syncMaterialTotalStock($stock->material_id);
+        });
+
+        static::deleted(function (InventoryStock $stock) {
+            InventoryService::syncMaterialTotalStock($stock->material_id);
+        });
+    }
 
     protected $fillable = [
         'company_id',

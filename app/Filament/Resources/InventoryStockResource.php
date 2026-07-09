@@ -18,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class InventoryStockResource extends Resource
 {
@@ -41,7 +42,20 @@ class InventoryStockResource extends Resource
                         ->preload()
                         ->required(),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
+                        ->relationship(
+                            name: 'material',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query) {
+                                $companyId = CompanyContext::getCompanyId();
+
+                                return $query->where(function (Builder $q) use ($companyId) {
+                                    $q->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
+                                        $subQ->where('company_id', $companyId);
+                                    })
+                                        ->orWhereDoesntHave('inventoryStocks');
+                                });
+                            }
+                        )
                         ->getOptionLabelFromRecordUsing(function ($record) {
                             $companyId = CompanyContext::getCompanyId();
                             $stock = InventoryStock::where('material_id', $record->id)
@@ -115,7 +129,18 @@ class InventoryStockResource extends Resource
         ])
             ->filters([
                 SelectFilter::make('warehouse_id')->relationship('warehouse', 'name'),
-                SelectFilter::make('material_id')->relationship('material', 'name'),
+                SelectFilter::make('material_id')
+                    ->relationship(
+                        name: 'material',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $companyId = CompanyContext::getCompanyId();
+
+                            return $query->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
+                                $subQ->where('company_id', $companyId);
+                            });
+                        }
+                    ),
             ])
             ->actions([
                 ActionGroup::make([

@@ -214,7 +214,9 @@ class InventoryService
     {
         $material = Material::find($materialId);
         if ($material) {
-            $totalStock = InventoryStock::where('material_id', $materialId)->sum('quantity');
+            $totalStock = InventoryStock::withoutGlobalScope('company')
+                ->where('material_id', $materialId)
+                ->sum('quantity');
             $material->update([
                 'stock' => $totalStock,
             ]);
