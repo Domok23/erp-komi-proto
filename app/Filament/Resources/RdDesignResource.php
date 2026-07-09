@@ -42,13 +42,13 @@ class RdDesignResource extends Resource
                     Forms\Components\TextInput::make('name')
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\Select::make('bag_type')
+                    Forms\Components\Select::make('product_type')
                         ->options([
-                            'handbag' => 'Handbag',
-                            'sports_bag' => 'Sports Bag',
-                            'backpack' => 'Backpack',
-                            'messenger' => 'Messenger Bag',
-                            'tote' => 'Tote Bag',
+                            'jacket' => 'Jacket',
+                            'shirt' => 'Shirt',
+                            'trousers' => 'Trousers',
+                            'dress' => 'Dress',
+                            'tshirt' => 'T-Shirt',
                             'other' => 'Other',
                         ])
                         ->required(),
@@ -114,7 +114,7 @@ class RdDesignResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('bag_type')->sortable(),
+            Tables\Columns\TextColumn::make('product_type')->sortable(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'draft' => 'gray',
@@ -132,12 +132,12 @@ class RdDesignResource extends Resource
                     'approved' => 'Approved',
                     'archived' => 'Archived',
                 ]),
-                SelectFilter::make('bag_type')->options([
-                    'handbag' => 'Handbag',
-                    'sports_bag' => 'Sports Bag',
-                    'backpack' => 'Backpack',
-                    'messenger' => 'Messenger Bag',
-                    'tote' => 'Tote Bag',
+                SelectFilter::make('product_type')->options([
+                    'jacket' => 'Jacket',
+                    'shirt' => 'Shirt',
+                    'trousers' => 'Trousers',
+                    'dress' => 'Dress',
+                    'tshirt' => 'T-Shirt',
                     'other' => 'Other',
                 ]),
             ])

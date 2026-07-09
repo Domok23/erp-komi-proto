@@ -27,7 +27,7 @@ class ProjectBomPreviewTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DSN-TEST',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'approved',
             'estimated_material_cost' => 100000,
         ]);

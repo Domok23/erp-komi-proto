@@ -99,8 +99,8 @@ class PreProductionWorkflowTest extends TestCase
         $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DES-BAG-001',
-            'name' => 'Classic Backpack Test',
-            'bag_type' => 'backpack',
+            'name' => 'Classic Jacket Test',
+            'product_type' => 'jacket',
             'status' => 'approved',
         ]);
 

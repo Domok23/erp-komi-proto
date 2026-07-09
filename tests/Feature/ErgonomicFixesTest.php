@@ -58,7 +58,7 @@ class ErgonomicFixesTest extends TestCase
             'company_id' => $this->company->id,
             'code' => 'DSN-TEST',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'approved',
             'estimated_material_cost' => 100000,
         ]);

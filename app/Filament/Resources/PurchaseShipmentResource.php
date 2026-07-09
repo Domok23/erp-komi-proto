@@ -134,13 +134,16 @@ class PurchaseShipmentResource extends Resource
                             'courier' => 'Courier',
                         ]),
                     Forms\Components\TextInput::make('carrier')
+                        ->label(new HtmlString('Carrier <span title="Nama perusahaan ekspedisi atau maskapai pelayaran pengangkut barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('tracking_number')
+                        ->label(new HtmlString('Tracking Number <span title="Nomor resi pelacakan pengiriman barang dari ekspedisi/kurir" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('container_number')
+                        ->label(new HtmlString('Container Number <span title="Nomor kode identifikasi kontainer kargo penyewaan barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\TextInput::make('bl_number')
-                        ->label('BL Number')
+                        ->label(new HtmlString('BL Number <span title="Nomor Bill of Lading (bukti kontrak pengangkutan kargo laut/udara)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\Textarea::make('notes')
                         ->columnSpanFull(),

@@ -31,7 +31,7 @@ class BomValidationTest extends TestCase
             'company_id' => $this->company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
     }

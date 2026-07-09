@@ -135,8 +135,8 @@ class InventoryMovementIntegrationTest extends TestCase
         $design = RdDesign::create([
             'company_id' => $this->company->id,
             'code' => 'DSN-EBP-001',
-            'name' => 'Explorer Backpack Pro',
-            'bag_type' => 'backpack',
+            'name' => 'Explorer Jacket Pro',
+            'product_type' => 'jacket',
             'status' => 'approved',
         ]);
 
@@ -216,8 +216,8 @@ class InventoryMovementIntegrationTest extends TestCase
         $design = RdDesign::create([
             'company_id' => $this->company->id,
             'code' => 'DSN-EBP-001',
-            'name' => 'Explorer Backpack Pro',
-            'bag_type' => 'backpack',
+            'name' => 'Explorer Jacket Pro',
+            'product_type' => 'jacket',
             'status' => 'approved',
             'estimated_selling_price' => 150000,
         ]);
@@ -281,8 +281,8 @@ class InventoryMovementIntegrationTest extends TestCase
         $design = RdDesign::create([
             'company_id' => $this->company->id,
             'code' => 'DSN-EBP-001',
-            'name' => 'Explorer Backpack Pro',
-            'bag_type' => 'backpack',
+            'name' => 'Explorer Jacket Pro',
+            'product_type' => 'jacket',
             'status' => 'approved',
             'estimated_selling_price' => 150000,
         ]);

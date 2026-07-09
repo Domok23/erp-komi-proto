@@ -44,7 +44,7 @@ class Phase2Seeder extends Seeder
             'status' => 'planned',
             'start_date' => now()->addDays(5)->toDateString(),
             'end_date' => now()->addDays(45)->toDateString(),
-            'notes' => 'Mass production for Vera Bradley order',
+            'notes' => 'Mass production for Nike order',
         ]);
 
         if ($merchandisingPlanning) {

@@ -25,7 +25,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 
@@ -72,7 +72,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 
@@ -132,7 +132,7 @@ class ConsumptionRatesTest extends TestCase
             'company_id' => $company->id,
             'code' => 'DES-001',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'draft',
         ]);
 

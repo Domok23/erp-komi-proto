@@ -86,7 +86,7 @@ class MerchandisePlanningShortagePoTest extends TestCase
             'company_id' => $this->company->id,
             'code' => 'DSN-TEST',
             'name' => 'Test Design',
-            'bag_type' => 'backpack',
+            'product_type' => 'jacket',
             'status' => 'approved',
         ]);
 

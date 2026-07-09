@@ -107,18 +107,18 @@ class DataSeeder extends Seeder
         $supplierYKK = Supplier::create([
             'company_id' => $kei->id,
             'code' => 'SUP-001',
-            'name' => 'PT YKK Indonesia',
-            'contact_person' => 'Budi Santoso',
-            'address' => 'Jakarta Timur',
+            'name' => 'PT Aksesoris Utama',
+            'contact_person' => fake()->name(),
+            'address' => fake()->address(),
             'is_active' => true,
         ]);
 
         $supplierDuraflex = Supplier::create([
             'company_id' => $kei->id,
             'code' => 'SUP-002',
-            'name' => 'PT Duraflex Belting',
-            'contact_person' => 'Siti Nurhaliza',
-            'address' => 'Bandung',
+            'name' => 'PT Supplier Inc',
+            'contact_person' => fake()->name(),
+            'address' => fake()->address(),
             'is_active' => true,
         ]);
 
@@ -126,10 +126,10 @@ class DataSeeder extends Seeder
         $subconJaya = Subcon::create([
             'company_id' => $kei->id,
             'code' => 'SUB-001',
-            'name' => 'CV Jaya Bordir',
+            'name' => 'CV Bordir Indonesia',
             'service_type' => 'embroidery',
-            'contact_person' => 'Tono Rahardjo',
-            'address' => 'Jakarta Barat',
+            'contact_person' => fake()->name(),
+            'address' => fake()->address(),
             'is_active' => true,
         ]);
 
@@ -137,9 +137,9 @@ class DataSeeder extends Seeder
         $customerVera = Customer::create([
             'company_id' => $kei->id,
             'code' => 'CUS-001',
-            'name' => 'Vera Bradley Exports, Inc.',
-            'contact_person' => 'Sarah Mitchell',
-            'address' => 'United States',
+            'name' => 'PT Nike inc',
+            'contact_person' => fake()->name(),
+            'address' => fake()->address(),
             'payment_terms' => 'net_60',
             'is_active' => true,
         ]);
@@ -147,7 +147,7 @@ class DataSeeder extends Seeder
         // 5. Seed Materials
         $matFabric = Material::create([
             'code' => 'FAB-001',
-            'name' => '600D Recycled Polyester Dobby',
+            'name' => 'Kain Polyester Hitam',
             'category' => 'fabric',
             'unit' => 'yard',
             'stock' => 1000,
@@ -158,7 +158,7 @@ class DataSeeder extends Seeder
 
         $matZipper = Material::create([
             'code' => 'ZIP-001',
-            'name' => 'YKK #5 Metal Zipper, Nickel',
+            'name' => 'Metal Zipper',
             'category' => 'zipper',
             'unit' => 'pcs',
             'stock' => 5000,
@@ -169,9 +169,9 @@ class DataSeeder extends Seeder
 
         $matWebbing = Material::create([
             'code' => 'ACC-003',
-            'name' => 'Webbing Tape 38mm Nylon, Black',
+            'name' => 'Kancing Premium',
             'category' => 'other',
-            'unit' => 'meter',
+            'unit' => 'pcs',
             'stock' => 2000,
             'min_stock' => 200,
             'price' => 2500,
@@ -180,7 +180,7 @@ class DataSeeder extends Seeder
 
         $matFabricEmbroidered = Material::create([
             'code' => 'FAB-001-EMB',
-            'name' => '600D Recycled Polyester Dobby (Embroidered)',
+            'name' => 'Kain Polyester Merah (Embroidered)',
             'category' => 'semi_finished',
             'unit' => 'pcs',
             'stock' => 0,
@@ -193,12 +193,12 @@ class DataSeeder extends Seeder
         $designBackpack = RdDesign::create([
             'company_id' => $kei->id,
             'code' => 'DSN-EBP-001',
-            'name' => 'Explorer Backpack Pro',
-            'description' => 'High-performance backpack design',
-            'bag_type' => 'backpack',
+            'name' => 'Safari Jacket Pro',
+            'description' => 'High-performance safari jacket design',
+            'product_type' => 'jacket',
             'status' => 'approved',
-            'brand' => 'Explorer',
-            'size_range' => '30L',
+            'brand' => 'Safari',
+            'size_range' => 'M-XXL',
             'notes' => 'Initial approved R&D model',
         ]);
 
@@ -207,7 +207,7 @@ class DataSeeder extends Seeder
             'company_id' => $kei->id,
             'bom_number' => CodeGenerator::generateBOMNumber($designBackpack->id, '1.0'),
             'design_id' => $designBackpack->id,
-            'name' => 'Main BOM Explorer Backpack',
+            'name' => 'Main BOM Safari Jacket',
             'version' => '1.0',
             'status' => 'active',
         ]);
@@ -236,8 +236,8 @@ class DataSeeder extends Seeder
             'bom_id' => $bomBackpack->id,
             'material_id' => $matWebbing->id,
             'category' => 'trim',
-            'quantity_per_unit' => 2.5,
-            'unit' => 'meter',
+            'quantity_per_unit' => 6,
+            'unit' => 'pcs',
             'wastage_percent' => 0,
             'is_from_rnd' => true,
         ]);
@@ -246,7 +246,7 @@ class DataSeeder extends Seeder
         $project = Project::create([
             'company_id' => $kei->id,
             'project_code' => CodeGenerator::generateProjectCode(),
-            'name' => 'Vera Bradley Q3 Backpack',
+            'name' => 'Nike Jacket',
             'description' => 'Mass production order for 1,000 units',
             'type' => 'mass',
             'status' => 'production',
@@ -265,7 +265,7 @@ class DataSeeder extends Seeder
             'status' => 'finalised',
             'total_material_cost' => 120000,
             'total_subcon_cost' => 50000,
-            'special_instructions' => 'Embroidery to be done by CV Jaya Bordir',
+            'special_instructions' => 'Embroidery to be done by CV Bordir Indonesia',
         ]);
 
         MerchandisePlanningItem::create([
@@ -354,7 +354,7 @@ class DataSeeder extends Seeder
 
         SalesOrderItem::create([
             'sales_order_id' => $salesOrder->id,
-            'description' => 'Explorer Backpack Pro 30L',
+            'description' => 'Safari Jacket Pro',
             'quantity' => 1000,
             'unit' => 'pcs',
             'unit_price' => $costing->selling_price,
@@ -377,7 +377,7 @@ class DataSeeder extends Seeder
             'ppn_percent' => 11,
             'ppn_amount' => 79500000 * 0.11,
             'grand_total' => 79500000 * 1.11,
-            'notes' => 'Zippers and fabric for Backpack production',
+            'notes' => 'Zippers and fabric for Jacket production',
         ]);
 
         PoSupplierItem::create([
@@ -394,7 +394,7 @@ class DataSeeder extends Seeder
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
             'material_id' => $matZipper->id,
-            'description' => 'YKK #5 Metal Zipper',
+            'description' => 'Metal Zipper',
             'qty' => 3000,
             'unit' => 'pcs',
             'unit_price' => 7500,
@@ -579,7 +579,7 @@ class DataSeeder extends Seeder
             'quantity' => 2000,
             'reserved_qty' => 0,
             'available_qty' => 2000,
-            'unit' => 'meter',
+            'unit' => 'pcs',
             'min_stock' => 200,
             'location' => 'Rack C-3',
         ]);
@@ -597,7 +597,7 @@ class DataSeeder extends Seeder
             'status' => 'planned',
             'start_date' => now()->addDays(5)->toDateString(),
             'end_date' => now()->addDays(45)->toDateString(),
-            'notes' => 'Mass production for Vera Bradley order',
+            'notes' => 'Mass production for Nike order',
         ]);
 
         if ($merchandisingPlanning) {
@@ -700,5 +700,121 @@ class DataSeeder extends Seeder
             'inspector' => 'QC Supervisor',
             'notes' => 'Initial quality check passed with minor defects',
         ]);
+
+        // 23. Seed Invoice Purchases & Payments
+        $invoicePurchase = \App\Models\InvoicePurchase::create([
+            'company_id' => $kei->id,
+            'invoice_number' => 'INV-PUR-' . now()->format('Ymd') . '-001',
+            'purchase_type' => 'po_supplier',
+            'reference_id' => $poSupplier->id,
+            'invoice_date' => now()->subDays(10)->toDateString(),
+            'due_date' => now()->addDays(20)->toDateString(),
+            'subtotal' => $poSupplier->subtotal,
+            'tax_amount' => $poSupplier->ppn_amount,
+            'grand_total' => $poSupplier->grand_total,
+            'paid_amount' => 0,
+            'status' => 'unpaid',
+            'notes' => 'Invoice for raw materials purchase',
+        ]);
+
+        \App\Models\Payment::create([
+            'company_id' => $kei->id,
+            'invoice_type' => 'purchase',
+            'invoice_id' => $invoicePurchase->id,
+            'payment_number' => 'PAY-PUR-' . now()->format('Ymd') . '-001',
+            'payment_date' => now()->subDays(5)->toDateString(),
+            'amount' => 20000000.00,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'TRF-100293847',
+            'notes' => 'Partial payment for supplier invoice',
+        ]);
+
+        \App\Models\Payment::create([
+            'company_id' => $kei->id,
+            'invoice_type' => 'sales',
+            'invoice_id' => $invoiceSales->id,
+            'payment_number' => 'PAY-SLS-' . now()->format('Ymd') . '-001',
+            'payment_date' => now()->subDays(7)->toDateString(),
+            'amount' => $salesOrder->down_payment_amount,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'TRF-9908871',
+            'notes' => '30% Down Payment for SO ' . $salesOrder->so_number,
+        ]);
+
+        // 24. Seed Shipment (Sales / Delivery)
+        \App\Models\Shipment::create([
+            'company_id' => $kei->id,
+            'shipment_number' => 'SHP-SLS-' . now()->format('Ymd') . '-001',
+            'sales_order_id' => $salesOrder->id,
+            'shipment_date' => now()->subDays(2)->toDateString(),
+            'status' => 'in_transit',
+            'shipping_method' => 'sea',
+            'carrier' => 'Meratus Line',
+            'container_number' => 'MRTS-9920381',
+            'bl_number' => 'BL-MRTS-9901',
+            'port_of_loading' => 'Tanjung Priok, Jakarta',
+            'port_of_discharge' => 'Port of Los Angeles, USA',
+            'etd' => now()->subDays(2)->toDateString(),
+            'eta' => now()->addDays(28)->toDateString(),
+            'total_packages' => 100,
+            'total_gross_weight_kg' => 2500,
+            'total_volume_m3' => 15.5,
+            'shipping_cost_usd' => 3500.00,
+            'notes' => 'Export shipment of Nike Jackets',
+        ]);
+
+        // 25. Seed Material Usage
+        \App\Models\MaterialUsage::create([
+            'company_id' => $kei->id,
+            'job_order_id' => $jobOrderCutting->id,
+            'material_id' => $matFabric->id,
+            'usage_date' => now()->subDays(3)->toDateString(),
+            'planned_qty' => 1500.00,
+            'actual_qty' => 1510.00,
+            'waste_qty' => 10.00,
+            'unit' => 'yard',
+            'unit_price' => $matFabric->price,
+            'total_cost' => 1510.00 * $matFabric->price,
+            'status' => 'completed',
+            'notes' => 'Fabric usage for cutting department',
+        ]);
+
+        // 26. Seed Stock Transfer & Stock Transfer Item
+        $stockTransfer = \App\Models\StockTransfer::create([
+            'from_company_id' => $kei->id,
+            'to_company_id' => $ktk->id,
+            'from_warehouse_id' => $whMain->id,
+            'to_warehouse_id' => $whMainKtk->id,
+            'transfer_number' => 'ST-' . now()->format('Ymd') . '-001',
+            'transfer_date' => now()->subDays(1)->toDateString(),
+            'status' => 'received',
+            'notes' => 'Inter-company transfer of zippers for production support',
+        ]);
+
+        \App\Models\StockTransferItem::create([
+            'stock_transfer_id' => $stockTransfer->id,
+            'material_id' => $matZipper->id,
+            'qty_requested' => 100.00,
+            'qty_transferred' => 100.00,
+            'unit' => 'pcs',
+        ]);
+
+        // 27. Seed manual adjustment in Inventory Movement
+        $stockZipper = \App\Models\InventoryStock::where('warehouse_id', $whMain->id)
+            ->where('material_id', $matZipper->id)
+            ->first();
+
+        if ($stockZipper) {
+            \App\Models\InventoryMovement::create([
+                'company_id' => $kei->id,
+                'inventory_stock_id' => $stockZipper->id,
+                'material_id' => $matZipper->id,
+                'type' => 'adjustment',
+                'reference_type' => null,
+                'reference_id' => null,
+                'quantity' => 50.00,
+                'notes' => 'Manual stock count adjustment (+50 pcs)',
+            ]);
+        }
     }
 }
