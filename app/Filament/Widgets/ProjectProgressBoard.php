@@ -195,6 +195,13 @@ class ProjectProgressBoard extends BaseWidget
                         return $diff . ' days remaining';
                     }),
             ])
+            ->headerActions([
+                \Filament\Actions\Action::make('open_monitor')
+                    ->label('Open Full Project Monitor')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('primary')
+                    ->url(fn (): string => \App\Filament\Pages\ProjectMonitor::getUrl()),
+            ])
             ->paginated([5, 10, 25])
             ->defaultPaginationPageOption(5);
     }
