@@ -45,6 +45,9 @@ class HrLeaveTypeResource extends Resource
                         ->minValue(0),
                     Forms\Components\Toggle::make('requires_document')
                         ->default(false),
+                    Forms\Components\Toggle::make('is_sick_type')
+                        ->label('Sick Leave Type')
+                        ->default(false),
                     Forms\Components\Toggle::make('is_active')
                         ->default(true),
                 ])

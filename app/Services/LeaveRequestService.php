@@ -61,7 +61,7 @@ class LeaveRequestService
                 $balance->increment('used_days', $days);
             }
 
-            $attendanceStatus = $leaveType->code === 'SICK' ? 'sick' : 'leave';
+            $attendanceStatus = $leaveType->is_sick_type ? 'sick' : 'leave';
 
             foreach ($request->dateRange() as $date) {
                 HrAttendance::updateOrCreate(

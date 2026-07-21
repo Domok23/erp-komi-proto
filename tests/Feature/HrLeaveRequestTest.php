@@ -61,6 +61,7 @@ class HrLeaveRequestTest extends TestCase
             'name' => 'Sakit',
             'default_quota_days' => null,
             'requires_document' => true,
+            'is_sick_type' => true,
         ]);
 
         HrLeaveBalance::create([
@@ -133,6 +134,33 @@ class HrLeaveRequestTest extends TestCase
             'status' => 'sick',
         ]);
         $this->assertSame(0, HrLeaveBalance::where('leave_type_id', $this->noQuotaType->id)->count());
+    }
+
+    public function test_approve_custom_code_sick_type_with_flag_fills_attendance_as_sick(): void
+    {
+        $customSickType = HrLeaveType::create([
+            'company_id' => $this->company->id,
+            'code' => 'SAKIT',
+            'name' => 'Cuti Sakit',
+            'default_quota_days' => null,
+            'requires_document' => true,
+            'is_sick_type' => true,
+        ]);
+
+        $request = LeaveRequestService::submit($this->employee, [
+            'leave_type_id' => $customSickType->id,
+            'start_date' => '2026-08-05',
+            'end_date' => '2026-08-05',
+            'reason' => 'Flu',
+        ], 'hrd', $this->user->id);
+
+        LeaveRequestService::approve($request, $this->user->id);
+
+        $this->assertDatabaseHas('hr_attendances', [
+            'employee_id' => $this->employee->id,
+            'date' => '2026-08-05 00:00:00',
+            'status' => 'sick',
+        ]);
     }
 
     public function test_reject_does_not_touch_balance_or_attendance(): void

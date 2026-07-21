@@ -18,11 +18,13 @@ class HrLeaveType extends Model
         'name',
         'default_quota_days',
         'requires_document',
+        'is_sick_type',
         'is_active',
     ];
 
     protected $casts = [
         'requires_document' => 'boolean',
+        'is_sick_type' => 'boolean',
         'is_active' => 'boolean',
     ];
 
