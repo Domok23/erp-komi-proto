@@ -60,6 +60,36 @@ class HrEmployee extends Model
         return $this->hasMany(HrEmployeePlacement::class, 'employee_id');
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(HrAttendance::class, 'employee_id');
+    }
+
+    public function overtimeRecords(): HasMany
+    {
+        return $this->hasMany(HrOvertimeRecord::class, 'employee_id');
+    }
+
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(HrLeaveBalance::class, 'employee_id');
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(HrLeaveRequest::class, 'employee_id');
+    }
+
+    public function warningLetters(): HasMany
+    {
+        return $this->hasMany(HrWarningLetter::class, 'employee_id');
+    }
+
+    public function positionHistories(): HasMany
+    {
+        return $this->hasMany(HrPositionHistory::class, 'employee_id');
+    }
+
     public function activePlacement(): HasOne
     {
         return $this->hasOne(HrEmployeePlacement::class, 'employee_id')
