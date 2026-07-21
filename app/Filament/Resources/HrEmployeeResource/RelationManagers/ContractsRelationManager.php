@@ -83,7 +83,19 @@ class ContractsRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
-                    EditAction::make(),
+                    EditAction::make()
+                        ->using(function (array $data, Model $record): Model {
+                            if (($data['status'] ?? $record->status) === 'active') {
+                                $record->employee->contracts()
+                                    ->where('status', 'active')
+                                    ->where('id', '!=', $record->id)
+                                    ->update(['status' => 'ended']);
+                            }
+
+                            $record->update($data);
+
+                            return $record;
+                        }),
                     DeleteAction::make(),
                 ]),
             ])
