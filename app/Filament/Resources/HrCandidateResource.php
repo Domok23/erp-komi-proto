@@ -55,10 +55,10 @@ class HrCandidateResource extends Resource
                         ->options([
                             'screening' => 'Screening',
                             'checklist' => 'Checklist',
-                            'interview' => 'Interview',
-                            'offered' => 'Offered',
-                            'rejected' => 'Rejected',
+                            'ready_to_hire' => 'Ready to Hire',
                             'hired' => 'Hired',
+                            'rejected' => 'Rejected',
+                            'withdrawn' => 'Withdrawn',
                         ])
                         ->default('screening')
                         ->required(),
@@ -84,10 +84,10 @@ class HrCandidateResource extends Resource
                 ->color(fn (string $state): string => match ($state) {
                     'screening' => 'gray',
                     'checklist' => 'info',
-                    'interview' => 'warning',
-                    'offered' => 'primary',
-                    'rejected' => 'danger',
+                    'ready_to_hire' => 'warning',
                     'hired' => 'success',
+                    'rejected' => 'danger',
+                    'withdrawn' => 'gray',
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('phone')
@@ -101,10 +101,10 @@ class HrCandidateResource extends Resource
                     ->options([
                         'screening' => 'Screening',
                         'checklist' => 'Checklist',
-                        'interview' => 'Interview',
-                        'offered' => 'Offered',
-                        'rejected' => 'Rejected',
+                        'ready_to_hire' => 'Ready to Hire',
                         'hired' => 'Hired',
+                        'rejected' => 'Rejected',
+                        'withdrawn' => 'Withdrawn',
                     ]),
             ])
             ->actions([
