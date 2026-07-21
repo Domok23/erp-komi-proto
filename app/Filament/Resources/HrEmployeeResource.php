@@ -149,6 +149,8 @@ class HrEmployeeResource extends Resource
         return [
             RelationManagers\ContractsRelationManager::class,
             RelationManagers\PlacementsRelationManager::class,
+            RelationManagers\LeaveBalancesRelationManager::class,
+            RelationManagers\PositionHistoriesRelationManager::class,
         ];
     }
 
