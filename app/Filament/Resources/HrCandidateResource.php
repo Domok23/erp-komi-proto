@@ -39,6 +39,7 @@ class HrCandidateResource extends Resource
                         ->maxLength(255),
                     Forms\Components\TextInput::make('nik')
                         ->label('NIK')
+                        ->unique(ignoreRecord: true)
                         ->maxLength(32),
                     Forms\Components\TextInput::make('phone')
                         ->tel()
