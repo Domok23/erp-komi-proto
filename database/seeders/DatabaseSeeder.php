@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             AdminUserSeeder::class,
             DataSeeder::class,
+            HrModuleSeeder::class,
             ChartOfAccountSeeder::class,
             GeneralLedgerSeeder::class,
         ]);
