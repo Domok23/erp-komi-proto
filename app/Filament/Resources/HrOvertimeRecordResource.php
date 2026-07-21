@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HrOvertimeRecordResource\Pages;
 use App\Models\HrEmployee;
 use App\Models\HrOvertimeRecord;
+use App\Services\CompanyContext;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -131,6 +132,12 @@ class HrOvertimeRecordResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('employee', fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()));
     }
 
     public static function getNavigationIcon(): ?string

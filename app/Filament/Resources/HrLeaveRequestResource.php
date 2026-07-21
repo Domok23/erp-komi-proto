@@ -6,6 +6,7 @@ use App\Exceptions\HrLeaveRequestException;
 use App\Filament\Resources\HrLeaveRequestResource\Pages;
 use App\Models\HrEmployee;
 use App\Models\HrLeaveRequest;
+use App\Services\CompanyContext;
 use App\Services\LeaveRequestService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -172,6 +173,12 @@ class HrLeaveRequestResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('employee', fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()));
     }
 
     public static function getNavigationIcon(): ?string
