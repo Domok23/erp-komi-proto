@@ -59,10 +59,12 @@ class HrOvertimeRecordResource extends Resource
                         })
                         ->required(),
                     Forms\Components\DatePicker::make('date')
-                        ->required(),
+                        ->required()
+                        ->maxDate(now()->addDays(7)),
                     Forms\Components\TextInput::make('hours')
                         ->numeric()
                         ->step(0.5)
+                        ->minValue(0.01)
                         ->required(),
                     Forms\Components\Textarea::make('reason')
                         ->maxLength(65535)
