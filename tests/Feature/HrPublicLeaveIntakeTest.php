@@ -96,4 +96,31 @@ class HrPublicLeaveIntakeTest extends TestCase
     {
         $this->get('/leave-request/does-not-exist')->assertNotFound();
     }
+
+    public function test_submit_rejects_leave_type_from_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'code' => 'OTHER', 'address' => 'Bandung']);
+
+        $otherLeaveType = HrLeaveType::create([
+            'company_id' => $otherCompany->id,
+            'code' => 'ANNUAL',
+            'name' => 'Cuti Tahunan Other',
+            'default_quota_days' => 12,
+        ]);
+
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $otherLeaveType->id,
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-02',
+            'reason' => 'Acara keluarga',
+        ]);
+
+        $response->assertSessionHasErrors('leave_type_id');
+
+        $this->assertDatabaseMissing('hr_leave_requests', [
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $otherLeaveType->id,
+        ]);
+    }
 }
