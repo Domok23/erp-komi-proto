@@ -20,6 +20,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Unique;
 
 class HrAttendanceResource extends Resource
 {
@@ -53,7 +54,13 @@ class HrAttendanceResource extends Resource
                         ->searchable()
                         ->required(),
                     Forms\Components\DatePicker::make('date')
-                        ->required(),
+                        ->required()
+                        ->unique(
+                            table: 'hr_attendances',
+                            column: 'date',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule, callable $get) => $rule->where('employee_id', $get('employee_id'))
+                        ),
                     Forms\Components\Select::make('status')
                         ->options([
                             'present' => 'Present',

@@ -32,7 +32,8 @@ class ContractsRelationManager extends RelationManager
                 ->required(),
             Forms\Components\DatePicker::make('start_date')
                 ->required(),
-            Forms\Components\DatePicker::make('end_date'),
+            Forms\Components\DatePicker::make('end_date')
+                ->afterOrEqual('start_date'),
             Forms\Components\FileUpload::make('file_path')
                 ->directory('hr/contracts'),
             Forms\Components\Select::make('status')

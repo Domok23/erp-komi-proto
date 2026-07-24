@@ -101,4 +101,39 @@ class HrEmployee extends Model
         return $this->hasOne(HrEmploymentContract::class, 'employee_id')
             ->where('status', 'active');
     }
+
+    protected static function booted(): void
+    {
+        static::created(function (HrEmployee $employee) {
+            if ($employee->position_id || $employee->department_id) {
+                HrPositionHistory::create([
+                    'employee_id' => $employee->id,
+                    'from_department_id' => null,
+                    'from_position_id' => null,
+                    'to_department_id' => $employee->department_id,
+                    'to_position_id' => $employee->position_id,
+                    'type' => 'initial',
+                    'effective_date' => $employee->join_date ?? now()->toDateString(),
+                    'reason' => 'Initial Placement',
+                    'created_by' => auth()->id(),
+                ]);
+            }
+        });
+
+        static::updated(function (HrEmployee $employee) {
+            if ($employee->wasChanged(['position_id', 'department_id'])) {
+                HrPositionHistory::create([
+                    'employee_id' => $employee->id,
+                    'from_department_id' => $employee->getOriginal('department_id'),
+                    'from_position_id' => $employee->getOriginal('position_id'),
+                    'to_department_id' => $employee->department_id,
+                    'to_position_id' => $employee->position_id,
+                    'type' => 'transfer',
+                    'effective_date' => now()->toDateString(),
+                    'reason' => 'Updated via Employee Management',
+                    'created_by' => auth()->id(),
+                ]);
+            }
+        });
+    }
 }

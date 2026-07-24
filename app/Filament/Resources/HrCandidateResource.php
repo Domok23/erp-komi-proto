@@ -54,14 +54,16 @@ class HrCandidateResource extends Resource
                     Forms\Components\TextInput::make('source')
                         ->maxLength(255),
                     Forms\Components\Select::make('status')
-                        ->options([
+                        ->options(fn ($record): array => $record?->status === 'hired' ? [
+                            'hired' => 'Hired',
+                        ] : [
                             'screening' => 'Screening',
                             'checklist' => 'Checklist',
                             'ready_to_hire' => 'Ready to Hire',
-                            'hired' => 'Hired',
                             'rejected' => 'Rejected',
                             'withdrawn' => 'Withdrawn',
                         ])
+                        ->disabled(fn ($record): bool => $record?->status === 'hired')
                         ->default('screening')
                         ->required(),
                     Forms\Components\Textarea::make('notes')

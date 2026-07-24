@@ -229,4 +229,30 @@ class HrLeaveRequestTest extends TestCase
 
         $this->assertSame(2, $balance->used_days);
     }
+
+    public function test_delete_approved_leave_restores_quota_and_removes_attendance(): void
+    {
+        $request = LeaveRequestService::submit($this->employee, [
+            'leave_type_id' => $this->quotaType->id,
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-04',
+            'reason' => 'Liburan',
+        ], 'hrd', $this->user->id);
+
+        LeaveRequestService::approve($request, $this->user->id);
+
+        $balanceBefore = HrLeaveBalance::where('employee_id', $this->employee->id)
+            ->where('leave_type_id', $this->quotaType->id)
+            ->first();
+        $this->assertSame(2, $balanceBefore->used_days);
+        $this->assertDatabaseHas('hr_attendances', ['employee_id' => $this->employee->id, 'date' => '2026-08-03 00:00:00']);
+
+        LeaveRequestService::deleteRequest($request);
+
+        $balanceAfter = HrLeaveBalance::where('employee_id', $this->employee->id)
+            ->where('leave_type_id', $this->quotaType->id)
+            ->first();
+        $this->assertSame(0, $balanceAfter->used_days);
+        $this->assertDatabaseMissing('hr_attendances', ['employee_id' => $this->employee->id, 'date' => '2026-08-03 00:00:00']);
+    }
 }

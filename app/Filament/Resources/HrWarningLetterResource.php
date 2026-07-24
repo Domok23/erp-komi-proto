@@ -63,7 +63,8 @@ class HrWarningLetterResource extends Resource
                         ->required()
                         ->maxLength(50),
                     Forms\Components\DatePicker::make('issued_date')
-                        ->required(),
+                        ->required()
+                        ->maxDate(now()),
                     Forms\Components\Textarea::make('reason')
                         ->required()
                         ->maxLength(65535)

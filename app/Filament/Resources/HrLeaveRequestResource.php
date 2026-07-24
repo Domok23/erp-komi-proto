@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class HrLeaveRequestResource extends Resource
@@ -64,7 +65,8 @@ class HrLeaveRequestResource extends Resource
                     Forms\Components\DatePicker::make('start_date')
                         ->required(),
                     Forms\Components\DatePicker::make('end_date')
-                        ->required(),
+                        ->required()
+                        ->afterOrEqual('start_date'),
                     Forms\Components\Textarea::make('reason')
                         ->maxLength(65535)
                         ->columnSpanFull(),
@@ -158,12 +160,16 @@ class HrLeaveRequestResource extends Resource
                     }),
                 ActionGroup::make([
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->action(fn (HrLeaveRequest $record) => LeaveRequestService::deleteRequest($record)),
                 ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function (Collection $records) {
+                            $records->each(fn (HrLeaveRequest $record) => LeaveRequestService::deleteRequest($record));
+                        }),
                 ]),
             ]);
     }

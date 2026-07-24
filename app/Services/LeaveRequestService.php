@@ -115,4 +115,42 @@ class LeaveRequestService
             ->where('status', 'active')
             ->first();
     }
+
+    public static function deleteRequest(HrLeaveRequest $request): void
+    {
+        DB::transaction(function () use ($request) {
+            if ($request->status === 'approved') {
+                $leaveType = HrLeaveType::find($request->leave_type_id);
+                if ($leaveType) {
+                    $attendanceStatus = $leaveType->is_sick_type ? 'sick' : 'leave';
+                    $workingDays = 0;
+
+                    foreach ($request->dateRange() as $dateString) {
+                        $dateObj = Carbon::parse($dateString);
+                        if (! $dateObj->isWeekend()) {
+                            $workingDays++;
+                        }
+
+                        HrAttendance::where('employee_id', $request->employee_id)
+                            ->whereDate('date', $dateString)
+                            ->where('status', $attendanceStatus)
+                            ->delete();
+                    }
+
+                    if ($leaveType->isQuotaBased() && $workingDays > 0) {
+                        $balance = HrLeaveBalance::where('employee_id', $request->employee_id)
+                            ->where('leave_type_id', $leaveType->id)
+                            ->where('year', $request->start_date->year)
+                            ->first();
+
+                        if ($balance) {
+                            $balance->decrement('used_days', min($balance->used_days, $workingDays));
+                        }
+                    }
+                }
+            }
+
+            $request->delete();
+        });
+    }
 }
