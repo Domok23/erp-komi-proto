@@ -37,26 +37,27 @@ class HrWarningLetterResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('employee_id')
                         ->label('Employee')
-                        ->searchable()
-                        ->getSearchResultsUsing(function (string $search): array {
+                        ->options(function (): array {
                             return HrEmployee::query()
                                 ->where('company_id', CompanyContext::getCompanyId())
-                                ->where(function (Builder $query) use ($search): void {
-                                    $query->where('name', 'like', "%{$search}%")
-                                        ->orWhere('employee_number', 'like', "%{$search}%");
-                                })
-                                ->limit(50)
+                                ->where('status', 'active')
                                 ->get()
                                 ->mapWithKeys(fn (HrEmployee $employee): array => [
-                                    $employee->id => "{$employee->name} ({$employee->employee_number})",
+                                    $employee->id => "{$employee->name} <span style=\"color: #6b7280; font-size: 0.875em;\">({$employee->employee_number})</span>",
                                 ])
                                 ->all();
                         })
-                        ->getOptionLabelUsing(function ($value): ?string {
-                            $employee = HrEmployee::find($value);
-
-                            return $employee ? "{$employee->name} ({$employee->employee_number})" : null;
-                        })
+                        ->allowHtml()
+                        ->searchable()
+                        ->required(),
+                    Forms\Components\Select::make('level')
+                        ->label('SP Level')
+                        ->options([
+                            'sp_1' => 'SP 1',
+                            'sp_2' => 'SP 2',
+                            'sp_3' => 'SP 3',
+                        ])
+                        ->default('sp_1')
                         ->required(),
                     Forms\Components\TextInput::make('letter_number')
                         ->required()
@@ -84,6 +85,20 @@ class HrWarningLetterResource extends Resource
                 ->label('Employee')
                 ->sortable()
                 ->searchable(),
+            Tables\Columns\BadgeColumn::make('level')
+                ->label('Level')
+                ->formatStateUsing(fn (string $state): string => match ($state) {
+                    'sp_1' => 'SP 1',
+                    'sp_2' => 'SP 2',
+                    'sp_3' => 'SP 3',
+                    default => strtoupper($state),
+                })
+                ->color(fn (string $state): string => match ($state) {
+                    'sp_1' => 'warning',
+                    'sp_2' => 'danger',
+                    'sp_3' => 'danger',
+                    default => 'gray',
+                }),
             Tables\Columns\TextColumn::make('letter_number')
                 ->sortable()
                 ->searchable(),

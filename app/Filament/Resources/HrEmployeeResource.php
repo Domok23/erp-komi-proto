@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HrEmployeeResource\Pages;
 use App\Filament\Resources\HrEmployeeResource\RelationManagers;
 use App\Models\HrEmployee;
+use App\Models\HrPosition;
 use App\Models\Project;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -43,6 +44,7 @@ class HrEmployeeResource extends Resource
                         ->maxLength(255),
                     Forms\Components\TextInput::make('nik')
                         ->label('NIK')
+                        ->validationAttribute('NIK')
                         ->unique(ignoreRecord: true)
                         ->maxLength(32),
                     Forms\Components\TextInput::make('phone')
@@ -57,11 +59,25 @@ class HrEmployeeResource extends Resource
                     Forms\Components\Select::make('department_id')
                         ->relationship('department', 'name')
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->live()
+                        ->afterStateUpdated(fn (callable $set) => $set('position_id', null)),
                     Forms\Components\Select::make('position_id')
-                        ->relationship('position', 'name')
+                        ->label('Position')
+                        ->options(function (callable $get): array {
+                            $departmentId = $get('department_id');
+                            if (! $departmentId) {
+                                return [];
+                            }
+
+                            return HrPosition::query()
+                                ->where('department_id', $departmentId)
+                                ->pluck('name', 'id')
+                                ->all();
+                        })
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->disabled(fn (callable $get): bool => blank($get('department_id'))),
                     Forms\Components\DatePicker::make('join_date'),
                     Forms\Components\Select::make('status')
                         ->options([

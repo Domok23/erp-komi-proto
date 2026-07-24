@@ -120,8 +120,8 @@ class HrLeaveRequestTest extends TestCase
     {
         $request = LeaveRequestService::submit($this->employee, [
             'leave_type_id' => $this->noQuotaType->id,
-            'start_date' => '2026-08-01',
-            'end_date' => '2026-08-01',
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-03',
             'reason' => 'Demam',
             'file_path' => 'letters/doctor-note.pdf',
         ], 'hrd', $this->user->id);
@@ -130,7 +130,7 @@ class HrLeaveRequestTest extends TestCase
 
         $this->assertDatabaseHas('hr_attendances', [
             'employee_id' => $this->employee->id,
-            'date' => '2026-08-01 00:00:00',
+            'date' => '2026-08-03 00:00:00',
             'status' => 'sick',
         ]);
         $this->assertSame(0, HrLeaveBalance::where('leave_type_id', $this->noQuotaType->id)->count());
@@ -208,5 +208,25 @@ class HrLeaveRequestTest extends TestCase
 
         $this->employee->update(['status' => 'inactive']);
         $this->assertNull(LeaveRequestService::findActiveEmployeeByNumber($this->company->id, 'EMP-500'));
+    }
+
+    public function test_approve_leave_excludes_weekends_from_quota_deduction(): void
+    {
+        // 2026-07-31 is Friday, 2026-08-03 is Monday (span of 4 calendar days: Fri, Sat, Sun, Mon)
+        $request = LeaveRequestService::submit($this->employee, [
+            'leave_type_id' => $this->quotaType->id,
+            'start_date' => '2026-07-31',
+            'end_date' => '2026-08-03',
+            'reason' => 'Liburan',
+        ], 'hrd', $this->user->id);
+
+        LeaveRequestService::approve($request, $this->user->id);
+
+        // Balance should increment by 2 working days (Friday & Monday only), not 4
+        $balance = HrLeaveBalance::where('employee_id', $this->employee->id)
+            ->where('leave_type_id', $this->quotaType->id)
+            ->first();
+
+        $this->assertSame(2, $balance->used_days);
     }
 }

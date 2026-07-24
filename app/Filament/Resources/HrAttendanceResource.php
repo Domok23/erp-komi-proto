@@ -39,26 +39,18 @@ class HrAttendanceResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('employee_id')
                         ->label('Employee')
-                        ->searchable()
-                        ->getSearchResultsUsing(function (string $search): array {
+                        ->options(function (): array {
                             return HrEmployee::query()
                                 ->where('company_id', CompanyContext::getCompanyId())
-                                ->where(function (Builder $query) use ($search): void {
-                                    $query->where('name', 'like', "%{$search}%")
-                                        ->orWhere('employee_number', 'like', "%{$search}%");
-                                })
-                                ->limit(50)
+                                ->where('status', 'active')
                                 ->get()
                                 ->mapWithKeys(fn (HrEmployee $employee): array => [
-                                    $employee->id => "{$employee->name} ({$employee->employee_number})",
+                                    $employee->id => "{$employee->name} <span style=\"color: #6b7280; font-size: 0.875em;\">({$employee->employee_number})</span>",
                                 ])
                                 ->all();
                         })
-                        ->getOptionLabelUsing(function ($value): ?string {
-                            $employee = HrEmployee::find($value);
-
-                            return $employee ? "{$employee->name} ({$employee->employee_number})" : null;
-                        })
+                        ->allowHtml()
+                        ->searchable()
                         ->required(),
                     Forms\Components\DatePicker::make('date')
                         ->required(),
@@ -69,6 +61,7 @@ class HrAttendanceResource extends Resource
                             'permission' => 'Permission',
                             'leave' => 'Leave',
                             'alpha' => 'Alpha',
+                            'half_day' => 'Half Day',
                         ])
                         ->required(),
                     Forms\Components\Textarea::make('notes')
@@ -96,6 +89,7 @@ class HrAttendanceResource extends Resource
                     'permission' => 'info',
                     'leave' => 'primary',
                     'alpha' => 'danger',
+                    'half_day' => 'warning',
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('notes')

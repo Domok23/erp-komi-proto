@@ -46,9 +46,25 @@ class LeaveRequestService
 
         return DB::transaction(function () use ($request, $userId) {
             $leaveType = HrLeaveType::findOrFail($request->leave_type_id);
-            $days = $request->start_date->diffInDays($request->end_date) + 1;
+            $attendanceStatus = $leaveType->is_sick_type ? 'sick' : 'leave';
+            $workingDays = 0;
 
-            if ($leaveType->isQuotaBased()) {
+            foreach ($request->dateRange() as $dateString) {
+                $dateObj = Carbon::parse($dateString);
+                if (! $dateObj->isWeekend()) {
+                    $workingDays++;
+                    HrAttendance::updateOrCreate(
+                        ['employee_id' => $request->employee_id, 'date' => $dateString],
+                        [
+                            'company_id' => $request->employee->company_id,
+                            'status' => $attendanceStatus,
+                            'updated_by' => $userId,
+                        ]
+                    );
+                }
+            }
+
+            if ($leaveType->isQuotaBased() && $workingDays > 0) {
                 $balance = HrLeaveBalance::firstOrCreate(
                     [
                         'employee_id' => $request->employee_id,
@@ -58,20 +74,7 @@ class LeaveRequestService
                     ['quota_days' => $leaveType->default_quota_days, 'used_days' => 0]
                 );
 
-                $balance->increment('used_days', $days);
-            }
-
-            $attendanceStatus = $leaveType->is_sick_type ? 'sick' : 'leave';
-
-            foreach ($request->dateRange() as $date) {
-                HrAttendance::updateOrCreate(
-                    ['employee_id' => $request->employee_id, 'date' => $date],
-                    [
-                        'company_id' => $request->employee->company_id,
-                        'status' => $attendanceStatus,
-                        'updated_by' => $userId,
-                    ]
-                );
+                $balance->increment('used_days', $workingDays);
             }
 
             $request->update([

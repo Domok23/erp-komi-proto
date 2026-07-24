@@ -15,6 +15,7 @@ class HrWarningLetter extends Model
     protected $fillable = [
         'company_id',
         'employee_id',
+        'level',
         'letter_number',
         'issued_date',
         'reason',
