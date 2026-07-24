@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HrCandidateResource\Pages;
 use App\Filament\Resources\HrCandidateResource\RelationManagers;
 use App\Models\HrCandidate;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class HrCandidateResource extends Resource
 {
@@ -40,7 +42,10 @@ class HrCandidateResource extends Resource
                     Forms\Components\TextInput::make('nik')
                         ->label('NIK')
                         ->validationAttribute('NIK')
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(32),
                     Forms\Components\TextInput::make('phone')
                         ->tel()

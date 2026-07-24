@@ -56,15 +56,26 @@ class PositionHistoriesRelationManager extends RelationManager
                                 ->pluck('name', 'id')
                                 ->all())
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('to_position_id', null)),
                         Forms\Components\Select::make('to_position_id')
                             ->label('Position')
-                            ->options(fn (): array => HrPosition::query()
-                                ->where('company_id', $companyId)
-                                ->pluck('name', 'id')
-                                ->all())
+                            ->options(function (callable $get) use ($companyId): array {
+                                $departmentId = $get('to_department_id');
+                                if (! $departmentId) {
+                                    return [];
+                                }
+
+                                return HrPosition::query()
+                                    ->where('company_id', $companyId)
+                                    ->where('department_id', $departmentId)
+                                    ->pluck('name', 'id')
+                                    ->all();
+                            })
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->disabled(fn (callable $get): bool => blank($get('to_department_id'))),
                         Forms\Components\Select::make('type')
                             ->options([
                                 'promotion' => 'Promosi',

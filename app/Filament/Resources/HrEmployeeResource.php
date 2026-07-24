@@ -7,6 +7,7 @@ use App\Filament\Resources\HrEmployeeResource\RelationManagers;
 use App\Models\HrEmployee;
 use App\Models\HrPosition;
 use App\Models\Project;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms;
@@ -17,6 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Unique;
 
 class HrEmployeeResource extends Resource
 {
@@ -37,7 +39,10 @@ class HrEmployeeResource extends Resource
                     Forms\Components\TextInput::make('employee_number')
                         ->label('Employee Number')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\TextInput::make('name')
                         ->required()
@@ -45,7 +50,10 @@ class HrEmployeeResource extends Resource
                     Forms\Components\TextInput::make('nik')
                         ->label('NIK')
                         ->validationAttribute('NIK')
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(32),
                     Forms\Components\TextInput::make('phone')
                         ->tel()

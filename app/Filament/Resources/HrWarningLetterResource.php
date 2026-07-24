@@ -18,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Unique;
 
 class HrWarningLetterResource extends Resource
 {
@@ -61,6 +62,12 @@ class HrWarningLetterResource extends Resource
                         ->required(),
                     Forms\Components\TextInput::make('letter_number')
                         ->required()
+                        ->unique(
+                            table: 'hr_warning_letters',
+                            column: 'letter_number',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\DatePicker::make('issued_date')
                         ->required()

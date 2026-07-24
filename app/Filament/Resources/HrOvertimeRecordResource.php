@@ -57,7 +57,7 @@ class HrOvertimeRecordResource extends Resource
                     Forms\Components\TextInput::make('hours')
                         ->numeric()
                         ->step(0.5)
-                        ->minValue(0.01)
+                        ->minValue(0.5)
                         ->required(),
                     Forms\Components\Textarea::make('reason')
                         ->maxLength(65535)

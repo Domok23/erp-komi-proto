@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Exceptions\HrHireException;
 use App\Models\Company;
 use App\Models\HrCandidate;
+use App\Models\HrEmployee;
 use App\Models\User;
 use App\Services\HireCandidateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -143,6 +144,30 @@ class HrHireCandidateTest extends TestCase
 
         HireCandidateService::hire($c2, [
             'employee_number' => 'EMP-DUP',
+            'join_date' => '2026-07-16',
+        ], $this->user->id);
+    }
+
+    public function test_duplicate_nik_rejected_on_hire(): void
+    {
+        HrEmployee::create([
+            'company_id' => $this->company->id,
+            'employee_number' => 'EMP-EXISTING',
+            'name' => 'Existing Emp',
+            'nik' => '999888777',
+            'status' => 'active',
+            'join_date' => '2026-01-01',
+            'created_by' => $this->user->id,
+        ]);
+
+        $candidate = $this->makeCandidate(['nik' => '999888777']);
+        $candidate->checklistItems()->update(['status' => 'done']);
+
+        $this->expectException(HrHireException::class);
+        $this->expectExceptionMessage('NIK');
+
+        HireCandidateService::hire($candidate, [
+            'employee_number' => 'EMP-NEW',
             'join_date' => '2026-07-16',
         ], $this->user->id);
     }

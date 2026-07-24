@@ -65,6 +65,17 @@ class HireCandidateService
             throw new HrHireException('employee_number already exists for this company');
         }
 
+        if (filled($candidate->nik)) {
+            $nikExists = HrEmployee::withoutCompanyScope()
+                ->where('company_id', $candidate->company_id)
+                ->where('nik', $candidate->nik)
+                ->exists();
+
+            if ($nikExists) {
+                throw new HrHireException("The NIK ({$candidate->nik}) has already been registered for an employee in this company.");
+            }
+        }
+
         return DB::transaction(function () use ($candidate, $data, $userId, $override, $overrideReason, $employeeNumber) {
             $employee = HrEmployee::create([
                 'company_id' => $candidate->company_id,

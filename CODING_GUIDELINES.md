@@ -9,6 +9,7 @@ Selamat datang di lingkungan **Vibe Coding** terbaik untuk proyek **ERP Komi Pro
 2. **Framework & Stack:** Laravel 12.x + Filament v4.x + PHP 8.3+.
 3. **Format Kode:** Selalu jalankan Linter Pint (`./vendor/bin/pint`) agar kode konsisten.
 4. **Filament v4 Syntax:** Selalu gunakan typehint `Schema $schema` untuk form dan `Table $table` untuk table.
+5. **Dilarang Crash Raw SQL Exception:** Dilarang melempar exception SQL/Database mentah (seperti `UniqueConstraintViolationException`) ke user saat input data duplikat atau error validasi lainnya. Seluruh form WAJIB menampilkan pesan error validasi Filament atau Notification UI yang rapi.
 
 ---
 
@@ -37,6 +38,19 @@ Setiap kali kamu membuat model baru:
 1. Pastikan kolom pertama setelah `id` pada migration adalah `company_id` (foreign key ke `companies`).
 2. Pasang trait `App\Traits\BelongsToCompany` pada model baru tersebut.
 3. Query database secara otomatis akan disaring sesuai perusahaan aktif dalam session via `CompanyContext::getCompanyId()`.
+
+### 🛡️ Standard Penanganan Error & Unique Constraints (Anti-Crash Rule)
+1. **Form-Level Multi-Tenant Unique Rule:** Setiap input form yang memiliki constraint database `unique` (seperti NIK, NIP, Nomor SP, Kode Master) **WAJIB** dipagari per perusahaan pada level form Filament:
+   ```php
+   ->unique(
+       table: 'nama_tabel',
+       column: 'nama_kolom',
+       ignoreRecord: true,
+       modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+   )
+   ```
+2. **Clean Service Exception Handling:** Jika validasi logika bisnis terjadi di Service layer (misal: Hire Candidate, Leave Approval, Material Usage), Service harus melempar Custom Exception (contoh: `HrHireException`) yang ditangkap oleh Filament Action/Page untuk menampilkan Notifikasi UI yang rapi (`Notification::make()->danger()->send()`). Dilarang membiarkan unhandled SQL Exception membocorkan crash screen ke user!
+3. **Strict Date Range Validation:** Setiap form yang memiliki sepasang input tanggal rentang waktu (seperti Tanggal Mulai vs Tanggal Selesai pada Cuti, Kontrak Kerja, Placement, Project) **WAJIB** memasang validasi `->afterOrEqual('start_date')` pada input `end_date` agar tanggal selesai tidak bisa dibuat lebih awal/lampau dari tanggal mulai.
 
 ---
 

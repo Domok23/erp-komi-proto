@@ -14,6 +14,7 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Unique;
 
 class EditHrCandidate extends EditRecord
 {
@@ -31,17 +32,35 @@ class EditHrCandidate extends EditRecord
                     Forms\Components\TextInput::make('employee_number')
                         ->label('Employee Number (NIP)')
                         ->required()
+                        ->unique(
+                            table: 'hr_employees',
+                            column: 'employee_number',
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', $this->record->company_id)
+                        )
                         ->maxLength(50),
                     Forms\Components\Select::make('department_id')
                         ->label('Department')
                         ->options(fn (): array => HrDepartment::query()->pluck('name', 'id')->all())
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->live()
+                        ->afterStateUpdated(fn (callable $set) => $set('position_id', null)),
                     Forms\Components\Select::make('position_id')
                         ->label('Position')
-                        ->options(fn (): array => HrPosition::query()->pluck('name', 'id')->all())
+                        ->options(function (callable $get): array {
+                            $departmentId = $get('department_id');
+                            if (! $departmentId) {
+                                return [];
+                            }
+
+                            return HrPosition::query()
+                                ->where('department_id', $departmentId)
+                                ->pluck('name', 'id')
+                                ->all();
+                        })
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->disabled(fn (callable $get): bool => blank($get('department_id'))),
                     Forms\Components\DatePicker::make('join_date')
                         ->required()
                         ->default(now()->toDateString()),
@@ -49,8 +68,8 @@ class EditHrCandidate extends EditRecord
                         ->label('Override checklist')
                         ->live(),
                     Forms\Components\Textarea::make('override_reason')
-                        ->required(fn (Get $get): bool => (bool) $get('override'))
-                        ->visible(fn (Get $get): bool => (bool) $get('override')),
+                        ->required(fn ($get): bool => (bool) $get('override'))
+                        ->visible(fn ($get): bool => (bool) $get('override')),
                     Forms\Components\Select::make('contract_type')
                         ->label('Contract Type')
                         ->options([
