@@ -255,4 +255,41 @@ class HrLeaveRequestTest extends TestCase
         $this->assertSame(0, $balanceAfter->used_days);
         $this->assertDatabaseMissing('hr_attendances', ['employee_id' => $this->employee->id, 'date' => '2026-08-03 00:00:00']);
     }
+
+    public function test_approve_leave_on_weekend_only_throws_exception(): void
+    {
+        // 2026-08-01 is Saturday, 2026-08-02 is Sunday
+        $request = LeaveRequestService::submit($this->employee, [
+            'leave_type_id' => $this->quotaType->id,
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-02',
+            'reason' => 'Weekend leave',
+        ], 'hrd', $this->user->id);
+
+        $this->expectException(\App\Exceptions\HrLeaveRequestException::class);
+        $this->expectExceptionMessage('Cannot approve leave request with 0 working days');
+
+        LeaveRequestService::approve($request, $this->user->id);
+    }
+
+    public function test_approve_leave_exceeding_quota_throws_exception(): void
+    {
+        // Set quota to 1 day on both LeaveType and existing LeaveBalance
+        $this->quotaType->update(['default_quota_days' => 1]);
+        HrLeaveBalance::where('employee_id', $this->employee->id)
+            ->where('leave_type_id', $this->quotaType->id)
+            ->update(['quota_days' => 1]);
+
+        $request = LeaveRequestService::submit($this->employee, [
+            'leave_type_id' => $this->quotaType->id,
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-05', // 3 working days
+            'reason' => 'Long vacation',
+        ], 'hrd', $this->user->id);
+
+        $this->expectException(\App\Exceptions\HrLeaveRequestException::class);
+        $this->expectExceptionMessage('Insufficient leave quota');
+
+        LeaveRequestService::approve($request, $this->user->id);
+    }
 }

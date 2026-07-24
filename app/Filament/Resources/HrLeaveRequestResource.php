@@ -58,7 +58,7 @@ class HrLeaveRequestResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('leave_type_id')
                         ->label('Leave Type')
-                        ->relationship('leaveType', 'name')
+                        ->relationship('leaveType', 'name', modifyQueryUsing: fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()))
                         ->searchable()
                         ->preload()
                         ->required(),

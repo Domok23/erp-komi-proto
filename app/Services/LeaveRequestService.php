@@ -64,7 +64,11 @@ class LeaveRequestService
                 }
             }
 
-            if ($leaveType->isQuotaBased() && $workingDays > 0) {
+            if ($workingDays === 0) {
+                throw new HrLeaveRequestException('Cannot approve leave request with 0 working days');
+            }
+
+            if ($leaveType->isQuotaBased()) {
                 $balance = HrLeaveBalance::firstOrCreate(
                     [
                         'employee_id' => $request->employee_id,
@@ -73,6 +77,10 @@ class LeaveRequestService
                     ],
                     ['quota_days' => $leaveType->default_quota_days, 'used_days' => 0]
                 );
+
+                if (($balance->used_days + $workingDays) > $balance->quota_days) {
+                    throw new HrLeaveRequestException('Insufficient leave quota');
+                }
 
                 $balance->increment('used_days', $workingDays);
             }

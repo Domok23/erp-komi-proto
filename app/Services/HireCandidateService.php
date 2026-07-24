@@ -76,46 +76,57 @@ class HireCandidateService
             }
         }
 
-        return DB::transaction(function () use ($candidate, $data, $userId, $override, $overrideReason, $employeeNumber) {
-            $employee = HrEmployee::create([
-                'company_id' => $candidate->company_id,
-                'candidate_id' => $candidate->id,
-                'employee_number' => $employeeNumber,
-                'name' => $candidate->name,
-                'nik' => $candidate->nik,
-                'phone' => $candidate->phone,
-                'email' => $candidate->email,
-                'address' => $candidate->address,
-                'department_id' => $data['department_id'] ?? null,
-                'position_id' => $data['position_id'] ?? null,
-                'join_date' => $data['join_date'],
-                'status' => 'active',
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]);
-
-            if (! empty($data['contract']['type'] ?? null)) {
-                HrEmploymentContract::create([
-                    'employee_id' => $employee->id,
-                    'type' => $data['contract']['type'],
-                    'start_date' => $data['contract']['start_date'],
-                    'end_date' => $data['contract']['end_date'] ?? null,
-                    'file_path' => $data['contract']['file_path'] ?? null,
+        try {
+            return DB::transaction(function () use ($candidate, $data, $userId, $override, $overrideReason, $employeeNumber) {
+                $employee = HrEmployee::create([
+                    'company_id' => $candidate->company_id,
+                    'candidate_id' => $candidate->id,
+                    'employee_number' => $employeeNumber,
+                    'name' => $candidate->name,
+                    'nik' => $candidate->nik,
+                    'phone' => $candidate->phone,
+                    'email' => $candidate->email,
+                    'address' => $candidate->address,
+                    'department_id' => $data['department_id'] ?? null,
+                    'position_id' => $data['position_id'] ?? null,
+                    'join_date' => $data['join_date'],
                     'status' => 'active',
-                    'notes' => $data['contract']['notes'] ?? null,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
+
+                if (! empty($data['contract']['type'] ?? null)) {
+                    HrEmploymentContract::create([
+                        'employee_id' => $employee->id,
+                        'type' => $data['contract']['type'],
+                        'start_date' => $data['contract']['start_date'],
+                        'end_date' => $data['contract']['end_date'] ?? null,
+                        'file_path' => $data['contract']['file_path'] ?? null,
+                        'status' => 'active',
+                        'notes' => $data['contract']['notes'] ?? null,
+                    ]);
+                }
+
+                $candidate->update([
+                    'status' => 'hired',
+                    'hired_at' => Carbon::now(),
+                    'hire_override_reason' => $override ? $overrideReason : null,
+                    'hire_override_by' => $override ? $userId : null,
+                    'hire_override_at' => $override ? Carbon::now() : null,
+                    'updated_by' => $userId,
+                ]);
+
+                return $employee;
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'hr_employees_company_id_nik_unique')) {
+                throw new HrHireException("The NIK ({$candidate->nik}) has already been registered for an employee in this company.");
+            }
+            if (str_contains($e->getMessage(), 'hr_employees_company_id_employee_number_unique')) {
+                throw new HrHireException('employee_number already exists for this company');
             }
 
-            $candidate->update([
-                'status' => 'hired',
-                'hired_at' => Carbon::now(),
-                'hire_override_reason' => $override ? $overrideReason : null,
-                'hire_override_by' => $override ? $userId : null,
-                'hire_override_at' => $override ? Carbon::now() : null,
-                'updated_by' => $userId,
-            ]);
-
-            return $employee->fresh();
-        });
+            throw $e;
+        }
     }
 }
