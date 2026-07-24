@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HrWarningLetterResource\Pages;
 use App\Models\HrEmployee;
 use App\Models\HrWarningLetter;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -39,6 +40,7 @@ class HrWarningLetterResource extends Resource
                         ->searchable()
                         ->getSearchResultsUsing(function (string $search): array {
                             return HrEmployee::query()
+                                ->where('company_id', CompanyContext::getCompanyId())
                                 ->where(function (Builder $query) use ($search): void {
                                     $query->where('name', 'like', "%{$search}%")
                                         ->orWhere('employee_number', 'like', "%{$search}%");

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HrAttendanceResource\Pages;
 use App\Models\HrAttendance;
 use App\Models\HrEmployee;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -41,6 +42,7 @@ class HrAttendanceResource extends Resource
                         ->searchable()
                         ->getSearchResultsUsing(function (string $search): array {
                             return HrEmployee::query()
+                                ->where('company_id', CompanyContext::getCompanyId())
                                 ->where(function (Builder $query) use ($search): void {
                                     $query->where('name', 'like', "%{$search}%")
                                         ->orWhere('employee_number', 'like', "%{$search}%");

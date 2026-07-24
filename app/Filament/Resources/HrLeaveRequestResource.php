@@ -45,6 +45,7 @@ class HrLeaveRequestResource extends Resource
                         ->searchable()
                         ->getSearchResultsUsing(function (string $search): array {
                             return HrEmployee::query()
+                                ->where('company_id', CompanyContext::getCompanyId())
                                 ->where(function (Builder $query) use ($search): void {
                                     $query->where('name', 'like', "%{$search}%")
                                         ->orWhere('employee_number', 'like', "%{$search}%");
