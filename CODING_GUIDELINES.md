@@ -51,6 +51,7 @@ Setiap kali kamu membuat model baru:
    ```
 2. **Clean Service Exception Handling:** Jika validasi logika bisnis terjadi di Service layer (misal: Hire Candidate, Leave Approval, Material Usage), Service harus melempar Custom Exception (contoh: `HrHireException`) yang ditangkap oleh Filament Action/Page untuk menampilkan Notifikasi UI yang rapi (`Notification::make()->danger()->send()`). Dilarang membiarkan unhandled SQL Exception membocorkan crash screen ke user!
 3. **Strict Date Range Validation:** Setiap form yang memiliki sepasang input tanggal rentang waktu (seperti Tanggal Mulai vs Tanggal Selesai pada Cuti, Kontrak Kerja, Placement, Project) **WAJIB** memasang validasi `->afterOrEqual('start_date')` pada input `end_date` agar tanggal selesai tidak bisa dibuat lebih awal/lampau dari tanggal mulai.
+4. **Tanpa Concrete Typehint `Get $get` pada Closure Form:** Saat membuat callback komponen form Filament (misal pada `->visible()`, `->required()`, `->options()`), **DILARANG** memberikan typehint beton `fn (Get $get)`. Gunakan `$get` biasa (`fn ($get)`) tanpa import `Filament\Forms\Get` untuk mencegah crash `TypeError` akibat ketidakcocokan kelas namespace di Filament v4.
 
 ---
 
