@@ -30,6 +30,11 @@ class HrCandidateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Candidates';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
