@@ -85,27 +85,32 @@
                 @enderror
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-1">Tanggal Mulai Cuti</label>
-                    <input type="date" name="start_date" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
-                    @error('start_date')
-                        <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
-                            <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
-                            <span>{{ $message }}</span>
-                        </p>
-                    @enderror
+            <div>
+                <label class="block text-sm font-bold text-gray-800 mb-1">Rentang Tanggal Cuti</label>
+                <div class="relative">
+                    <input type="text" id="date_range" name="date_range" value="{{ old('date_range') }}" placeholder="Pilih tanggal mulai s/d selesai cuti..." class="w-full border border-gray-300 rounded-xl pl-4 pr-11 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px] cursor-pointer" required readonly>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
+                        <x-heroicon-o-calendar class="w-5 h-5" />
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-1">Tanggal Selesai Cuti</label>
-                    <input type="date" name="end_date" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
-                    @error('end_date')
-                        <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
-                            <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
-                            <span>{{ $message }}</span>
-                        </p>
-                    @enderror
-                </div>
+                @error('date_range')
+                    <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                        <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                        <span>{{ $message }}</span>
+                    </p>
+                @enderror
+                @error('start_date')
+                    <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                        <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                        <span>{{ $message }}</span>
+                    </p>
+                @enderror
+                @error('end_date')
+                    <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                        <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                        <span>{{ $message }}</span>
+                    </p>
+                @enderror
             </div>
 
             <div>
@@ -239,6 +244,22 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            updateAttachmentField();
+
+            if (typeof flatpickr !== 'undefined') {
+                flatpickr("#date_range", {
+                    mode: "range",
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "j F Y",
+                    conjunction: " to ",
+                    locale: "id",
+                    minDate: "today",
+                });
+            }
+        });
+
         function updateAttachmentField() {
             const select = document.getElementById('leave_type_id');
             if (!select) return;
@@ -268,7 +289,5 @@
                 if (input) input.required = false;
             }
         }
-
-        document.addEventListener('DOMContentLoaded', updateAttachmentField);
     </script>
 @endsection

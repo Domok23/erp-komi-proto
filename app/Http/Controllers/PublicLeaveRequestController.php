@@ -81,6 +81,50 @@ class PublicLeaveRequestController extends Controller
         $selectedType = HrLeaveType::find($request->input('leave_type_id'));
         $isSick = $selectedType && ($selectedType->is_sick_type || str_contains(strtolower($selectedType->name), 'sakit'));
 
+        if ($request->filled('date_range')) {
+            $rawRange = trim($request->input('date_range'));
+
+            preg_match_all('/\d{4}-\d{2}-\d{2}/', $rawRange, $matches);
+
+            if (! empty($matches[0])) {
+                if (count($matches[0]) >= 2) {
+                    $request->merge([
+                        'start_date' => $matches[0][0],
+                        'end_date' => $matches[0][1],
+                    ]);
+                } elseif (count($matches[0]) === 1) {
+                    $request->merge([
+                        'start_date' => $matches[0][0],
+                        'end_date' => $matches[0][0],
+                    ]);
+                }
+            } else {
+                $splitParts = preg_split('/\s+(?:to|-|s\/d|sampai)\s+/i', $rawRange);
+                if (count($splitParts) >= 2) {
+                    try {
+                        $start = \Carbon\Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
+                        $end = \Carbon\Carbon::parse(trim($splitParts[1]))->format('Y-m-d');
+                        $request->merge([
+                            'start_date' => $start,
+                            'end_date' => $end,
+                        ]);
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                } elseif (count($splitParts) === 1) {
+                    try {
+                        $start = \Carbon\Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
+                        $request->merge([
+                            'start_date' => $start,
+                            'end_date' => $start,
+                        ]);
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'employee_number' => 'required|string',
             'leave_type_id' => [
@@ -100,6 +144,8 @@ class PublicLeaveRequestController extends Controller
                 'max:5120',
             ],
         ], [
+            'start_date.required' => 'Silakan pilih rentang tanggal mulai dan selesai cuti.',
+            'end_date.required' => 'Silakan pilih rentang tanggal selesai cuti.',
             'end_date.after_or_equal' => 'Tanggal selesai cuti tidak boleh lebih awal dari tanggal mulai cuti.',
             'attachment.required' => 'Surat Dokter wajib diunggah untuk jenis cuti sakit.',
         ]);

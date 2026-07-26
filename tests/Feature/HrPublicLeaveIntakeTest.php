@@ -195,6 +195,42 @@ class HrPublicLeaveIntakeTest extends TestCase
         $response->assertSessionHasErrors('end_date');
     }
 
+    public function test_submit_with_date_range_string_creates_leave_request(): void
+    {
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'date_range' => '2026-10-05 to 2026-10-07',
+            'reason' => 'Liburan akhir tahun',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('hr_leave_requests', [
+            'employee_id' => $this->employee->id,
+            'start_date' => '2026-10-05 00:00:00',
+            'end_date' => '2026-10-07 00:00:00',
+        ]);
+    }
+
+    public function test_submit_with_indonesian_localized_date_range_string_creates_leave_request(): void
+    {
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'date_range' => '6 November 2026 - 9 November 2026',
+            'reason' => 'Cuti liburan',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('hr_leave_requests', [
+            'employee_id' => $this->employee->id,
+            'start_date' => '2026-11-06 00:00:00',
+            'end_date' => '2026-11-09 00:00:00',
+        ]);
+    }
+
     public function test_lookup_page_with_employee_number_query_shows_employee_view(): void
     {
         $response = $this->get("/leave-request/{$this->company->code}?employee_number=EMP-700");
