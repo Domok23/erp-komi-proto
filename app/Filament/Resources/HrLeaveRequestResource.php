@@ -67,8 +67,21 @@ class HrLeaveRequestResource extends Resource
                     Forms\Components\DatePicker::make('end_date')
                         ->required()
                         ->afterOrEqual('start_date'),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'pending' => 'Pending',
+                            'approved' => 'Approved',
+                            'rejected' => 'Rejected',
+                        ])
+                        ->default('pending')
+                        ->required()
+                        ->live(),
                     Forms\Components\Textarea::make('reason')
                         ->maxLength(65535)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('rejected_reason')
+                        ->label('Rejection Reason')
+                        ->visible(fn ($get, $record) => $get('status') === 'rejected' || ($record && $record->status === 'rejected'))
                         ->columnSpanFull(),
                     Forms\Components\FileUpload::make('file_path')
                         ->directory('hr/leaves'),

@@ -77,19 +77,51 @@ class HrPublicLeaveIntakeTest extends TestCase
 
     public function test_submit_creates_pending_leave_request_with_public_source(): void
     {
-        $this->post("/leave-request/{$this->company->code}/submit", [
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
             'employee_number' => 'EMP-700',
             'leave_type_id' => $this->leaveType->id,
             'start_date' => '2026-08-01',
             'end_date' => '2026-08-02',
             'reason' => 'Acara keluarga',
-        ])->assertRedirect();
+        ]);
+
+        $response->assertRedirect("/leave-request/{$this->company->code}?employee_number=EMP-700");
+        $response->assertSessionHas('status', 'Pengajuan cuti berhasil dikirim.');
 
         $this->assertDatabaseHas('hr_leave_requests', [
             'employee_id' => $this->employee->id,
             'status' => 'pending',
             'source' => 'public_intake',
         ]);
+    }
+
+    public function test_lookup_page_with_employee_number_query_shows_employee_view(): void
+    {
+        $response = $this->get("/leave-request/{$this->company->code}?employee_number=EMP-700");
+
+        $response->assertOk();
+        $response->assertSee('Wati');
+        $response->assertSee('Ajukan Cuti Baru');
+    }
+
+    public function test_rejected_leave_request_displays_rejection_reason(): void
+    {
+        \App\Models\HrLeaveRequest::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $this->leaveType->id,
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-02',
+            'reason' => 'Acara pribadi',
+            'status' => 'rejected',
+            'rejected_reason' => 'Quota tidak mencukupi untuk bulan ini.',
+            'source' => 'public_intake',
+        ]);
+
+        $response = $this->get("/leave-request/{$this->company->code}?employee_number=EMP-700");
+
+        $response->assertOk();
+        $response->assertSee('Ditolak');
+        $response->assertSee('Quota tidak mencukupi untuk bulan ini.');
     }
 
     public function test_invalid_company_code_returns_404(): void

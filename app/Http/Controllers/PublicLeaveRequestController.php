@@ -11,9 +11,31 @@ use Illuminate\Validation\ValidationException;
 
 class PublicLeaveRequestController extends Controller
 {
-    public function lookupPage(string $companyCode)
+    public function lookupPage(Request $request, string $companyCode)
     {
         $company = Company::where('code', $companyCode)->where('is_active', true)->firstOrFail();
+
+        $employeeNumber = $request->query('employee_number');
+
+        if ($employeeNumber) {
+            $employee = LeaveRequestService::findActiveEmployeeByNumber($company->id, $employeeNumber);
+
+            if ($employee) {
+                $leaveTypes = HrLeaveType::withoutCompanyScope()
+                    ->where('company_id', $company->id)
+                    ->where('is_active', true)
+                    ->get();
+
+                $requests = $employee->leaveRequests()->latest('created_at')->latest('id')->get();
+
+                return view('leave-request.show', [
+                    'company' => $company,
+                    'employee' => $employee,
+                    'leaveTypes' => $leaveTypes,
+                    'requests' => $requests,
+                ]);
+            }
+        }
 
         return view('leave-request.lookup', ['company' => $company]);
     }
@@ -37,7 +59,7 @@ class PublicLeaveRequestController extends Controller
             ->where('is_active', true)
             ->get();
 
-        $requests = $employee->leaveRequests()->latest('start_date')->get();
+        $requests = $employee->leaveRequests()->latest('created_at')->latest('id')->get();
 
         return view('leave-request.show', [
             'company' => $company,
@@ -81,7 +103,10 @@ class PublicLeaveRequestController extends Controller
         ], 'public_intake');
 
         return redirect()
-            ->route('leave-request.lookup', ['companyCode' => $companyCode])
-            ->with('status', 'Pengajuan berhasil dikirim.');
+            ->route('leave-request.lookup', [
+                'companyCode' => $companyCode,
+                'employee_number' => $data['employee_number'],
+            ])
+            ->with('status', 'Pengajuan cuti berhasil dikirim.');
     }
 }
