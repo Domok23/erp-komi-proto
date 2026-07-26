@@ -17,21 +17,35 @@
             </div>
         </div>
         <a href="{{ route('leave-request.lookup', $company->code) }}" class="self-start sm:self-auto inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-white border border-gray-300 hover:bg-gray-50 px-3.5 py-2 rounded-xl shadow-2xs transition">
-            ← Kembali
+            <x-heroicon-o-arrow-left class="w-4 h-4 text-gray-600 shrink-0" />
+            <span>Kembali</span>
         </a>
     </div>
 
     <!-- TOAST ALERT NOTIFICATION -->
     @if (session('status'))
-        <div id="toast-success" class="flex items-start justify-between p-4 mb-6 text-sm text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-xl" role="alert">
+        <div id="toast-success" class="flex items-center justify-between p-4 mb-6 text-sm text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-xl" role="alert">
             <div class="flex items-center gap-3">
-                <svg class="w-6 h-6 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span class="font-bold text-base">{{ session('status') }}</span>
+                <x-heroicon-o-check-circle class="w-6 h-6 text-emerald-600 shrink-0" />
+                <span class="font-bold text-base text-emerald-950">{{ session('status') }}</span>
             </div>
-            <button type="button" onclick="document.getElementById('toast-success').remove()" class="text-emerald-700 hover:text-emerald-900 p-1 text-base font-bold">
-                ✕
+            <button type="button" onclick="document.getElementById('toast-success').remove()" class="text-emerald-600 hover:text-emerald-900 p-1.5 rounded-lg hover:bg-emerald-100/50 transition cursor-pointer flex items-center justify-center">
+                <x-heroicon-o-x-mark class="w-5 h-5" />
+            </button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div id="toast-error" class="flex items-center justify-between p-4 mb-6 text-sm text-rose-900 bg-rose-50 border border-rose-300 rounded-xl" role="alert">
+            <div class="flex items-center gap-3">
+                <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-rose-600 shrink-0" />
+                <div>
+                    <span class="font-bold text-base block text-rose-950">Gagal Mengirim Pengajuan Cuti</span>
+                    <span class="text-xs text-rose-800 font-medium">{{ $errors->first() }}</span>
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('toast-error').remove()" class="text-rose-600 hover:text-rose-900 p-1.5 rounded-lg hover:bg-rose-100/50 transition cursor-pointer flex items-center justify-center">
+                <x-heroicon-o-x-mark class="w-5 h-5" />
             </button>
         </div>
     @endif
@@ -40,23 +54,23 @@
     <div class="mb-8 pb-8 border-b border-gray-200">
         <div class="mb-5">
             <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                </svg>
+                <x-heroicon-o-plus class="w-5 h-5 text-amber-500 shrink-0" />
                 Ajukan Cuti Baru
             </h2>
             <p class="text-xs text-gray-500 mt-1">Isi formulir di bawah ini untuk mengajukan izin atau cuti baru.</p>
         </div>
 
-        <form method="POST" action="{{ route('leave-request.submit', $company->code) }}" class="space-y-5">
+        <form method="POST" action="{{ route('leave-request.submit', $company->code) }}" enctype="multipart/form-data" class="space-y-5">
             @csrf
             <input type="hidden" name="employee_number" value="{{ $employee->employee_number }}">
 
             <div>
                 <label class="block text-sm font-bold text-gray-800 mb-1">Pilih Jenis Cuti</label>
-                <select name="leave_type_id" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
+                <select id="leave_type_id" name="leave_type_id" onchange="updateAttachmentField()" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
                     @foreach ($leaveTypes as $type)
-                        <option value="{{ $type->id }}">{{ $type->name }}</option>
+                        <option value="{{ $type->id }}" data-sick="{{ ($type->is_sick_type || str_contains(strtolower($type->name), 'sakit')) ? '1' : '0' }}">
+                            {{ $type->name }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -65,10 +79,22 @@
                 <div>
                     <label class="block text-sm font-bold text-gray-800 mb-1">Tanggal Mulai Cuti</label>
                     <input type="date" name="start_date" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
+                    @error('start_date')
+                        <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                            <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-800 mb-1">Tanggal Selesai Cuti</label>
                     <input type="date" name="end_date" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
+                    @error('end_date')
+                        <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                            <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
                 </div>
             </div>
 
@@ -77,11 +103,21 @@
                 <textarea name="reason" rows="3" placeholder="Tuliskan keperluan cuti Anda secara singkat dan jelas..." class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium"></textarea>
             </div>
 
+            <div>
+                <label class="block text-sm font-bold text-gray-800 mb-1">
+                    <span id="attachment-label">Lampiran</span>
+                    <span id="attachment-badge" class="text-xs font-normal text-gray-500 ml-1">(Opsional)</span>
+                </label>
+                <input type="file" id="attachment-input" name="attachment" accept=".pdf,.jpg,.jpeg,.png" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium cursor-pointer">
+                @error('attachment')
+                    <p class="text-xs font-semibold text-rose-600 mt-1.5">{{ $message }}</p>
+                @enderror
+                <p id="attachment-helper" class="text-xs text-gray-500 mt-1">Upload dokumen pendukung jika ada (Format PDF, JPG, PNG - Maks 5MB)</p>
+            </div>
+
             <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold py-3.5 px-5 rounded-xl text-base transition shadow-xs cursor-pointer min-h-[50px] flex items-center justify-center gap-2">
                 <span>Kirim Pengajuan Cuti</span>
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                </svg>
+                <x-heroicon-o-arrow-right class="w-5 h-5 text-white" />
             </button>
         </form>
     </div>
@@ -107,9 +143,7 @@
                     <summary class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 cursor-pointer select-none bg-gray-50/80 group-open:bg-gray-100/90 hover:bg-gray-100 transition">
                         <div class="flex items-center gap-3">
                             <span class="w-7 h-7 rounded-lg bg-white border border-gray-300 flex items-center justify-center shrink-0 shadow-2xs">
-                                <svg class="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                                </svg>
+                                <x-heroicon-o-chevron-down class="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform duration-200" />
                             </span>
                             <div>
                                 <div class="font-bold text-base text-gray-900">{{ $req->leaveType->name }}</div>
@@ -121,23 +155,17 @@
                         <div class="shrink-0 self-start sm:self-auto">
                             @if ($req->status === 'pending')
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                    <svg class="w-3.5 h-3.5 text-amber-700 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                                    <x-heroicon-o-clock class="w-3.5 h-3.5 text-amber-700 shrink-0" />
                                     <span>Menunggu Approval</span>
                                 </span>
                             @elseif ($req->status === 'approved')
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                    <svg class="w-3.5 h-3.5 text-emerald-700 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                                    <x-heroicon-o-check-circle class="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                     <span>Disetujui</span>
                                 </span>
                             @elseif ($req->status === 'rejected')
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-900 border border-rose-300">
-                                    <svg class="w-3.5 h-3.5 text-rose-700 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                                    <x-heroicon-o-x-circle class="w-3.5 h-3.5 text-rose-700 shrink-0" />
                                     <span>Ditolak</span>
                                 </span>
                             @else
@@ -161,21 +189,32 @@
                             </div>
                         </div>
 
+                        @if ($req->file_path)
+                            @php
+                                $isSickReq = $req->leaveType && ($req->leaveType->is_sick_type || str_contains(strtolower($req->leaveType->name), 'sakit'));
+                            @endphp
+                            <div>
+                                <span class="font-bold text-gray-500 block text-xs uppercase mb-1">
+                                    {{ $isSickReq ? 'SURAT DOKTER' : 'LAMPIRAN' }}
+                                </span>
+                                <a href="{{ route('leave-request.attachment', $req->id) }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3.5 py-2 rounded-lg transition">
+                                    <x-heroicon-o-paper-clip class="w-4 h-4 text-amber-700 shrink-0" />
+                                    <span>Lihat {{ $isSickReq ? 'Surat Dokter' : 'Lampiran' }}</span>
+                                </a>
+                            </div>
+                        @endif
+
                         @if ($req->status === 'rejected')
                             <div class="bg-rose-50 border border-rose-300 rounded-lg p-3.5 text-rose-900 space-y-1">
                                 <div class="flex items-center gap-2 font-bold text-sm text-rose-900">
-                                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                                    <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-rose-600 shrink-0" />
                                     <span>Alasan Penolakan HRD:</span>
                                 </div>
                                 <p class="text-sm text-rose-800 pl-7 font-medium">{{ trim($req->rejected_reason) ?: 'Tidak ada catatan alasan khusus.' }}</p>
                             </div>
                         @elseif ($req->status === 'approved' && $req->approved_at)
                             <div class="bg-emerald-50 border border-emerald-300 rounded-lg p-3 text-emerald-900 flex items-center gap-2 font-semibold text-sm">
-                                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                </svg>
+                                <x-heroicon-o-check class="w-5 h-5 text-emerald-600 shrink-0" />
                                 <span>Disetujui pada: <strong>{{ $req->approved_at->format('d M Y, H:i') }} WIB</strong></span>
                             </div>
                         @endif
@@ -188,4 +227,38 @@
             @endforelse
         </div>
     </div>
+
+    <script>
+        function updateAttachmentField() {
+            const select = document.getElementById('leave_type_id');
+            if (!select) return;
+            const selectedOption = select.options[select.selectedIndex];
+            const isSick = selectedOption ? (selectedOption.getAttribute('data-sick') === '1') : false;
+
+            const label = document.getElementById('attachment-label');
+            const badge = document.getElementById('attachment-badge');
+            const helper = document.getElementById('attachment-helper');
+            const input = document.getElementById('attachment-input');
+
+            if (isSick) {
+                if (label) label.textContent = 'Surat Dokter';
+                if (badge) {
+                    badge.textContent = '(Wajib)';
+                    badge.className = 'text-xs font-bold text-rose-600 ml-1';
+                }
+                if (helper) helper.textContent = 'Wajib mengunggah Surat Dokter / Surat Keterangan Medis (Format PDF, JPG, PNG - Maks 5MB)';
+                if (input) input.required = true;
+            } else {
+                if (label) label.textContent = 'Lampiran';
+                if (badge) {
+                    badge.textContent = '(Opsional)';
+                    badge.className = 'text-xs font-normal text-gray-500 ml-1';
+                }
+                if (helper) helper.textContent = 'Upload dokumen pendukung jika ada (Format PDF, JPG, PNG - Maks 5MB)';
+                if (input) input.required = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateAttachmentField);
+    </script>
 @endsection

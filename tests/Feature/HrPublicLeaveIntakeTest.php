@@ -95,6 +95,73 @@ class HrPublicLeaveIntakeTest extends TestCase
         ]);
     }
 
+    public function test_submit_with_attachment_saves_file(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('surat_dokter.pdf', 100, 'application/pdf');
+
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-02',
+            'reason' => 'Sakit demam',
+            'attachment' => $file,
+        ]);
+
+        $response->assertRedirect();
+
+        $leaveRequest = \App\Models\HrLeaveRequest::where('employee_id', $this->employee->id)->latest('id')->first();
+        $this->assertNotNull($leaveRequest->file_path);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($leaveRequest->file_path);
+
+        $attachmentResponse = $this->get("/leave-request/attachment/{$leaveRequest->id}");
+        $attachmentResponse->assertOk();
+    }
+
+    public function test_sick_leave_requires_attachment(): void
+    {
+        $sickLeaveType = HrLeaveType::create([
+            'company_id' => $this->company->id,
+            'code' => 'SICK',
+            'name' => 'Cuti Sakit',
+            'is_sick_type' => true,
+            'default_quota_days' => 10,
+        ]);
+
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $sickLeaveType->id,
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-02',
+            'reason' => 'Sakit flu',
+        ]);
+
+        $response->assertSessionHasErrors('attachment');
+    }
+
+    public function test_overlapping_dates_returns_validation_error(): void
+    {
+        $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'start_date' => '2026-08-10',
+            'end_date' => '2026-08-15',
+            'reason' => 'Liburan',
+        ]);
+
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'start_date' => '2026-08-12',
+            'end_date' => '2026-08-18',
+            'reason' => 'Liburan susulan',
+        ]);
+
+        $response->assertSessionHasErrors('start_date');
+    }
+
     public function test_lookup_page_with_employee_number_query_shows_employee_view(): void
     {
         $response = $this->get("/leave-request/{$this->company->code}?employee_number=EMP-700");
@@ -154,5 +221,11 @@ class HrPublicLeaveIntakeTest extends TestCase
             'employee_id' => $this->employee->id,
             'leave_type_id' => $otherLeaveType->id,
         ]);
+    }
+
+    public function test_get_lookup_url_redirects_to_lookup_page(): void
+    {
+        $response = $this->get("/leave-request/{$this->company->code}/lookup");
+        $response->assertRedirect("/leave-request/{$this->company->code}");
     }
 }

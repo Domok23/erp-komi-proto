@@ -6,6 +6,7 @@ use App\Exceptions\HrLeaveRequestException;
 use App\Filament\Resources\HrLeaveRequestResource\Pages;
 use App\Models\HrEmployee;
 use App\Models\HrLeaveRequest;
+use App\Models\HrLeaveType;
 use App\Services\CompanyContext;
 use App\Services\LeaveRequestService;
 use Filament\Actions\Action;
@@ -61,7 +62,8 @@ class HrLeaveRequestResource extends Resource
                         ->relationship('leaveType', 'name', modifyQueryUsing: fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()))
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live(),
                     Forms\Components\DatePicker::make('start_date')
                         ->required(),
                     Forms\Components\DatePicker::make('end_date')
@@ -84,7 +86,19 @@ class HrLeaveRequestResource extends Resource
                         ->visible(fn ($get, $record) => $get('status') === 'rejected' || ($record && $record->status === 'rejected'))
                         ->columnSpanFull(),
                     Forms\Components\FileUpload::make('file_path')
-                        ->directory('hr/leaves'),
+                        ->label(function ($record, $get) {
+                            $leaveTypeId = $get('leave_type_id');
+                            $leaveType = $leaveTypeId ? HrLeaveType::find($leaveTypeId) : $record?->leaveType;
+                            $isSick = $leaveType && ($leaveType->is_sick_type || str_contains(strtolower($leaveType->name), 'sakit'));
+
+                            return $isSick ? 'Surat Dokter' : 'Lampiran';
+                        })
+                        ->disk('public')
+                        ->directory('hr/leaves')
+                        ->openable()
+                        ->downloadable()
+                        ->previewable(true)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
         ]);
@@ -107,6 +121,12 @@ class HrLeaveRequestResource extends Resource
             Tables\Columns\TextColumn::make('end_date')
                 ->date()
                 ->sortable(),
+            Tables\Columns\IconColumn::make('file_path')
+                ->label('Attachment')
+                ->icon('heroicon-o-paper-clip')
+                ->color('primary')
+                ->url(fn ($record) => $record->file_path ? route('leave-request.attachment', $record->id) : null)
+                ->openUrlInNewTab(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'pending' => 'warning',

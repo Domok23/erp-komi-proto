@@ -24,6 +24,18 @@ class LeaveRequestService
      */
     public static function submit(HrEmployee $employee, array $data, string $source = 'hrd', ?int $userId = null): HrLeaveRequest
     {
+        $hasOverlap = HrLeaveRequest::where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where(function ($query) use ($data) {
+                $query->where('start_date', '<=', $data['end_date'])
+                      ->where('end_date', '>=', $data['start_date']);
+            })
+            ->exists();
+
+        if ($hasOverlap) {
+            throw new HrLeaveRequestException('Anda sudah memiliki pengajuan cuti aktif (Pending/Disetujui) pada rentang tanggal tersebut.');
+        }
+
         return HrLeaveRequest::create([
             'employee_id' => $employee->id,
             'leave_type_id' => $data['leave_type_id'],

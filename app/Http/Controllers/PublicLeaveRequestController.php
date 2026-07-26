@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\HrLeaveRequest;
 use App\Models\HrLeaveType;
 use App\Services\LeaveRequestService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -73,7 +75,10 @@ class PublicLeaveRequestController extends Controller
     {
         $company = Company::where('code', $companyCode)->where('is_active', true)->firstOrFail();
 
-        $data = $request->validate([
+        $selectedType = HrLeaveType::find($request->input('leave_type_id'));
+        $isSick = $selectedType && ($selectedType->is_sick_type || str_contains(strtolower($selectedType->name), 'sakit'));
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'employee_number' => 'required|string',
             'leave_type_id' => [
                 'required',
@@ -85,28 +90,75 @@ class PublicLeaveRequestController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:2000',
+            'attachment' => [
+                $isSick ? 'required' : 'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'max:5120',
+            ],
+        ], [
+            'attachment.required' => 'Surat Dokter wajib diunggah untuk jenis cuti sakit.',
         ]);
 
+        $employeeNumber = $request->input('employee_number');
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('leave-request.lookup', array_filter([
+                    'companyCode' => $companyCode,
+                    'employee_number' => $employeeNumber,
+                ]))
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $data = $validator->validated();
         $employee = LeaveRequestService::findActiveEmployeeByNumber($company->id, $data['employee_number']);
 
         if (! $employee) {
-            throw ValidationException::withMessages([
-                'employee_number' => 'Nomor karyawan tidak ditemukan.',
-            ]);
+            return redirect()
+                ->route('leave-request.lookup', $companyCode)
+                ->withErrors(['employee_number' => 'Nomor karyawan tidak ditemukan.'])
+                ->withInput();
         }
 
-        LeaveRequestService::submit($employee, [
-            'leave_type_id' => $data['leave_type_id'],
-            'start_date' => $data['start_date'],
-            'end_date' => $data['end_date'],
-            'reason' => $data['reason'] ?? null,
-        ], 'public_intake');
+        $filePath = null;
+        if ($request->hasFile('attachment')) {
+            $filePath = $request->file('attachment')->store('hr/leaves', 'public');
+        }
+
+        try {
+            LeaveRequestService::submit($employee, [
+                'leave_type_id' => $data['leave_type_id'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+                'reason' => $data['reason'] ?? null,
+                'file_path' => $filePath,
+            ], 'public_intake');
+        } catch (\App\Exceptions\HrLeaveRequestException $e) {
+            return redirect()
+                ->route('leave-request.lookup', [
+                    'companyCode' => $companyCode,
+                    'employee_number' => $employee->employee_number,
+                ])
+                ->withErrors(['start_date' => $e->getMessage()])
+                ->withInput();
+        }
 
         return redirect()
             ->route('leave-request.lookup', [
                 'companyCode' => $companyCode,
-                'employee_number' => $data['employee_number'],
+                'employee_number' => $employee->employee_number,
             ])
             ->with('status', 'Pengajuan cuti berhasil dikirim.');
+    }
+
+    public function attachment(HrLeaveRequest $leaveRequest)
+    {
+        if (! $leaveRequest->file_path || ! Storage::disk('public')->exists($leaveRequest->file_path)) {
+            abort(404, 'File lampiran tidak ditemukan.');
+        }
+
+        return Storage::disk('public')->response($leaveRequest->file_path);
     }
 }
