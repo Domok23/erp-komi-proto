@@ -3,11 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Leave Request — ERP Komi</title>
-    <!-- Google Fonts: Inter (Filament Default Font) -->
+    <title>Pengajuan Cuti Karyawan</title>
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -47,14 +47,14 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased min-h-screen py-8 sm:py-12 px-4">
+<body class="bg-gray-100 text-gray-900 antialiased min-h-screen py-6 sm:py-10 px-4">
     <div class="max-w-xl mx-auto">
-        <div class="bg-white rounded-xl shadow-xs border border-gray-200 p-6 sm:p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-7">
             @yield('content')
         </div>
 
-        <div class="text-center mt-6 text-xs text-gray-400 font-medium">
-            &copy; {{ date('Y') }} HR Self-Service System
+        <div class="text-center mt-6 text-xs text-gray-500 font-medium">
+            Portal Layanan Mandiri Cuti Karyawan &copy; {{ date('Y') }}
         </div>
     </div>
 </body>
