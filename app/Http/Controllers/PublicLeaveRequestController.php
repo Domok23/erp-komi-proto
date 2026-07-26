@@ -30,11 +30,14 @@ class PublicLeaveRequestController extends Controller
 
                 $requests = $employee->leaveRequests()->latest('created_at')->latest('id')->get();
 
+                $balances = LeaveRequestService::getLeaveBalances($employee, now()->year);
+
                 return view('leave-request.show', [
                     'company' => $company,
                     'employee' => $employee,
                     'leaveTypes' => $leaveTypes,
                     'requests' => $requests,
+                    'balances' => $balances,
                 ]);
             }
         }
@@ -97,6 +100,7 @@ class PublicLeaveRequestController extends Controller
                 'max:5120',
             ],
         ], [
+            'end_date.after_or_equal' => 'Tanggal selesai cuti tidak boleh lebih awal dari tanggal mulai cuti.',
             'attachment.required' => 'Surat Dokter wajib diunggah untuk jenis cuti sakit.',
         ]);
 
@@ -136,12 +140,14 @@ class PublicLeaveRequestController extends Controller
                 'file_path' => $filePath,
             ], 'public_intake');
         } catch (\App\Exceptions\HrLeaveRequestException $e) {
+            $errorField = str_contains(strtolower($e->getMessage()), 'kuota') ? 'leave_type_id' : 'start_date';
+
             return redirect()
                 ->route('leave-request.lookup', [
                     'companyCode' => $companyCode,
                     'employee_number' => $employee->employee_number,
                 ])
-                ->withErrors(['start_date' => $e->getMessage()])
+                ->withErrors([$errorField => $e->getMessage()])
                 ->withInput();
         }
 

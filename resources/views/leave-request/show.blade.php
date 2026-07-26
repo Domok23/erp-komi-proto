@@ -68,11 +68,21 @@
                 <label class="block text-sm font-bold text-gray-800 mb-1">Pilih Jenis Cuti</label>
                 <select id="leave_type_id" name="leave_type_id" onchange="updateAttachmentField()" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition shadow-2xs font-medium min-h-[48px]" required>
                     @foreach ($leaveTypes as $type)
+                        @php
+                            $b = $balances[$type->id] ?? null;
+                            $quotaText = $b ? " (Sisa Kuota: {$b['remaining']}/{$b['quota']} Hari)" : " (Tanpa Batas Kuota)";
+                        @endphp
                         <option value="{{ $type->id }}" data-sick="{{ ($type->is_sick_type || str_contains(strtolower($type->name), 'sakit')) ? '1' : '0' }}">
-                            {{ $type->name }}
+                            {{ $type->name }}{{ $quotaText }}
                         </option>
                     @endforeach
                 </select>
+                @error('leave_type_id')
+                    <p class="text-xs font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                        <x-heroicon-o-exclamation-circle class="w-4 h-4 shrink-0" />
+                        <span>{{ $message }}</span>
+                    </p>
+                @enderror
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -80,8 +80,8 @@ class HrPublicLeaveIntakeTest extends TestCase
         $response = $this->post("/leave-request/{$this->company->code}/submit", [
             'employee_number' => 'EMP-700',
             'leave_type_id' => $this->leaveType->id,
-            'start_date' => '2026-08-01',
-            'end_date' => '2026-08-02',
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-04',
             'reason' => 'Acara keluarga',
         ]);
 
@@ -104,8 +104,8 @@ class HrPublicLeaveIntakeTest extends TestCase
         $response = $this->post("/leave-request/{$this->company->code}/submit", [
             'employee_number' => 'EMP-700',
             'leave_type_id' => $this->leaveType->id,
-            'start_date' => '2026-08-01',
-            'end_date' => '2026-08-02',
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-04',
             'reason' => 'Sakit demam',
             'attachment' => $file,
         ]);
@@ -133,8 +133,8 @@ class HrPublicLeaveIntakeTest extends TestCase
         $response = $this->post("/leave-request/{$this->company->code}/submit", [
             'employee_number' => 'EMP-700',
             'leave_type_id' => $sickLeaveType->id,
-            'start_date' => '2026-08-01',
-            'end_date' => '2026-08-02',
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-04',
             'reason' => 'Sakit flu',
         ]);
 
@@ -160,6 +160,39 @@ class HrPublicLeaveIntakeTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('start_date');
+    }
+
+    public function test_exceeding_leave_quota_returns_validation_error(): void
+    {
+        $limitedLeaveType = HrLeaveType::create([
+            'company_id' => $this->company->id,
+            'code' => 'LIMITED',
+            'name' => 'Cuti Khusus',
+            'default_quota_days' => 2,
+        ]);
+
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $limitedLeaveType->id,
+            'start_date' => '2026-09-07',
+            'end_date' => '2026-09-11',
+            'reason' => 'Pengajuan melebihi kuota',
+        ]);
+
+        $response->assertSessionHasErrors('leave_type_id');
+    }
+
+    public function test_end_date_before_start_date_returns_validation_error(): void
+    {
+        $response = $this->post("/leave-request/{$this->company->code}/submit", [
+            'employee_number' => 'EMP-700',
+            'leave_type_id' => $this->leaveType->id,
+            'start_date' => '2026-08-10',
+            'end_date' => '2026-08-05',
+            'reason' => 'Tanggal tidak valid',
+        ]);
+
+        $response->assertSessionHasErrors('end_date');
     }
 
     public function test_lookup_page_with_employee_number_query_shows_employee_view(): void

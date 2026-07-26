@@ -36,6 +36,55 @@ class LeaveRequestService
             throw new HrLeaveRequestException('Anda sudah memiliki pengajuan cuti aktif (Pending/Disetujui) pada rentang tanggal tersebut.');
         }
 
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = Carbon::parse($data['end_date']);
+
+        $workingDays = 0;
+        for ($d = $startDate->copy(); $d->lte($endDate); $d->addDay()) {
+            if (! $d->isWeekend()) {
+                $workingDays++;
+            }
+        }
+
+        if ($workingDays === 0) {
+            throw new HrLeaveRequestException('Pengajuan cuti harus mencakup minimal 1 hari kerja (tidak bisa hanya akhir pekan).');
+        }
+
+        $leaveType = HrLeaveType::findOrFail($data['leave_type_id']);
+
+        if ($leaveType->isQuotaBased()) {
+            $balance = HrLeaveBalance::firstOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                    'leave_type_id' => $leaveType->id,
+                    'year' => $startDate->year,
+                ],
+                ['quota_days' => $leaveType->default_quota_days, 'used_days' => 0]
+            );
+
+            $pendingRequests = HrLeaveRequest::where('employee_id', $employee->id)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'pending')
+                ->whereYear('start_date', $startDate->year)
+                ->get();
+
+            $pendingDays = 0;
+            foreach ($pendingRequests as $pReq) {
+                foreach ($pReq->dateRange() as $dStr) {
+                    if (! Carbon::parse($dStr)->isWeekend()) {
+                        $pendingDays++;
+                    }
+                }
+            }
+
+            $remainingQuota = $balance->quota_days - ($balance->used_days + $pendingDays);
+
+            if ($workingDays > $remainingQuota) {
+                $remainingText = max(0, $remainingQuota);
+                throw new HrLeaveRequestException("Sisa kuota {$leaveType->name} Anda tidak mencukupi (Sisa kuota: {$remainingText} hari, Pengajuan: {$workingDays} hari kerja).");
+            }
+        }
+
         return HrLeaveRequest::create([
             'employee_id' => $employee->id,
             'leave_type_id' => $data['leave_type_id'],
@@ -48,6 +97,55 @@ class LeaveRequestService
             'created_by' => $userId,
             'updated_by' => $userId,
         ]);
+    }
+
+    public static function getLeaveBalances(HrEmployee $employee, int $year): array
+    {
+        $leaveTypes = HrLeaveType::withoutCompanyScope()
+            ->where('company_id', $employee->company_id)
+            ->where('is_active', true)
+            ->get();
+
+        $balances = [];
+        foreach ($leaveTypes as $type) {
+            if ($type->isQuotaBased()) {
+                $balance = HrLeaveBalance::firstOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'leave_type_id' => $type->id,
+                        'year' => $year,
+                    ],
+                    ['quota_days' => $type->default_quota_days, 'used_days' => 0]
+                );
+
+                $pendingDays = 0;
+                $pendingRequests = HrLeaveRequest::where('employee_id', $employee->id)
+                    ->where('leave_type_id', $type->id)
+                    ->where('status', 'pending')
+                    ->whereYear('start_date', $year)
+                    ->get();
+
+                foreach ($pendingRequests as $pReq) {
+                    foreach ($pReq->dateRange() as $dStr) {
+                        if (! Carbon::parse($dStr)->isWeekend()) {
+                            $pendingDays++;
+                        }
+                    }
+                }
+
+                $remaining = max(0, $balance->quota_days - ($balance->used_days + $pendingDays));
+                $balances[$type->id] = [
+                    'quota' => $balance->quota_days,
+                    'used' => $balance->used_days,
+                    'pending' => $pendingDays,
+                    'remaining' => $remaining,
+                ];
+            } else {
+                $balances[$type->id] = null;
+            }
+        }
+
+        return $balances;
     }
 
     public static function approve(HrLeaveRequest $request, int $userId): HrLeaveRequest
