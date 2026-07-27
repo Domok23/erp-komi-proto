@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\BomResource\Pages;
 use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
@@ -214,6 +215,7 @@ class BomResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
