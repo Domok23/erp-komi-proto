@@ -143,6 +143,9 @@ class MerchandisePlanningResource extends Resource
 
             Section::make('Materials & Services Planning')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

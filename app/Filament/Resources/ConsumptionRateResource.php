@@ -42,6 +42,9 @@ class ConsumptionRateResource extends Resource
         return $schema->schema([
             Section::make('Consumption Rate Details')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')

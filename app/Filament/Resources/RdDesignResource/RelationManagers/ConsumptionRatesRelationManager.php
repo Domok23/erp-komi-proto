@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -88,6 +89,7 @@ class ConsumptionRatesRelationManager extends RelationManager
         ])
             ->filters([])
             ->headerActions([
+                StockPreviewAction::make('form'),
                 CreateAction::make(),
                 Action::make('downloadTemplate')
                     ->label('Download Template')
@@ -245,6 +247,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

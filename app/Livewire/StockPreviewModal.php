@@ -26,7 +26,7 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
     public array $materials = [];
 
-    public float $productionQty = 1.0;
+    public $productionQty = 1.0;
 
     public int $companyId = 1;
 
@@ -49,15 +49,18 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
         $this->resetPage();
     }
 
+    public function getPreviewData(): \Illuminate\Support\Collection
+    {
+        return app(StockPreviewService::class)->preview(
+            materials: $this->materials,
+            productionQty: (float) max(0.01, floatval($this->productionQty)),
+            companyId: $this->companyId
+        )->keyBy('materialId');
+    }
+
     public function table(Table $table): Table
     {
         $materialIds = collect($this->materials)->pluck('material_id')->unique()->filter()->toArray();
-
-        $previewData = app(StockPreviewService::class)->preview(
-            materials: $this->materials,
-            productionQty: (float) $this->productionQty,
-            companyId: $this->companyId
-        )->keyBy('materialId');
 
         return $table
             ->heading('Live Stock Preview')
@@ -78,25 +81,49 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                 TextColumn::make('current_stock')
                     ->label('Current Stock')
                     ->alignEnd()
-                    ->state(fn ($record) => number_format($previewData->get($record->id)?->currentStock ?? 0, 2).' '.($previewData->get($record->id)?->unit ?? $record->unit)),
+                    ->state(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return number_format($item?->currentStock ?? 0, 2).' '.($item?->unit ?? $record->unit);
+                    }),
                 TextColumn::make('required_qty')
                     ->label('Required')
                     ->alignEnd()
-                    ->state(fn ($record) => number_format($previewData->get($record->id)?->required ?? 0, 2).' '.($previewData->get($record->id)?->unit ?? $record->unit)),
+                    ->state(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return number_format($item?->required ?? 0, 2).' '.($item?->unit ?? $record->unit);
+                    }),
                 TextColumn::make('to_buy')
                     ->label('To Buy')
                     ->alignEnd()
                     ->weight('bold')
-                    ->color(fn ($record) => ($previewData->get($record->id)?->toBuy ?? 0) > 0 ? 'warning' : 'gray')
-                    ->state(fn ($record) => number_format($previewData->get($record->id)?->toBuy ?? 0, 2).' '.($previewData->get($record->id)?->unit ?? $record->unit)),
+                    ->color(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return ($item?->toBuy ?? 0) > 0 ? 'warning' : 'gray';
+                    })
+                    ->state(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return number_format($item?->toBuy ?? 0, 2).' '.($item?->unit ?? $record->unit);
+                    }),
                 BadgeColumn::make('status')
                     ->label('Status')
-                    ->state(fn ($record) => ucfirst($previewData->get($record->id)?->status ?? 'sufficient'))
-                    ->color(fn ($record) => match ($previewData->get($record->id)?->status) {
-                        'sufficient' => 'success',
-                        'partial' => 'warning',
-                        'short' => 'danger',
-                        default => 'gray',
+                    ->state(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return ucfirst($item?->status ?? 'sufficient');
+                    })
+                    ->color(function ($record) {
+                        $item = $this->getPreviewData()->get($record->id);
+
+                        return match ($item?->status) {
+                            'sufficient' => 'success',
+                            'partial' => 'warning',
+                            'short' => 'danger',
+                            default => 'gray',
+                        };
                     }),
             ])
             ->bulkActions([
@@ -104,7 +131,8 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                     ->label('Reserve Selected')
                     ->icon('heroicon-o-lock-closed')
                     ->color('info')
-                    ->action(function (Collection $records) use ($previewData) {
+                    ->action(function (Collection $records) {
+                        $previewData = $this->getPreviewData();
                         $items = $records->map(function ($record) use ($previewData) {
                             $data = $previewData->get($record->id);
                             $qty = $data ? ($data->toBuy > 0 ? $data->toBuy : $data->required) : 0;
@@ -127,7 +155,8 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                     ->label('Create PO for Selected')
                     ->icon('heroicon-o-shopping-bag')
                     ->color('warning')
-                    ->action(function (Collection $records) use ($previewData) {
+                    ->action(function (Collection $records) {
+                        $previewData = $this->getPreviewData();
                         $items = $records->map(function ($record) use ($previewData) {
                             $data = $previewData->get($record->id);
                             $qty = $data ? ($data->toBuy > 0 ? $data->toBuy : $data->required) : 0;

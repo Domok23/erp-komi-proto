@@ -14,7 +14,6 @@ class EditProductionOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            StockPreviewAction::make('form'),
             Actions\DeleteAction::make(),
         ];
     }
