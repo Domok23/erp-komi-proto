@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\MaterialResource;
 use App\Models\Company;
 use App\Models\Material;
 use App\Models\Supplier;
@@ -14,7 +15,7 @@ class MaterialsImportTest extends TestCase
 
     public function test_decimal_sanitization(): void
     {
-        $resourceClass = \App\Filament\Resources\MaterialResource::class;
+        $resourceClass = MaterialResource::class;
 
         $this->assertEquals(100.5, $resourceClass::normalizeDecimal('100.5'));
         $this->assertEquals(100.5, $resourceClass::normalizeDecimal('100,5'));
@@ -26,12 +27,12 @@ class MaterialsImportTest extends TestCase
 
     public function test_category_normalization_and_mapping(): void
     {
-        $resourceClass = \App\Filament\Resources\MaterialResource::class;
+        $resourceClass = MaterialResource::class;
 
         // Exact matches
         $this->assertEquals('fabric', $resourceClass::normalizeCategory('fabric'));
         $this->assertEquals('zipper', $resourceClass::normalizeCategory('Zipper '));
-        
+
         // Mapped values
         $this->assertEquals('finished', $resourceClass::normalizeCategory('Finished Product'));
         $this->assertEquals('finished', $resourceClass::normalizeCategory('finished_product'));
@@ -60,7 +61,7 @@ class MaterialsImportTest extends TestCase
             'is_active' => true,
         ]);
 
-        $resourceClass = \App\Filament\Resources\MaterialResource::class;
+        $resourceClass = MaterialResource::class;
 
         // 1. Test insertion of new material
         $code = 'MAT-NEW-99';
@@ -94,7 +95,7 @@ class MaterialsImportTest extends TestCase
         $material = Material::where('code', $code)->first();
         $this->assertNull($material);
 
-        $material = new Material();
+        $material = new Material;
         $material->code = $code;
         $material->name = $name;
         $material->category = $category;
