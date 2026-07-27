@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\DTOs\StockPreviewData;
 use App\Models\InventoryStock;
+use App\Models\Material;
 use App\Models\MaterialReservation;
+use App\Models\PoSupplier;
+use App\Models\PoSupplierItem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -82,6 +85,53 @@ class StockPreviewService
             }
 
             return $created;
+        });
+    }
+
+    public function createPurchaseOrder(array $materials, int $companyId, ?int $projectId = null): Collection
+    {
+        $materialIds = collect($materials)->pluck('material_id')->unique()->all();
+        $materialsDb = Material::whereIn('id', $materialIds)->get()->keyBy('id');
+
+        $materialsWithSupplier = collect($materials)
+            ->map(function ($item) use ($materialsDb) {
+                $mat = $materialsDb->get($item['material_id']);
+
+                return array_merge($item, [
+                    'supplier_id' => $mat?->supplier_id,
+                    'price' => $mat?->price ?? 0,
+                    'unit' => $item['unit'] ?? $mat?->unit ?? 'pcs',
+                ]);
+            })
+            ->filter(fn ($item) => ! empty($item['supplier_id']))
+            ->groupBy('supplier_id');
+
+        return DB::transaction(function () use ($materialsWithSupplier, $companyId, $projectId) {
+            return $materialsWithSupplier->map(function ($items, $supplierId) use ($companyId, $projectId) {
+                $po = PoSupplier::create([
+                    'company_id' => $companyId,
+                    'po_number' => CodeGenerator::generatePOSupplierNo(),
+                    'supplier_id' => (int) $supplierId,
+                    'project_id' => $projectId,
+                    'po_date' => now(),
+                    'status' => 'draft',
+                ]);
+
+                foreach ($items as $item) {
+                    PoSupplierItem::create([
+                        'po_supplier_id' => $po->id,
+                        'material_id' => (int) $item['material_id'],
+                        'qty' => (float) $item['qty'],
+                        'unit' => $item['unit'] ?? 'pcs',
+                        'unit_price' => (float) ($item['price'] ?? 0),
+                        'total_price' => (float) $item['qty'] * (float) ($item['price'] ?? 0),
+                    ]);
+                }
+
+                $po->recalculateTotals();
+
+                return $po;
+            })->values();
         });
     }
 }

@@ -6,6 +6,8 @@ use App\DTOs\StockPreviewData;
 use App\Models\Company;
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\PoSupplierItem;
+use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\StockCalculator;
 use App\Services\StockPreviewService;
@@ -102,5 +104,59 @@ class StockPreviewServiceTest extends TestCase
         $stock->refresh();
         $this->assertSame(30.0, (float) $stock->reserved_qty);
         $this->assertSame(70.0, (float) $stock->available_qty);
+    }
+
+    public function test_create_purchase_order_groups_by_supplier(): void
+    {
+        $company = Company::create(['name' => 'KMT Test', 'code' => 'KMT001']);
+
+        $supplierA = Supplier::create([
+            'company_id' => $company->id,
+            'code' => 'SUP-A',
+            'name' => 'Supplier A',
+        ]);
+        $supplierB = Supplier::create([
+            'company_id' => $company->id,
+            'code' => 'SUP-B',
+            'name' => 'Supplier B',
+        ]);
+
+        $mat1 = Material::create([
+            'code' => 'MAT-101',
+            'name' => 'Zippper',
+            'category' => 'Aksesori',
+            'unit' => 'pcs',
+            'supplier_id' => $supplierA->id,
+            'price' => 100,
+        ]);
+        $mat2 = Material::create([
+            'code' => 'MAT-102',
+            'name' => 'Button',
+            'category' => 'Aksesori',
+            'unit' => 'pcs',
+            'supplier_id' => $supplierA->id,
+            'price' => 50,
+        ]);
+        $mat3 = Material::create([
+            'code' => 'MAT-103',
+            'name' => 'Leather',
+            'category' => 'Bahan Utama',
+            'unit' => 'm',
+            'supplier_id' => $supplierB->id,
+            'price' => 200,
+        ]);
+
+        $service = new StockPreviewService(new StockCalculator);
+        $result = $service->createPurchaseOrder(
+            materials: [
+                ['material_id' => $mat1->id, 'qty' => 10],
+                ['material_id' => $mat2->id, 'qty' => 20],
+                ['material_id' => $mat3->id, 'qty' => 5],
+            ],
+            companyId: $company->id,
+        );
+
+        $this->assertCount(2, $result);
+        $this->assertSame(3, PoSupplierItem::count());
     }
 }
