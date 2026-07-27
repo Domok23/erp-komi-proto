@@ -27,6 +27,7 @@ class PoSupplier extends Model
         'ppn_amount',
         'grand_total',
         'notes',
+        'buyer_signature',
     ];
 
     protected $casts = [
