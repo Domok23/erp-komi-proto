@@ -60,8 +60,7 @@ class StockPreviewEndToEndTest extends TestCase
             ->assertSee('50.00 m');
 
         // Test Reserve
-        $component->set('selected', [(string) $material->id])
-            ->call('reserveSelected')
+        $component->callTableBulkAction('reserve_selected', [$material])
             ->assertDispatched('reserved');
 
         $this->assertDatabaseHas('material_reservations', [
@@ -71,8 +70,7 @@ class StockPreviewEndToEndTest extends TestCase
         ]);
 
         // Test Create PO
-        $component->set('selected', [(string) $material->id])
-            ->call('createPOSelected')
+        $component->callTableBulkAction('create_po_selected', [$material])
             ->assertDispatched('po-created');
 
         $this->assertDatabaseHas('po_suppliers', [
