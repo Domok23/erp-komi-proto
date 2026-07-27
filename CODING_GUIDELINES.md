@@ -69,6 +69,9 @@ Setiap kali kamu membuat model baru:
    }
    ```
    **DILARANG** langsung `increment()` atau `decrement()` tanpa pengecekan batas.
+9. **Verifikasi Import & Anti-Crash Filament Component Class:** Saat menambahkan fitur/komponen Filament UI baru:
+   - **DILARANG** mengasumsikan namespace class komponen yang tidak valid (seperti `Filament\Forms\Components\Actions` atau `Filament\Tables\Actions\BulkAction`). Selalu gunakan namespace resmi yang digunakan dalam proyek (`Filament\Actions\BulkAction`, `Filament\Actions\Action`, `Filament\Actions\BulkActionGroup`) dan periksa file Livewire/Resource yang sudah ada.
+   - Selalu lakukan verifikasi pengujian/kompilasi setelah mengedit Filament Resource/Livewire component untuk memastikan seluruh class yang diimport valid dan mencegah runtime exception `Class not found`.
 
 ---
 

@@ -90,4 +90,14 @@ class Project extends Model
     {
         return $this->hasMany(ProductionOrder::class, 'project_id');
     }
+
+    public function placements(): HasMany
+    {
+        return $this->hasMany(HrEmployeePlacement::class, 'project_id');
+    }
+
+    public function activePlacements(): HasMany
+    {
+        return $this->hasMany(HrEmployeePlacement::class, 'project_id')->where('status', 'active');
+    }
 }
