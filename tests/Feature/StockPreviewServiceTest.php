@@ -70,4 +70,37 @@ class StockPreviewServiceTest extends TestCase
         $this->assertSame(0.0, $result->first()->toBuy);
         $this->assertSame('sufficient', $result->first()->status);
     }
+
+    public function test_reserve_creates_material_reservation(): void
+    {
+        $company = Company::create(['name' => 'KMT Test', 'code' => 'KMT001']);
+        $warehouse = Warehouse::create(['company_id' => $company->id, 'name' => 'Gudang Utama', 'code' => 'WH01']);
+        $material = Material::create([
+            'code' => 'MAT-001',
+            'name' => 'Nylon Thread',
+            'category' => 'Bahan Baku',
+            'unit' => 'kg',
+        ]);
+
+        $stock = InventoryStock::create([
+            'company_id' => $company->id,
+            'warehouse_id' => $warehouse->id,
+            'material_id' => $material->id,
+            'quantity' => 100,
+            'available_qty' => 100,
+            'reserved_qty' => 0,
+            'unit' => 'kg',
+        ]);
+
+        $service = new StockPreviewService(new StockCalculator);
+        $result = $service->reserve(
+            reservations: [['material_id' => $material->id, 'qty' => 30]],
+            companyId: $company->id,
+        );
+
+        $this->assertCount(1, $result);
+        $stock->refresh();
+        $this->assertSame(30.0, (float) $stock->reserved_qty);
+        $this->assertSame(70.0, (float) $stock->available_qty);
+    }
 }

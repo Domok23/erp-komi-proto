@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\DTOs\StockPreviewData;
 use App\Models\InventoryStock;
+use App\Models\MaterialReservation;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class StockPreviewService
 {
@@ -43,6 +45,43 @@ class StockPreviewService
                 status: $calc['status'],
                 companyId: $companyId,
             );
+        });
+    }
+
+    public function reserve(array $reservations, int $companyId): Collection
+    {
+        return DB::transaction(function () use ($reservations, $companyId) {
+            $created = collect();
+
+            foreach ($reservations as $item) {
+                $stock = InventoryStock::where('company_id', $companyId)
+                    ->where('material_id', $item['material_id'])
+                    ->where('available_qty', '>=', $item['qty'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $stock) {
+                    throw new \Exception("Insufficient stock for material {$item['material_id']}");
+                }
+
+                $stock->reserved_qty += $item['qty'];
+                $stock->available_qty -= $item['qty'];
+                $stock->save();
+
+                $reservation = MaterialReservation::create([
+                    'company_id' => $companyId,
+                    'warehouse_id' => $stock->warehouse_id,
+                    'material_id' => $item['material_id'],
+                    'document_number' => CodeGenerator::generateReservationNumber(),
+                    'reserved_qty' => $item['qty'],
+                    'status' => 'approved',
+                    'reservation_date' => now(),
+                ]);
+
+                $created->push($reservation);
+            }
+
+            return $created;
         });
     }
 }
