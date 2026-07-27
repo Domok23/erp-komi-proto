@@ -114,6 +114,9 @@ class BomResource extends Resource
 
             Section::make('BOM Items')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

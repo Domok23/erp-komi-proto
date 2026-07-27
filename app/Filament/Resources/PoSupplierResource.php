@@ -119,6 +119,9 @@ class PoSupplierResource extends Resource
 
             Section::make('PO Items')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

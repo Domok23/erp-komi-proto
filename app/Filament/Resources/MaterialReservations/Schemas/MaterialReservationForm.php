@@ -6,11 +6,9 @@ use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Schema;
 use Filament\Forms;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 
 class MaterialReservationForm
 {
@@ -75,6 +73,7 @@ class MaterialReservationForm
                         $stock = $stock->first();
 
                         $available = $stock ? $stock->available_qty : 0;
+
                         return "[{$record->code}] {$record->name} (Available: ".number_format($available, 3)." {$record->unit})";
                     })
                     ->searchable()
@@ -96,7 +95,7 @@ class MaterialReservationForm
                         fn (Get $get) => function (string $attribute, $value, $fail) use ($get) {
                             $materialId = $get('material_id');
                             $warehouseId = $get('warehouse_id');
-                            if (!$materialId || !$warehouseId) {
+                            if (! $materialId || ! $warehouseId) {
                                 return;
                             }
                             $companyId = CompanyContext::getCompanyId();
@@ -104,7 +103,7 @@ class MaterialReservationForm
                                 ->where('company_id', $companyId)
                                 ->where('warehouse_id', $warehouseId)
                                 ->first();
-                            
+
                             $available = $stock ? $stock->available_qty : 0;
                             if (floatval($value) > $available) {
                                 $fail("Reserved quantity cannot exceed available stock ({$available}).");

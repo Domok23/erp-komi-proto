@@ -82,6 +82,9 @@ class SubconMaterialOutResource extends Resource
 
             Section::make('Sent Materials')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
