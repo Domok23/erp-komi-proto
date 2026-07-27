@@ -19,7 +19,7 @@ class StockPreviewAction
             ->modalHeading('Stock Preview')
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
-            ->modalContent(function ($record, $get) {
+            ->modalContent(function ($record = null, $livewire = null) {
                 $companyId = CompanyContext::getCompanyId() ?? 1;
                 $materials = [];
                 $productionQty = 1.0;
@@ -54,8 +54,16 @@ class StockPreviewAction
                     }
                 }
 
-                if (empty($materials) && is_callable($get)) {
-                    $rawItems = $get('items') ?? $get('materials') ?? [];
+                if (empty($materials) && $livewire) {
+                    $formData = [];
+                    if (method_exists($livewire, 'getFormState')) {
+                        $formData = $livewire->getFormState();
+                    } elseif (property_exists($livewire, 'data') && is_array($livewire->data)) {
+                        $formData = $livewire->data;
+                    }
+
+                    $projectId = $formData['project_id'] ?? null;
+                    $rawItems = $formData['items'] ?? $formData['materials'] ?? [];
                     if (! empty($rawItems) && is_array($rawItems)) {
                         $materials = collect($rawItems)->map(function ($item) {
                             $qty = $item['quantity_per_unit'] ?? $item['planned_qty'] ?? $item['qty_sent'] ?? $item['qty'] ?? $item['quantity'] ?? 1;
@@ -66,12 +74,12 @@ class StockPreviewAction
                                 'unit' => $item['unit'] ?? 'pcs',
                             ];
                         })->filter(fn ($item) => ! empty($item['material_id']))->values()->all();
-                    } elseif ($get('material_id')) {
-                        $qty = $get('standard_rate') ?? $get('quantity_per_unit') ?? $get('qty') ?? 1;
+                    } elseif (! empty($formData['material_id'])) {
+                        $qty = $formData['standard_rate'] ?? $formData['quantity_per_unit'] ?? $formData['qty'] ?? 1;
                         $materials[] = [
-                            'material_id' => $get('material_id'),
+                            'material_id' => $formData['material_id'],
                             'quantity_per_unit' => (float) $qty,
-                            'unit' => $get('unit') ?? 'pcs',
+                            'unit' => $formData['unit'] ?? 'pcs',
                         ];
                     }
                 }
