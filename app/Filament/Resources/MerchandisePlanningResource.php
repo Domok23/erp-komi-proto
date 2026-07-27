@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
 use App\Forms\Components\NullableToggle;
 use App\Models\InventoryStock;
@@ -28,6 +29,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
 class MerchandisePlanningResource extends Resource
@@ -309,12 +311,12 @@ class MerchandisePlanningResource extends Resource
                         ->modalSubmitActionLabel('Generate POs')
                         ->modalContent(function ($record) {
                             $record->load(['items.material', 'items.supplier', 'items.subcon']);
-                            
+
                             $materialIds = $record->items->pluck('material_id')->filter()->unique();
                             $companyId = CompanyContext::getCompanyId();
                             $stocks = InventoryStock::whereIn('material_id', $materialIds)
                                 ->where('company_id', $companyId)
-                                ->select('material_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_qty'))
+                                ->select('material_id', DB::raw('SUM(quantity) as total_qty'))
                                 ->groupBy('material_id')
                                 ->pluck('total_qty', 'material_id')
                                 ->toArray();
@@ -440,6 +442,7 @@ class MerchandisePlanningResource extends Resource
                                     ->send();
                             }
                         }),
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

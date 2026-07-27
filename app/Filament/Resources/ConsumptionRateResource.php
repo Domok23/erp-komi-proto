@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
@@ -111,6 +112,7 @@ class ConsumptionRateResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

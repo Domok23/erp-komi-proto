@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ProductionOrderResource\Pages;
 use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionOrderProjectTeamRelationManager;
 use App\Models\MerchandisePlanning;
@@ -243,6 +244,7 @@ class ProductionOrderResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'name'),
             ])
             ->actions([
+                StockPreviewAction::make('table'),
                 ActionGroup::make([
                     Action::make('start_production')
                         ->label('Start Production')
@@ -286,6 +288,7 @@ class ProductionOrderResource extends Resource
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
+            ])
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

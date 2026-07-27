@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -258,6 +259,7 @@ class PoSupplierResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     Action::make('generateInvoice')
                         ->label('Generate Invoice')
                         ->icon('heroicon-o-document-text')

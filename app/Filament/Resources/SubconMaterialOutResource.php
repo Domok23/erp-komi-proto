@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\SubconMaterialOutResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -92,7 +93,7 @@ class SubconMaterialOutResource extends Resource
                                     fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
                                         $companyId = CompanyContext::getCompanyId();
                                         $q->where('company_id', $companyId)
-                                          ->where('quantity', '>', 0);
+                                            ->where('quantity', '>', 0);
                                     })
                                 )
                                 ->getOptionLabelFromRecordUsing(function ($record) {
@@ -167,6 +168,7 @@ class SubconMaterialOutResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
