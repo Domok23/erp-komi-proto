@@ -16,11 +16,12 @@ class StockPreviewData
         public readonly float $toBuy,
         public readonly string $status,
         public readonly int $companyId,
+        public readonly float $onOrder = 0.0,
     ) {}
 
     public function isSufficient(): bool
     {
-        return $this->status === 'sufficient';
+        return in_array($this->status, ['sufficient', 'ordered'], true);
     }
 
     public function needsPurchase(): bool

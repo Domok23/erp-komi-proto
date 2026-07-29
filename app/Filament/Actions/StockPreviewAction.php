@@ -29,6 +29,9 @@ class StockPreviewAction
 
                 if ($record) {
                     $projectId = $record->project_id ?? null;
+                    if (isset($record->planned_qty) || isset($record->qty_sent) || isset($record->qty) || isset($record->quantity)) {
+                        $productionQty = (float) ($record->planned_qty ?? $record->qty_sent ?? $record->qty ?? $record->quantity ?? 1.0);
+                    }
 
                     if ($record instanceof ConsumptionRate) {
                         $materials[] = [
@@ -62,9 +65,9 @@ class StockPreviewAction
                     }
                 }
 
-                if (empty($materials) && $livewire) {
+                if ($livewire) {
                     $owner = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : null;
-                    if ($owner && $owner instanceof RdDesign && $owner->consumptionRates) {
+                    if (empty($materials) && $owner && $owner instanceof RdDesign && $owner->consumptionRates) {
                         $materials = $owner->consumptionRates->map(fn ($item) => [
                             'material_id' => $item->material_id,
                             'quantity_per_unit' => (float) $item->standard_rate,
@@ -72,15 +75,19 @@ class StockPreviewAction
                         ])->filter(fn ($item) => ! empty($item['material_id']))->values()->all();
                     }
 
-                    if (empty($materials)) {
-                        $formData = [];
-                        if (method_exists($livewire, 'getFormState')) {
-                            $formData = $livewire->getFormState();
-                        } elseif (property_exists($livewire, 'data') && is_array($livewire->data)) {
-                            $formData = $livewire->data;
-                        }
+                    $formData = [];
+                    if (method_exists($livewire, 'getFormState')) {
+                        $formData = $livewire->getFormState();
+                    } elseif (property_exists($livewire, 'data') && is_array($livewire->data)) {
+                        $formData = $livewire->data;
+                    }
 
-                        $projectId = $formData['project_id'] ?? null;
+                    if (! empty($formData['planned_qty']) || ! empty($formData['qty_sent']) || ! empty($formData['qty']) || ! empty($formData['quantity'])) {
+                        $productionQty = (float) ($formData['planned_qty'] ?? $formData['qty_sent'] ?? $formData['qty'] ?? $formData['quantity'] ?? $productionQty);
+                    }
+
+                    if (empty($materials)) {
+                        $projectId = $formData['project_id'] ?? $projectId;
                         $rawItems = $formData['items'] ?? $formData['materials'] ?? [];
                         if (! empty($rawItems) && is_array($rawItems)) {
                             $materials = collect($rawItems)->map(function ($item) {

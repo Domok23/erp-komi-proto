@@ -17,26 +17,59 @@ class StockPreviewService
         private StockCalculator $calculator,
     ) {}
 
-    public function preview(array $materials, float $productionQty, int $companyId): Collection
+    public function preview(array $materials, float $productionQty, int $companyId, ?int $projectId = null, array $additionalReservedQtys = [], array $additionalOrderedQtys = []): Collection
     {
         $materialIds = collect($materials)->pluck('material_id')->unique()->filter()->all();
 
-        $stocks = InventoryStock::where('company_id', $companyId)
+        $availableStocks = InventoryStock::where('company_id', $companyId)
             ->whereIn('material_id', $materialIds)
             ->get()
             ->groupBy('material_id')
             ->map(fn ($group) => (float) $group->sum('available_qty'));
 
-        return collect($materials)->map(function ($material) use ($stocks, $productionQty, $companyId) {
+        $projectReservations = ($projectId !== null)
+            ? MaterialReservation::where('company_id', $companyId)
+                ->where('project_id', $projectId)
+                ->where('status', 'approved')
+                ->whereIn('material_id', $materialIds)
+                ->get()
+                ->groupBy('material_id')
+                ->map(fn ($group) => (float) $group->sum('reserved_qty'))
+            : collect();
+
+        $poOrders = ($projectId !== null)
+            ? PoSupplierItem::whereHas('poSupplier', function ($q) use ($companyId, $projectId) {
+                $q->where('company_id', $companyId)
+                    ->where('project_id', $projectId)
+                    ->whereIn('status', ['draft', 'approved', 'sent', 'partial']);
+            })
+                ->whereIn('material_id', $materialIds)
+                ->get()
+                ->groupBy('material_id')
+                ->map(fn ($group) => (float) $group->sum('qty'))
+            : collect();
+
+        return collect($materials)->map(function ($material) use ($availableStocks, $projectReservations, $additionalReservedQtys, $poOrders, $additionalOrderedQtys, $productionQty, $companyId) {
+            $materialId = (int) $material['material_id'];
+            $avail = (float) ($availableStocks[$materialId] ?? 0);
+            $projRes = (float) ($projectReservations[$materialId] ?? 0);
+            $addRes = (float) ($additionalReservedQtys[$materialId] ?? 0);
+            $effectiveStock = $avail + $projRes + $addRes;
+
+            $poOrd = (float) ($poOrders[$materialId] ?? 0);
+            $addOrd = (float) ($additionalOrderedQtys[$materialId] ?? 0);
+            $effectiveOnOrder = $poOrd + $addOrd;
+
             $calc = $this->calculator->calculate(
-                materialId: (int) $material['material_id'],
+                materialId: $materialId,
                 quantityPerUnit: (float) $material['quantity_per_unit'],
                 productionQty: $productionQty,
-                currentStock: (float) ($stocks[$material['material_id']] ?? 0),
+                currentStock: $effectiveStock,
+                onOrder: $effectiveOnOrder,
             );
 
             return new StockPreviewData(
-                materialId: (int) $material['material_id'],
+                materialId: $materialId,
                 materialCode: $material['code'] ?? '',
                 materialName: $material['name'] ?? '',
                 unit: $material['unit'] ?? 'pcs',
@@ -47,13 +80,14 @@ class StockPreviewService
                 toBuy: $calc['to_buy'],
                 status: $calc['status'],
                 companyId: $companyId,
+                onOrder: $calc['on_order'],
             );
         });
     }
 
-    public function reserve(array $reservations, int $companyId): Collection
+    public function reserve(array $reservations, int $companyId, ?int $projectId = null): Collection
     {
-        return DB::transaction(function () use ($reservations, $companyId) {
+        return DB::transaction(function () use ($reservations, $companyId, $projectId) {
             $created = collect();
 
             foreach ($reservations as $item) {
@@ -75,6 +109,7 @@ class StockPreviewService
                     'company_id' => $companyId,
                     'warehouse_id' => $stock->warehouse_id,
                     'material_id' => $item['material_id'],
+                    'project_id' => $projectId,
                     'document_number' => CodeGenerator::generateReservationNumber(),
                     'reserved_qty' => $item['qty'],
                     'status' => 'approved',
