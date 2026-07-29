@@ -27,7 +27,7 @@ class GeneralLedgerSeeder extends Seeder
         // Sample entries for January 2026
         $entries = [
             [
-                'entry_number' => 'GL-' . now()->subDays(25)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(25)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(25)->toDateString(),
                 'description' => 'Sales Revenue - Order SO-2026-001',
                 'debit_account' => 'Accounts Receivable',
@@ -38,7 +38,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Sales to Customer ABC',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(22)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(22)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(22)->toDateString(),
                 'description' => 'Material Cost - Purchase PO-SUP-2026-001',
                 'debit_account' => 'Material Cost',
@@ -49,7 +49,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Raw materials purchase',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(18)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(18)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(18)->toDateString(),
                 'description' => 'Labor Cost - wages',
                 'debit_account' => 'Labor Cost',
@@ -60,7 +60,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Monthly salary payment',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(15)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(15)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(15)->toDateString(),
                 'description' => 'Overhead - Utilities',
                 'debit_account' => 'Utilities',
@@ -71,7 +71,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Electricity and water bills',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(12)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(12)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(12)->toDateString(),
                 'description' => 'Shipping Cost - Export',
                 'debit_account' => 'Shipping Cost',
@@ -82,7 +82,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'International shipping',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(8)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(8)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(8)->toDateString(),
                 'description' => 'Rent Payment',
                 'debit_account' => 'Rent',
@@ -93,7 +93,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Monthly rent',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(4)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(4)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(4)->toDateString(),
                 'description' => 'Sales Revenue - Order SO-2026-002',
                 'debit_account' => 'Accounts Receivable',
@@ -104,7 +104,7 @@ class GeneralLedgerSeeder extends Seeder
                 'notes' => 'Sales to Customer XYZ',
             ],
             [
-                'entry_number' => 'GL-' . now()->subDays(2)->format('Ymd') . '-001',
+                'entry_number' => 'GL-'.now()->subDays(2)->format('Ymd').'-001',
                 'entry_date' => now()->subDays(2)->toDateString(),
                 'description' => 'Material Cost - Purchase PO-SUP-2026-002',
                 'debit_account' => 'Material Cost',

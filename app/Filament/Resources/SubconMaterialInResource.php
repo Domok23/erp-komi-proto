@@ -175,7 +175,7 @@ class SubconMaterialInResource extends Resource
                                     fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
                                         $companyId = CompanyContext::getCompanyId();
                                         $q->where('company_id', $companyId)
-                                          ->where('quantity', '>', 0);
+                                            ->where('quantity', '>', 0);
                                     })
                                 )
                                 ->getOptionLabelFromRecordUsing(function ($record) {

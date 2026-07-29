@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryStockResource\Pages;
 use App\Filament\Resources\InventoryStockResource\RelationManagers;
+use App\Filament\Resources\MaterialReservations\MaterialReservationResource;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
@@ -161,7 +162,7 @@ class InventoryStockResource extends Resource
                         ->label('Quick Reserve')
                         ->icon('heroicon-o-lock-closed')
                         ->color('primary')
-                        ->url(fn ($record) => \App\Filament\Resources\MaterialReservations\MaterialReservationResource::getUrl('create', [
+                        ->url(fn ($record) => MaterialReservationResource::getUrl('create', [
                             'warehouse_id' => $record->warehouse_id,
                             'material_id' => $record->material_id,
                         ])),

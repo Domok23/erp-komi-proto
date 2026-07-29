@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ProductionOrderResource\Pages;
 use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionOrderProjectTeamRelationManager;
 use App\Models\MerchandisePlanning;
@@ -153,58 +154,64 @@ class ProductionOrderResource extends Resource
                 ->label('No materials selected')
                 ->content('Select a merchandising planning to see materials')
                 ->visible(fn (callable $get) => ! $get('merchandising_planning_id')),
-            Forms\Components\Repeater::make('materials')
-                ->label('Materials from Merchandising')
-                ->schema([
-                    Forms\Components\TextInput::make('material_name')
-                        ->label('Material')
-                        ->disabled(),
-                    Forms\Components\TextInput::make('supplier_name')
-                        ->label('Supplier')
-                        ->disabled(),
-                    Forms\Components\TextInput::make('planned_qty')
-                        ->label('Planned Qty')
-                        ->disabled()
-                        ->dehydrated()
-                        ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                        ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-                    Forms\Components\TextInput::make('unit')
-                        ->label('Unit')
-                        ->disabled()
-                        ->dehydrated(),
-                    Forms\Components\TextInput::make('unit_price')
-                        ->label('Price')
-                        ->disabled(),
-                    Forms\Components\TextInput::make('total_price')
-                        ->label('Total')
-                        ->disabled(),
-                    Forms\Components\Hidden::make('material_id'),
-                    Forms\Components\Hidden::make('merchandising_planning_item_id'),
-                    Forms\Components\Hidden::make('is_selected')->default(true),
-                ])
-                ->columns(6)
-                ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)
-                ->reorderable(false)
-                ->addable(false)
-                ->deletable(false)
-                ->default([])
-                ->visible(fn (callable $get) => $get('merchandising_planning_id'))
+            Section::make('Materials from Merchandising')
                 ->columnSpanFull()
-                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                    $materials = [];
-                    foreach ($state as $item) {
-                        if ($item['is_selected']) {
-                            $materials[] = [
-                                'material_id' => $item['material_id'],
-                                'merchandising_planning_item_id' => $item['merchandising_planning_item_id'],
-                                'planned_qty' => $item['planned_qty'],
-                                'unit' => $item['unit'],
-                                'is_selected' => $item['is_selected'],
-                            ];
-                        }
-                    }
-                    $set('selected_materials', $materials);
-                }),
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
+                ->visible(fn (callable $get) => (bool) $get('merchandising_planning_id'))
+                ->schema([
+                    Forms\Components\Repeater::make('materials')
+                        ->schema([
+                            Forms\Components\TextInput::make('material_name')
+                                ->label('Material')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('supplier_name')
+                                ->label('Supplier')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('planned_qty')
+                                ->label('Planned Qty')
+                                ->disabled()
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                            Forms\Components\TextInput::make('unit')
+                                ->label('Unit')
+                                ->disabled()
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('unit_price')
+                                ->label('Price')
+                                ->disabled(),
+                            Forms\Components\TextInput::make('total_price')
+                                ->label('Total')
+                                ->disabled(),
+                            Forms\Components\Hidden::make('material_id'),
+                            Forms\Components\Hidden::make('merchandising_planning_item_id'),
+                            Forms\Components\Hidden::make('is_selected')->default(true),
+                        ])
+                        ->columns(6)
+                        ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)
+                        ->reorderable(false)
+                        ->addable(false)
+                        ->deletable(false)
+                        ->default([])
+                        ->columnSpanFull()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $materials = [];
+                            foreach ($state as $item) {
+                                if ($item['is_selected']) {
+                                    $materials[] = [
+                                        'material_id' => $item['material_id'],
+                                        'merchandising_planning_item_id' => $item['merchandising_planning_item_id'],
+                                        'planned_qty' => $item['planned_qty'],
+                                        'unit' => $item['unit'],
+                                        'is_selected' => $item['is_selected'],
+                                    ];
+                                }
+                            }
+                            $set('selected_materials', $materials);
+                        }),
+                ]),
         ]);
     }
 
@@ -244,6 +251,7 @@ class ProductionOrderResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     Action::make('start_production')
                         ->label('Start Production')
                         ->icon('heroicon-o-play')
