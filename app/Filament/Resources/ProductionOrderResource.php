@@ -250,8 +250,8 @@ class ProductionOrderResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'name'),
             ])
             ->actions([
-                StockPreviewAction::make('table'),
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     Action::make('start_production')
                         ->label('Start Production')
                         ->icon('heroicon-o-play')
