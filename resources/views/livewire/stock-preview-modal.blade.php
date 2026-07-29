@@ -1,25 +1,80 @@
 <div class="space-y-6">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.875rem 1rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; background-color: rgba(249, 250, 251, 0.8); margin-bottom: 0.5rem;" class="dark:bg-gray-800/40 dark:border-gray-700" wire:key="stock-preview-header-bar">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <label style="font-size: 0.875rem; font-weight: 600; white-space: nowrap;" class="text-gray-700 dark:text-gray-200">
-                Production Quantity:
-            </label>
-            <div style="width: 7rem;">
+    <style>
+        .stock-preview-header-bar {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 16px !important;
+            padding: 12px 16px !important;
+            border-radius: 12px !important;
+            background-color: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            margin-bottom: 16px !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+        }
+        .dark .stock-preview-header-bar,
+        .fi-theme-dark .stock-preview-header-bar {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            box-shadow: none !important;
+        }
+        .stock-preview-qty-group {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 12px !important;
+        }
+        .stock-preview-label {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            color: #334155 !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+        }
+        .dark .stock-preview-label,
+        .fi-theme-dark .stock-preview-label {
+            color: #f1f5f9 !important;
+        }
+        .stock-preview-icon-svg {
+            width: 18px !important;
+            height: 18px !important;
+            flex-shrink: 0 !important;
+            color: #f59e0b !important;
+            display: inline-block !important;
+        }
+        .stock-preview-input-box {
+            width: 90px !important;
+            flex-shrink: 0 !important;
+        }
+    </style>
+
+    <div class="stock-preview-header-bar" wire:key="stock-preview-header-bar">
+        <div class="stock-preview-qty-group">
+            <span class="stock-preview-label">
+                <x-heroicon-m-cube class="stock-preview-icon-svg" />
+                <span>Production Quantity:</span>
+            </span>
+            <div class="stock-preview-input-box">
                 <x-filament::input.wrapper>
                     <x-filament::input
                         type="number"
                         wire:model.live.debounce.300ms="productionQty"
-                        wire:key="prod-qty-input"
-                        min="0.01"
+                        min="0"
                         step="0.01"
-                        style="text-align: center; font-family: monospace;"
+                        style="text-align: center; font-family: monospace; font-weight: 700;"
                     />
                 </x-filament::input.wrapper>
             </div>
         </div>
 
         <div wire:key="materials-count-badge">
-            <x-filament::badge color="gray" icon="heroicon-m-cube">
+            <x-filament::badge color="warning" icon="heroicon-m-cube">
                 {{ count($materials) }} Material(s)
             </x-filament::badge>
         </div>

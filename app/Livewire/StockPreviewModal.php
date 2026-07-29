@@ -41,29 +41,50 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
     public array $selectedTableRecords = [];
 
+    /** Cached preview results — keyed by material_id. Refreshed on every qty change. */
+    public array $cachedPreview = [];
+
     public function mount(array $materials = [], float $productionQty = 1.0, int $companyId = 1, ?int $projectId = null)
     {
         $this->materials = $materials;
-        $this->productionQty = max(0.01, $productionQty);
+        $this->productionQty = max(0, $productionQty);
         $this->companyId = $companyId;
         $this->projectId = $projectId;
+        $this->refreshPreview();
     }
 
-    public function updatedProductionQty()
+    public function refreshPreview(): void
     {
-        $this->resetPage();
-    }
-
-    public function getPreviewData(): \Illuminate\Support\Collection
-    {
-        return app(StockPreviewService::class)->preview(
+        $preview = app(StockPreviewService::class)->preview(
             materials: $this->materials,
-            productionQty: (float) max(0.01, floatval($this->productionQty)),
+            productionQty: (float) max(0, floatval($this->productionQty)),
             companyId: $this->companyId,
             projectId: $this->projectId,
             additionalReservedQtys: $this->sessionReservedQtys,
             additionalOrderedQtys: $this->sessionOrderedQtys
-        )->keyBy('materialId');
+        );
+
+        // Serialize to plain array so Livewire can diff the public property
+        $this->cachedPreview = $preview->keyBy('materialId')->map(fn ($d) => [
+            'materialId'  => $d->materialId,
+            'required'    => $d->required,
+            'currentStock'=> $d->currentStock,
+            'toBuy'       => $d->toBuy,
+            'status'      => $d->status,
+            'unit'        => $d->unit,
+            'onOrder'     => $d->onOrder,
+        ])->all();
+    }
+
+    public function updatedProductionQty(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function getPreviewData(): \Illuminate\Support\Collection
+    {
+        // Map back to object-like so column closures can use ->required, ->toBuy, etc.
+        return collect($this->cachedPreview)->keyBy(fn ($d) => (int) $d['materialId'])->map(fn ($d) => (object) $d);
     }
 
     public function table(Table $table): Table
