@@ -295,7 +295,6 @@ class ProductionOrderResource extends Resource
                     DeleteAction::make(),
                 ]),
             ])
-            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
