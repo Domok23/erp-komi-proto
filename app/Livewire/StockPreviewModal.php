@@ -37,9 +37,6 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
     public array $sessionOrderedQtys = [];
 
-    public array $selected = [];
-
-    public array $selectedTableRecords = [];
 
     /** Cached preview results — keyed by material_id. Refreshed on every qty change. */
     public array $cachedPreview = [];
