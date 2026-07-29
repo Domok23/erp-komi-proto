@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Filament\Resources\HrDepartmentResource\Pages;
+
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+
+class ListHrDepartments extends ListRecords
+{
+    protected static string $resource = 'App\Filament\Resources\HrDepartmentResource';
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('positions')
+                ->label('Positions')
+                ->icon('heroicon-o-briefcase')
+                ->color('secondary')
+                ->modalHeading('Manage Positions')
+                ->modalWidth('5xl')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')
+                ->modalContent(fn () => view('filament.pages.manage-positions-modal-wrapper')),
+            Actions\CreateAction::make(),
+        ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+}

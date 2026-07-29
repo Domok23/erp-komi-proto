@@ -3,11 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductionOrderResource\Pages;
+use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionOrderProjectTeamRelationManager;
 use App\Models\MerchandisePlanning;
 use App\Models\ProductionOrder;
 use App\Models\Project;
 use App\Services\CodeGenerator;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -37,6 +39,21 @@ class ProductionOrderResource extends Resource
         return $schema->schema([
             Section::make('Production Order Details')
                 ->columnSpanFull()
+                ->headerActions([
+                    Action::make('view_project_team')
+                        ->label('Project Team / Collaborators')
+                        ->icon('heroicon-o-user-group')
+                        ->color('primary')
+                        ->modalHeading('Project Team Members (Collaborators)')
+                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
+                            'projectId' => $record?->project_id,
+                            'isReadOnly' => true,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl')
+                        ->visible(fn ($record) => $record !== null && $record->project_id !== null),
+                ])
                 ->schema([
                     Forms\Components\Hidden::make('id')
                         ->default(fn ($record) => $record ? $record->id : null),
@@ -226,34 +243,49 @@ class ProductionOrderResource extends Resource
                 SelectFilter::make('project_id')->relationship('project', 'name'),
             ])
             ->actions([
-                Action::make('start_production')
-                    ->label('Start Production')
-                    ->icon('heroicon-o-play')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'planned')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'in_progress', 'start_date' => now()]);
-                        Notification::make()
-                            ->title('Production Started')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                Action::make('complete_production')
-                    ->label('Complete Production')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'in_progress')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'completed', 'end_date' => now()]);
-                        Notification::make()
-                            ->title('Production Completed')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    Action::make('start_production')
+                        ->label('Start Production')
+                        ->icon('heroicon-o-play')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'planned')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'in_progress', 'start_date' => now()]);
+                            Notification::make()
+                                ->title('Production Started')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    Action::make('complete_production')
+                        ->label('Complete Production')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'in_progress')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'completed', 'end_date' => now()]);
+                            Notification::make()
+                                ->title('Production Completed')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    Action::make('view_project_team')
+                        ->label('Project Team')
+                        ->icon('heroicon-o-user-group')
+                        ->color('info')
+                        ->modalHeading(fn ($record) => "Project Team Members (Collaborators)")
+                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
+                            'projectId' => $record->project_id,
+                            'isReadOnly' => true,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl')
+                        ->visible(fn ($record) => $record->project_id !== null),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
