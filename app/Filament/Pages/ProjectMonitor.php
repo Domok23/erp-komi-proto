@@ -103,7 +103,7 @@ class ProjectMonitor extends Page implements HasTable
                     ->label('Target Date')
                     ->date('M d, Y')
                     ->sortable()
-                    ->default('Not Set'),
+                    ->placeholder('Not Set'),
 
                 Tables\Columns\TextColumn::make('days_remaining')
                     ->label('Days Remaining')

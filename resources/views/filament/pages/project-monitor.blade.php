@@ -27,7 +27,7 @@
         </div>
 
         <!-- Main Live Projects Table -->
-        <div style="background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); padding: 16px;" class="dark:bg-gray-800 dark:border-gray-700">
+        <div>
             {{ $this->table }}
         </div>
     </div>
