@@ -2,15 +2,14 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Auth\EditProfile as BaseEditProfile;
-use Filament\Forms\Form;
+use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class EditProfile extends BaseEditProfile
 {
-    public function form(Form $form): Form
+    public function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
+        return $schema
             ->schema([
                 $this->getNameFormComponent(),
                 $this->getEmailFormComponent(),

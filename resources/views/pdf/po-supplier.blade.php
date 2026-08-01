@@ -136,28 +136,58 @@
     </div>
     @endif
 
+    @php
+        $manager = $po->approvals()->where('approval_level', 'manager')->where('status', 'approved')->first();
+        $director = $po->approvals()->where('approval_level', 'director')->first();
+        $hasDirector = $director !== null;
+        $directorApproved = $director && $director->status === 'approved';
+    @endphp
+
     <div class="signature-block">
-        <div class="signature-col-left">
-            <strong>Prepared By,</strong>
-            <div class="signature-placeholder"></div>
-            <div style="border-top: 1px solid #333; width: 180px; margin: 0 auto; padding-top: 5px;">
-                Purchasing Staff
-            </div>
-        </div>
-        <div class="signature-col-right">
-            <strong>Management Signature,</strong>
-            <div>
-                @if($po->buyer_signature)
-                    <img src="{{ $po->buyer_signature }}" class="signature-img" />
-                @else
-                    <div class="signature-placeholder" style="border-bottom: 1px solid #ddd; width: 180px; margin: 10px auto 0;">[Pending Signature]</div>
+        <table style="width: 100%; border: none; margin-top: 20px;">
+            <tr style="border: none;">
+                <!-- Prepared By Staff -->
+                <td style="width: {{ $hasDirector ? '33%' : '50%' }}; text-align: center; border: none; padding: 0;">
+                    <strong>Prepared By,</strong>
+                    <div style="height: 60px; margin: 10px 0;"></div>
+                    <div style="border-top: 1px solid #333; width: 140px; margin: 0 auto; padding-top: 5px; font-size: 9pt;">
+                        Purchasing Staff
+                    </div>
+                </td>
+
+                <!-- Manager Approval -->
+                <td style="width: {{ $hasDirector ? '33%' : '50%' }}; text-align: center; border: none; padding: 0;">
+                    <strong>Purchasing Manager,</strong>
+                    <div style="height: 60px; margin: 10px 0;">
+                        @if($manager && $manager->signature_path)
+                            <img src="{{ $manager->signature_path }}" style="max-height: 50px; max-width: 140px;" />
+                        @else
+                            <div style="font-size: 8pt; color: #868e96; padding-top: 15px;">[Pending Signature]</div>
+                        @endif
+                    </div>
+                    <div style="border-top: 1px solid #333; width: 140px; margin: 0 auto; padding-top: 5px; font-size: 9pt;">
+                        {{ $manager->user->name ?? 'Authorized Manager' }}
+                    </div>
+                </td>
+
+                <!-- Director Approval -->
+                @if($hasDirector)
+                    <td style="width: 33%; text-align: center; border: none; padding: 0;">
+                        <strong>Finance Director,</strong>
+                        <div style="height: 60px; margin: 10px 0;">
+                            @if($directorApproved && $director->signature_path)
+                                <img src="{{ $director->signature_path }}" style="max-height: 50px; max-width: 140px;" />
+                            @else
+                                <div style="font-size: 8pt; color: #868e96; padding-top: 15px;">[Pending Signature]</div>
+                            @endif
+                        </div>
+                        <div style="border-top: 1px solid #333; width: 140px; margin: 0 auto; padding-top: 5px; font-size: 9pt;">
+                            {{ $director->user->name ?? 'Finance Director' }}
+                        </div>
+                    </td>
                 @endif
-            </div>
-            <div style="width: 180px; margin: 0 auto; padding-top: 5px;">
-                Authorized Management
-            </div>
-        </div>
-        <div class="clear"></div>
+            </tr>
+        </table>
     </div>
 
     <div class="footer">
