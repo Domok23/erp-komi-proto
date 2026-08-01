@@ -33,6 +33,7 @@ class SalesOrder extends Model
         'down_payment_amount',
         'payment_terms',
         'notes',
+        'customer_signature',
     ];
 
     protected $casts = [

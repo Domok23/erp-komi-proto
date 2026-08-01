@@ -26,6 +26,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class PoSupplierResource extends Resource
 {
@@ -221,6 +222,19 @@ class PoSupplierResource extends Resource
                             $set('grand_total', number_format($subtotal + $ppnAmount, 2, '.', ','));
                         }),
                 ]),
+
+            Section::make('Management Authorization')
+                ->columnSpanFull()
+                ->description('Management authorized signature to approve this Purchase Order.')
+                ->schema([
+                    SignaturePad::make('buyer_signature')
+                        ->label('Management Signature')
+                        ->hint('Draw signature for management authorization of this PO')
+                        ->backgroundColor('rgb(255, 255, 255)')
+                        ->penColor('rgb(15, 23, 42)')
+                        ->downloadable()
+                        ->nullable(),
+                ]),
         ]);
     }
 
@@ -279,6 +293,21 @@ class PoSupplierResource extends Resource
                                 ->send();
                         })
                         ->requiresConfirmation(),
+                    \Filament\Actions\Action::make('downloadPdf')
+                        ->label('Download PDF')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.po-supplier', [
+                                'po' => $record,
+                                'company' => $record->company,
+                                'supplier' => $record->supplier,
+                            ]);
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                "po-{$record->po_number}.pdf"
+                            );
+                        }),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
