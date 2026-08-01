@@ -91,6 +91,24 @@ class Project extends Model
         return $this->hasMany(ProductionOrder::class, 'project_id');
     }
 
+    public function progressPercent(): float
+    {
+        if (!$this->target_qty || $this->target_qty <= 0) {
+            return 0.0;
+        }
+
+        return round(($this->produced_qty / $this->target_qty) * 100, 1);
+    }
+
+    public function daysRemaining(): ?int
+    {
+        if (!$this->target_date) {
+            return null;
+        }
+
+        return (int) \Illuminate\Support\Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
+    }
+
     public function placements(): HasMany
     {
         return $this->hasMany(HrEmployeePlacement::class, 'project_id');
