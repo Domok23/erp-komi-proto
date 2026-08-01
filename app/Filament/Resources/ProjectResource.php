@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectResource\Pages;
+use App\Filament\Resources\ProjectResource\RelationManagers\ProjectEmployeePlacementsRelationManager;
 use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
@@ -40,6 +41,21 @@ class ProjectResource extends Resource
         return $schema->schema([
             Section::make('Project Details')
                 ->columnSpanFull()
+                ->headerActions([
+                    Action::make('manage_team')
+                        ->label('Project Team Members')
+                        ->icon('heroicon-o-user-group')
+                        ->color('primary')
+                        ->modalHeading('Project Team Members (Collaborators)')
+                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
+                            'projectId' => $record?->id,
+                            'isReadOnly' => false,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl')
+                        ->visible(fn ($record) => $record !== null),
+                ])
                 ->schema([
                     Forms\Components\TextInput::make('project_code')
                         ->disabled()
@@ -346,6 +362,18 @@ class ProjectResource extends Resource
                                 ->success()
                                 ->send();
                         }),
+                    Action::make('manage_team')
+                        ->label('Team Members')
+                        ->icon('heroicon-o-user-group')
+                        ->color('info')
+                        ->modalHeading(fn ($record) => "Team Members: {$record->name} [{$record->project_code}]")
+                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
+                            'projectId' => $record->id,
+                            'isReadOnly' => false,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -10,13 +10,17 @@ use App\Models\Customer;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\GoodsReceiptShipping;
+use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
+use App\Models\InvoicePurchase;
 use App\Models\InvoiceSales;
 use App\Models\JobOrder;
 use App\Models\JobOrderMaterial;
 use App\Models\Material;
+use App\Models\MaterialUsage;
 use App\Models\MerchandisePlanning;
 use App\Models\MerchandisePlanningItem;
+use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSubconItem;
 use App\Models\PoSupplier;
@@ -29,6 +33,9 @@ use App\Models\QcInspection;
 use App\Models\RdDesign;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\Shipment;
+use App\Models\StockTransfer;
+use App\Models\StockTransferItem;
 use App\Models\Subcon;
 use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialInItem;
@@ -72,7 +79,7 @@ class DataSeeder extends Seeder
 
         // 1. Seed Warehouses
         $whMain = Warehouse::where('code', 'WH-MAIN')->where('company_id', $kei->id)->first();
-        if (!$whMain) {
+        if (! $whMain) {
             $whMain = Warehouse::create([
                 'company_id' => $kei->id,
                 'code' => 'WH-MAIN',
@@ -83,7 +90,7 @@ class DataSeeder extends Seeder
         }
 
         $whBranch = Warehouse::where('code', 'WH-BRANCH')->where('company_id', $kei->id)->first();
-        if (!$whBranch) {
+        if (! $whBranch) {
             $whBranch = Warehouse::create([
                 'company_id' => $kei->id,
                 'code' => 'WH-BRANCH',
@@ -111,7 +118,7 @@ class DataSeeder extends Seeder
 
         // 2. Seed Suppliers
         $supplierYKK = Supplier::where('code', 'SUP-001')->where('company_id', $kei->id)->first();
-        if (!$supplierYKK) {
+        if (! $supplierYKK) {
             $supplierYKK = Supplier::create([
                 'company_id' => $kei->id,
                 'code' => 'SUP-001',
@@ -123,7 +130,7 @@ class DataSeeder extends Seeder
         }
 
         $supplierDuraflex = Supplier::where('code', 'SUP-002')->where('company_id', $kei->id)->first();
-        if (!$supplierDuraflex) {
+        if (! $supplierDuraflex) {
             $supplierDuraflex = Supplier::create([
                 'company_id' => $kei->id,
                 'code' => 'SUP-002',
@@ -136,7 +143,7 @@ class DataSeeder extends Seeder
 
         // 3. Seed Subcons
         $subconJaya = Subcon::where('code', 'SUB-001')->where('company_id', $kei->id)->first();
-        if (!$subconJaya) {
+        if (! $subconJaya) {
             $subconJaya = Subcon::create([
                 'company_id' => $kei->id,
                 'code' => 'SUB-001',
@@ -150,7 +157,7 @@ class DataSeeder extends Seeder
 
         // 4. Seed Customers
         $customerVera = Customer::where('code', 'CUS-001')->where('company_id', $kei->id)->first();
-        if (!$customerVera) {
+        if (! $customerVera) {
             $customerVera = Customer::create([
                 'company_id' => $kei->id,
                 'code' => 'CUS-001',
@@ -164,7 +171,7 @@ class DataSeeder extends Seeder
 
         // 5. Seed Materials
         $matFabric = Material::where('code', 'FAB-001')->first();
-        if (!$matFabric) {
+        if (! $matFabric) {
             $matFabric = Material::create([
                 'code' => 'FAB-001',
                 'name' => 'Kain Polyester Hitam',
@@ -178,7 +185,7 @@ class DataSeeder extends Seeder
         }
 
         $matZipper = Material::where('code', 'ZIP-001')->first();
-        if (!$matZipper) {
+        if (! $matZipper) {
             $matZipper = Material::create([
                 'code' => 'ZIP-001',
                 'name' => 'Metal Zipper',
@@ -192,7 +199,7 @@ class DataSeeder extends Seeder
         }
 
         $matWebbing = Material::where('code', 'ACC-003')->first();
-        if (!$matWebbing) {
+        if (! $matWebbing) {
             $matWebbing = Material::create([
                 'code' => 'ACC-003',
                 'name' => 'Kancing Premium',
@@ -206,7 +213,7 @@ class DataSeeder extends Seeder
         }
 
         $matFabricEmbroidered = Material::where('code', 'FAB-001-EMB')->first();
-        if (!$matFabricEmbroidered) {
+        if (! $matFabricEmbroidered) {
             $matFabricEmbroidered = Material::create([
                 'code' => 'FAB-001-EMB',
                 'name' => 'Kain Polyester Merah (Embroidered)',
@@ -732,9 +739,9 @@ class DataSeeder extends Seeder
         ]);
 
         // 23. Seed Invoice Purchases & Payments
-        $invoicePurchase = \App\Models\InvoicePurchase::create([
+        $invoicePurchase = InvoicePurchase::create([
             'company_id' => $kei->id,
-            'invoice_number' => 'INV-PUR-' . now()->format('Ymd') . '-001',
+            'invoice_number' => 'INV-PUR-'.now()->format('Ymd').'-001',
             'purchase_type' => 'po_supplier',
             'reference_id' => $poSupplier->id,
             'invoice_date' => now()->subDays(10)->toDateString(),
@@ -747,11 +754,11 @@ class DataSeeder extends Seeder
             'notes' => 'Invoice for raw materials purchase',
         ]);
 
-        \App\Models\Payment::create([
+        Payment::create([
             'company_id' => $kei->id,
             'invoice_type' => 'purchase',
             'invoice_id' => $invoicePurchase->id,
-            'payment_number' => 'PAY-PUR-' . now()->format('Ymd') . '-001',
+            'payment_number' => 'PAY-PUR-'.now()->format('Ymd').'-001',
             'payment_date' => now()->subDays(5)->toDateString(),
             'amount' => 20000000.00,
             'payment_method' => 'bank_transfer',
@@ -759,22 +766,22 @@ class DataSeeder extends Seeder
             'notes' => 'Partial payment for supplier invoice',
         ]);
 
-        \App\Models\Payment::create([
+        Payment::create([
             'company_id' => $kei->id,
             'invoice_type' => 'sales',
             'invoice_id' => $invoiceSales->id,
-            'payment_number' => 'PAY-SLS-' . now()->format('Ymd') . '-001',
+            'payment_number' => 'PAY-SLS-'.now()->format('Ymd').'-001',
             'payment_date' => now()->subDays(7)->toDateString(),
             'amount' => $salesOrder->down_payment_amount,
             'payment_method' => 'bank_transfer',
             'reference_number' => 'TRF-9908871',
-            'notes' => '30% Down Payment for SO ' . $salesOrder->so_number,
+            'notes' => '30% Down Payment for SO '.$salesOrder->so_number,
         ]);
 
         // 24. Seed Shipment (Sales / Delivery)
-        \App\Models\Shipment::create([
+        Shipment::create([
             'company_id' => $kei->id,
-            'shipment_number' => 'SHP-SLS-' . now()->format('Ymd') . '-001',
+            'shipment_number' => 'SHP-SLS-'.now()->format('Ymd').'-001',
             'sales_order_id' => $salesOrder->id,
             'shipment_date' => now()->subDays(2)->toDateString(),
             'status' => 'in_transit',
@@ -794,7 +801,7 @@ class DataSeeder extends Seeder
         ]);
 
         // 25. Seed Material Usage
-        \App\Models\MaterialUsage::create([
+        MaterialUsage::create([
             'company_id' => $kei->id,
             'job_order_id' => $jobOrderCutting->id,
             'material_id' => $matFabric->id,
@@ -810,18 +817,18 @@ class DataSeeder extends Seeder
         ]);
 
         // 26. Seed Stock Transfer & Stock Transfer Item
-        $stockTransfer = \App\Models\StockTransfer::create([
+        $stockTransfer = StockTransfer::create([
             'from_company_id' => $kei->id,
             'to_company_id' => $ktk->id,
             'from_warehouse_id' => $whMain->id,
             'to_warehouse_id' => $whMainKtk->id,
-            'transfer_number' => 'ST-' . now()->format('Ymd') . '-001',
+            'transfer_number' => 'ST-'.now()->format('Ymd').'-001',
             'transfer_date' => now()->subDays(1)->toDateString(),
             'status' => 'received',
             'notes' => 'Inter-company transfer of zippers for production support',
         ]);
 
-        \App\Models\StockTransferItem::create([
+        StockTransferItem::create([
             'stock_transfer_id' => $stockTransfer->id,
             'material_id' => $matZipper->id,
             'qty_requested' => 100.00,
@@ -830,12 +837,12 @@ class DataSeeder extends Seeder
         ]);
 
         // 27. Seed manual adjustment in Inventory Movement
-        $stockZipper = \App\Models\InventoryStock::where('warehouse_id', $whMain->id)
+        $stockZipper = InventoryStock::where('warehouse_id', $whMain->id)
             ->where('material_id', $matZipper->id)
             ->first();
 
         if ($stockZipper) {
-            \App\Models\InventoryMovement::create([
+            InventoryMovement::create([
                 'company_id' => $kei->id,
                 'inventory_stock_id' => $stockZipper->id,
                 'material_id' => $matZipper->id,

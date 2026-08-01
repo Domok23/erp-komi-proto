@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductionOrderResource\Pages;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Models\ProductionOrderMaterial;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -12,7 +13,9 @@ class EditProductionOrder extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make()];
+        return [
+            Actions\DeleteAction::make(),
+        ];
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
