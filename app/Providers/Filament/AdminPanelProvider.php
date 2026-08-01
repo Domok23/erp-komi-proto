@@ -78,6 +78,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
+            ->profile(\App\Filament\Pages\EditProfile::class)
             ->registration();
     }
 }

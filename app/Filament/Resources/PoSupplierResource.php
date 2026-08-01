@@ -40,7 +40,13 @@ class PoSupplierResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
+            Forms\Components\Placeholder::make('approval_status_banner')
+                ->label('')
+                ->content(fn (?PoSupplier $record) => $record ? new HtmlString(view('filament.components.po-approval-banner', ['record' => $record])->render()) : '')
+                ->columnSpanFull(),
+
             Section::make('PO Supplier Details')
+                ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('po_number')
@@ -83,6 +89,7 @@ class PoSupplierResource extends Resource
                 ->columns(2),
 
             Section::make('Cost & Tax Totals')
+                ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('subtotal')
@@ -117,6 +124,7 @@ class PoSupplierResource extends Resource
                 ])->columns(2),
 
             Section::make('PO Items')
+                ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\Repeater::make('items')
