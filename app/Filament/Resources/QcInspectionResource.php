@@ -56,6 +56,8 @@ class QcInspectionResource extends Resource
                                 if ($jobOrder) {
                                     $set('sample_size', $jobOrder->planned_qty);
                                 }
+                            } else {
+                                $set('sample_size', 0);
                             }
                         }),
                     Forms\Components\DatePicker::make('inspection_date')

@@ -78,6 +78,8 @@ class SubconMaterialInResource extends Resource
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if (! $state) {
+                                $set('subcon_id', null);
+                                $set('po_subcon_id', null);
                                 $set('items', []);
 
                                 return;

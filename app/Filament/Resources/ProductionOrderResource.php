@@ -117,6 +117,8 @@ class ProductionOrderResource extends Resource
                                         $set('materials', $materials);
                                     }
                                 }
+                            } else {
+                                $set('materials', []);
                             }
                         }),
                     Forms\Components\TextInput::make('planned_qty')

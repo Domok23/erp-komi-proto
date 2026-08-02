@@ -68,6 +68,9 @@ class MerchandisePlanningResource extends Resource
                             $project = Project::find($state, ['*']);
                             if ($project) {
                                 $set('design_id', $project->design_id);
+                                $set('items', []);
+                                $set('total_material_cost', number_format(0, 2, '.', ','));
+                                $set('total_subcon_cost', number_format(0, 2, '.', ','));
 
                                 // Auto-fill planning items from Project's BOM if available
                                 if ($project->bom) {

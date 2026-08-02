@@ -84,6 +84,8 @@ class MaterialReservationForm
                         $material = $state ? Material::find($state, ['*']) : null;
                         if ($material) {
                             $set('unit', $material->unit);
+                        } else {
+                            $set('unit', null);
                         }
                     }),
                 Forms\Components\TextInput::make('reserved_qty')

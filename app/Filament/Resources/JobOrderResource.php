@@ -122,6 +122,8 @@ class JobOrderResource extends Resource
                                         $set('materials', $materials);
                                     }
                                 }
+                            } else {
+                                $set('materials', []);
                             }
                         }),
                     Forms\Components\Select::make('task_type')
