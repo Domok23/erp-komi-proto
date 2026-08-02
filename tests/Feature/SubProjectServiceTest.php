@@ -7,6 +7,9 @@ use App\Models\Company;
 use App\Models\Project;
 use App\Models\SubProject;
 use App\Models\RdDesign;
+use App\Models\User;
+use App\Services\SubProjectService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -137,5 +140,104 @@ class SubProjectServiceTest extends TestCase
         $this->assertTrue($project->lifecycleChildren->contains('id', $child->id));
         $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $project->subProjects());
         $this->assertSame(SubProject::class, get_class($project->subProjects()->getRelated()));
+    }
+
+    public function test_set_review_status_sets_audit_fields(): void
+    {
+        $project = $this->seedProject();
+        $user = User::factory()->create();
+        $sp = SubProject::create([
+            'company_id' => $project->company_id,
+            'project_id' => $project->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'pending',
+            'target_qty' => 5,
+            'produced_qty' => 0,
+        ]);
+
+        $updated = SubProjectService::setReviewStatus($sp, 'approved', $user->id, 'OK client');
+
+        $this->assertSame('approved', $updated->review_status);
+        $this->assertSame($user->id, $updated->reviewed_by);
+        $this->assertSame('OK client', $updated->review_notes);
+        $this->assertNotNull($updated->reviewed_at);
+    }
+
+    public function test_copy_for_transition_proto_resets_review(): void
+    {
+        $from = $this->seedProject();
+        $sp = SubProject::create([
+            'company_id' => $from->company_id,
+            'project_id' => $from->id,
+            'name' => 'Varian Hitam',
+            'code' => 'BLK',
+            'category' => 'colorway',
+            'review_status' => 'approved',
+            'reviewed_at' => Carbon::now(),
+            'reviewed_by' => User::factory()->create()->id,
+            'target_qty' => 5,
+            'produced_qty' => 1,
+        ]);
+
+        $to = Project::create([
+            'company_id' => $from->company_id,
+            'project_code' => 'PRJ-SP-S',
+            'name' => 'Tas Nike - Sample',
+            'type' => 'sample',
+            'status' => 'planning',
+            'reference_project_id' => $from->id,
+            'target_qty' => 1,
+            'produced_qty' => 0,
+        ]);
+
+        SubProjectService::copyForTransition($from, $to, onlyApproved: false);
+
+        $copy = $to->subProjects()->first();
+        $this->assertNotNull($copy);
+        $this->assertSame('Varian Hitam', $copy->name);
+        $this->assertSame('BLK', $copy->code);
+        $this->assertSame('colorway', $copy->category);
+        $this->assertSame('pending', $copy->review_status);
+        $this->assertNull($copy->reviewed_at);
+        $this->assertNull($copy->reviewed_by);
+        $this->assertSame(5, $copy->target_qty);
+        $this->assertSame(0, $copy->produced_qty);
+    }
+
+    public function test_copy_for_transition_only_approved(): void
+    {
+        $from = $this->seedProject();
+        SubProject::create([
+            'company_id' => $from->company_id,
+            'project_id' => $from->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'approved',
+            'target_qty' => 5,
+            'produced_qty' => 0,
+        ]);
+        SubProject::create([
+            'company_id' => $from->company_id,
+            'project_id' => $from->id,
+            'name' => 'Varian Biru',
+            'review_status' => 'rejected',
+            'target_qty' => 3,
+            'produced_qty' => 0,
+        ]);
+
+        $to = Project::create([
+            'company_id' => $from->company_id,
+            'project_code' => 'PRJ-SP-M',
+            'name' => 'Tas Nike - Mass',
+            'type' => 'mass',
+            'status' => 'planning',
+            'reference_project_id' => $from->id,
+            'target_qty' => 100,
+            'produced_qty' => 0,
+        ]);
+
+        SubProjectService::copyForTransition($from, $to, onlyApproved: true);
+
+        $this->assertSame(1, $to->subProjects()->count());
+        $this->assertSame('Varian Hitam', $to->subProjects()->first()->name);
     }
 }
