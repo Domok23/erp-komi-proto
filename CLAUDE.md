@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **KMT001** — PT Komitrando Emporio (Main - Production)
 - **KMT002** — PT Komitrando Textile (Branch - Warehouse)
 
-Admin panel at `/admin`. All data is scoped by `company_id`. Full spec: `.claude/SPEC_DOCUMENT_ERP_KOMI.md`
+Admin panel at `/admin`. All data is scoped by `company_id`. Full spec: `.claude/SPEC_DOCUMENT_ERP_KOMI.md` and `CODING_GUIDELINES.md`
 
 ## Dev Commands
 
@@ -42,13 +42,13 @@ All admin UI lives in `app/Filament/Resources/`. Each resource follows this stru
 
 The panel is configured in `app/Providers/Filament/AdminPanelProvider.php`:
 - Path: `/admin`
-- Color theme: Amber primary, dark mode off, top navigation enabled
+- Color theme: Amber primary, dark mode supported, top navigation enabled
 
 Filament v4 Schema/Table APIs are used: `Schema::schema([...])`, `Table::columns([...])`.
 
 ### Multi-Tenancy (company_id)
 
-Most entities have a `company_id` foreign key as the first column after `id`. Always include it in fillables, relations, and as the first database index. All Filament resources should scope queries by the selected company.
+Most entities have a `company_id` foreign key as the first column after `id`. Always include it in fillables, relations, and as the first database index. Use `App\Traits\BelongsToCompany` trait on models. All Filament resources must scope queries, form unique rules, and relationship selectors by the selected company via `CompanyContext::getCompanyId()`.
 
 ### Module Phases
 
@@ -72,12 +72,16 @@ Most entities have a `company_id` foreign key as the first column after `id`. Al
 
 MySQL (`erp_komi_proto`). Migrations in `database/migrations/`. Tests use in-memory SQLite (`:memory:`).
 
-### Key Patterns
+### Key Patterns & Anti-Crash Rules
 
-- **Enum fields**: Stored as string columns, cast via `$casts` array in models
-- **Dates**: Use `date` or `datetime` cast, not Carbon objects directly
-- **Model relations**: Follow Laravel Eloquent conventions (`BelongsTo`, `HasMany`)
-- **Project types**: `proto` → approved → auto-create `sample` → approved → auto-create `mass`
+- **Enum fields**: Stored as string columns, cast via `$casts` array in models.
+- **Dates**: Use `date` or `datetime` cast, not Carbon objects directly. Range dates MUST enforce `->afterOrEqual('start_date')`.
+- **Model relations**: Follow Laravel Eloquent conventions (`BelongsTo`, `HasMany`).
+- **Project types**: `proto` → approved → auto-create `sample` → approved → auto-create `mass`.
+- **Filament v4 Namespaces**: Always use `\Filament\Actions\Action` (NOT `Filament\Tables\Actions\Action`). Use `\Filament\Actions\BulkAction` & `\Filament\Actions\BulkActionGroup`.
+- **Closure Typehints**: DO NOT use concrete typehint `fn (Get $get)` in form closures; use `fn ($get)` without importing `Get`.
+- **Tenant Scoping**: Form `->unique()` and `->relationship()` selectors MUST be scoped per tenant using `CompanyContext::getCompanyId()`.
+- **Clean Error Handling**: Never leak raw SQL/Database exceptions to UI. Catch in Service layer and convert to Filament UI Notification (`Notification::make()->danger()->send()`).
 
 ### Costing / Pricing Config (Static)
 
