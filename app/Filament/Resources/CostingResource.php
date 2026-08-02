@@ -83,6 +83,32 @@ class CostingResource extends Resource
                                 self::recalculate($get, $set);
                             }
                         }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->disabled($isLocked),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -309,7 +335,7 @@ class CostingResource extends Resource
                                 return;
                             }
 
-                            $result = CostingCalculatorService::calculateFromBOM($record->project);
+                            $result = CostingCalculatorService::calculateFromBOM($record->project, $record->subProject);
                             $record->update(['material_cost' => $result['material_cost']]);
                             CostingCalculatorService::recalculateCosting($record);
 

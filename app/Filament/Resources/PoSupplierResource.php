@@ -55,7 +55,33 @@ class PoSupplierResource extends Resource
                         ->allowHtml()
                         ->searchable()
                         ->preload()
-                        ->nullable(),
+                        ->nullable()
+                        ->reactive(),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = \App\Models\Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = \App\Models\Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        }),
                     Forms\Components\Select::make('supplier_id')
                         ->relationship('supplier', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SupplierResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))

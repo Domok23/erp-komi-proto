@@ -102,6 +102,31 @@ class MerchandisePlanningResource extends Resource
                                 }
                             }
                         }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        }),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -376,6 +401,7 @@ class MerchandisePlanningResource extends Resource
                                     'company_id' => $record->company_id,
                                     'po_number' => CodeGenerator::generatePOSupplierNo(),
                                     'project_id' => $record->project_id,
+                                    'sub_project_id' => $record->sub_project_id,
                                     'supplier_id' => $supplierId,
                                     'po_date' => now()->toDateString(),
                                     'status' => 'draft',
@@ -408,6 +434,7 @@ class MerchandisePlanningResource extends Resource
                                     'company_id' => $record->company_id,
                                     'po_number' => CodeGenerator::generatePOSubconNo(),
                                     'project_id' => $record->project_id,
+                                    'sub_project_id' => $record->sub_project_id,
                                     'subcon_id' => $subconId,
                                     'po_date' => now()->toDateString(),
                                     'status' => 'draft',

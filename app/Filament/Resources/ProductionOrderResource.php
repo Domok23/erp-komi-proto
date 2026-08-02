@@ -78,6 +78,31 @@ class ProductionOrderResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set) {
                             self::loadProjectMaterials($state, $set);
                         }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Forms\Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) return false;
+                            $project = Project::find($projectId);
+                            return $project && $project->hasSubProjects();
+                        }),
                     Forms\Components\Select::make('merchandising_planning_id')
                         ->relationship('merchandisingPlanning', 'id')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MerchandisePlanningResource::getUrl('edit', ['record' => $record]).'" class="ref-link">Planning #'.$record->id.'</a>'))

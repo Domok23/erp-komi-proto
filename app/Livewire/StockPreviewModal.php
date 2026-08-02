@@ -213,6 +213,7 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                             ->send();
 
                         $this->dispatch('reserved', count($items));
+                        $this->refreshPreview();
                     }),
                 BulkAction::make('create_po_selected')
                     ->label('Create PO for Selected')
@@ -285,6 +286,7 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                             ->send();
 
                         $this->dispatch('po-created', count($pos));
+                        $this->refreshPreview();
                     }),
             ]);
     }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers\ProjectEmployeePlacementsRelationManager;
+use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
 use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
@@ -326,6 +327,7 @@ class ProjectResource extends Resource
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('customer.name')->searchable(),
+            Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
             Tables\Columns\TextColumn::make('target_qty')
                 ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('produced_qty')
@@ -398,7 +400,9 @@ class ProjectResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            SubProjectsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

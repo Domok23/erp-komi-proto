@@ -40,8 +40,36 @@ class MaterialReservationForm
                     ->searchable()
                     ->preload()
                     ->nullable()
+                    ->reactive()
                     ->visible(fn (callable $get) => $get('reservation_type') === 'project')
                     ->required(fn (callable $get) => $get('reservation_type') === 'project'),
+                Forms\Components\Select::make('sub_project_id')
+                    ->label('Sub-Project')
+                    ->relationship('subProject', 'name', function ($query, Get $get) {
+                        $projectId = $get('project_id');
+                        if ($projectId) {
+                            return $query->where('project_id', $projectId);
+                        }
+                        return $query;
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->reactive()
+                    ->visible(function (Get $get) {
+                        if ($get('reservation_type') !== 'project') return false;
+                        $projectId = $get('project_id');
+                        if (! $projectId) return false;
+                        $project = \App\Models\Project::find($projectId);
+                        return $project && $project->hasSubProjects();
+                    })
+                    ->required(function (Get $get) {
+                        if ($get('reservation_type') !== 'project') return false;
+                        $projectId = $get('project_id');
+                        if (! $projectId) return false;
+                        $project = \App\Models\Project::find($projectId);
+                        return $project && $project->hasSubProjects();
+                    }),
                 Forms\Components\Select::make('warehouse_id')
                     ->relationship('warehouse', 'name')
                     ->searchable()
