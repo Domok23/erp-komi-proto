@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\SubProjectException;
 use App\Models\Bom;
 use App\Models\Company;
 use App\Models\Project;
 use App\Models\SubProject;
 use App\Models\RdDesign;
 use App\Models\User;
+use App\Services\ProjectTransitionService;
 use App\Services\SubProjectService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -239,5 +241,94 @@ class SubProjectServiceTest extends TestCase
 
         $this->assertSame(1, $to->subProjects()->count());
         $this->assertSame('Varian Hitam', $to->subProjects()->first()->name);
+    }
+
+    public function test_sample_to_mass_blocked_when_pending_sub_project(): void
+    {
+        $user = User::factory()->create();
+        $sample = $this->seedProject(); // type sample
+        SubProject::create([
+            'company_id' => $sample->company_id,
+            'project_id' => $sample->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'pending',
+            'target_qty' => 1,
+            'produced_qty' => 0,
+        ]);
+
+        $this->expectException(SubProjectException::class);
+        ProjectTransitionService::approveProject($sample, $user->id);
+    }
+
+    public function test_sample_to_mass_copies_only_approved(): void
+    {
+        $user = User::factory()->create();
+        $sample = $this->seedProject();
+        SubProject::create([
+            'company_id' => $sample->company_id,
+            'project_id' => $sample->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'approved',
+            'target_qty' => 10,
+            'produced_qty' => 0,
+        ]);
+        SubProject::create([
+            'company_id' => $sample->company_id,
+            'project_id' => $sample->id,
+            'name' => 'Varian Biru',
+            'review_status' => 'rejected',
+            'target_qty' => 5,
+            'produced_qty' => 0,
+        ]);
+
+        $mass = ProjectTransitionService::approveProject($sample, $user->id);
+
+        $this->assertSame('mass', $mass->type);
+        $this->assertSame(1, $mass->subProjects()->count());
+        $this->assertSame('Varian Hitam', $mass->subProjects()->first()->name);
+        $this->assertSame(2, $sample->fresh()->subProjects()->count());
+    }
+
+    public function test_proto_to_sample_copies_all_and_resets_review(): void
+    {
+        $user = User::factory()->create();
+        $proto = $this->seedProject();
+        $proto->update(['type' => 'proto', 'status' => 'development']);
+
+        SubProject::create([
+            'company_id' => $proto->company_id,
+            'project_id' => $proto->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'approved',
+            'reviewed_at' => now(),
+            'reviewed_by' => $user->id,
+            'target_qty' => 1,
+            'produced_qty' => 0,
+        ]);
+
+        $sample = ProjectTransitionService::approveProject($proto, $user->id);
+
+        $this->assertSame('sample', $sample->type);
+        $sp = $sample->subProjects()->first();
+        $this->assertSame('pending', $sp->review_status);
+        $this->assertNull($sp->reviewed_at);
+    }
+
+    public function test_duplicate_copies_sub_projects_reset_review(): void
+    {
+        $project = $this->seedProject();
+        SubProject::create([
+            'company_id' => $project->company_id,
+            'project_id' => $project->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'approved',
+            'target_qty' => 2,
+            'produced_qty' => 0,
+        ]);
+
+        $copy = ProjectTransitionService::duplicateProject($project);
+
+        $this->assertSame(1, $copy->subProjects()->count());
+        $this->assertSame('pending', $copy->subProjects()->first()->review_status);
     }
 }
