@@ -158,6 +158,9 @@ class JobOrderResource extends Resource
                         ->native(false),
                     Forms\Components\DatePicker::make('end_date')
                         ->native(false),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
             Forms\Components\Placeholder::make('no_materials')
@@ -217,9 +220,6 @@ class JobOrderResource extends Resource
                     }
                     $set('selected_materials', $materials);
                 }),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
         ]);
     }
 
