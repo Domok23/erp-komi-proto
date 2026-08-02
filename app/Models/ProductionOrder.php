@@ -16,6 +16,7 @@ class ProductionOrder extends Model
         'company_id',
         'production_number',
         'project_id',
+        'sub_project_id',
         'merchandising_planning_id',
         'planned_qty',
         'completed_qty',
@@ -58,6 +59,11 @@ class ProductionOrder extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function subProject(): BelongsTo
+    {
+        return $this->belongsTo(SubProject::class);
     }
 
     public function merchandisingPlanning(): BelongsTo

@@ -16,6 +16,7 @@ class MerchandisePlanning extends Model
     protected $fillable = [
         'company_id',
         'project_id',
+        'sub_project_id',
         'design_id',
         'planning_date',
         'status',
@@ -33,6 +34,11 @@ class MerchandisePlanning extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function subProject(): BelongsTo
+    {
+        return $this->belongsTo(SubProject::class, 'sub_project_id');
     }
 
     public function design(): BelongsTo
