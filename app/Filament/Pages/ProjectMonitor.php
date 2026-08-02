@@ -180,7 +180,12 @@ class ProjectMonitor extends Page implements HasTable
             ->actions([
                 \Filament\Actions\Action::make('view_details')
                     ->label('View Details')
+                    ->hiddenLabel()
                     ->icon('heroicon-m-eye')
+                    ->extraAttributes([
+                        'title' => '',
+                        'x-tooltip' => "{ content: 'View Details', theme: \$store.theme, placement: 'bottom' }",
+                    ])
                     ->modalHeading(fn (Project $record): string => "Project Operations — {$record->project_code}")
                     ->modalContent(fn (Project $record) => view('filament.pages.project-monitor-slide-over', ['record' => $record]))
                     ->modalSubmitAction(false)
