@@ -72,11 +72,37 @@ class SubconMaterialOutResource extends Resource
                         ->options([
                             'draft' => 'Draft',
                             'sent' => 'Sent',
+                            'received' => 'Received by Subcon',
                         ])
                         ->default('draft')
                         ->required(),
                     Forms\Components\Textarea::make('notes')
                         ->columnSpanFull(),
+                ])
+                ->columns(2),
+
+            Section::make('Delivery Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('delivery_method')
+                        ->options([
+                            'fleet' => 'Company Fleet',
+                            'courier' => 'External Courier',
+                        ])
+                        ->nullable(),
+                    Forms\Components\TextInput::make('courier_name')
+                        ->label('Courier / Driver Name')
+                        ->maxLength(255)
+                        ->nullable(),
+                    Forms\Components\TextInput::make('delivery_cost')
+                        ->label('Delivery Cost')
+                        ->numeric()
+                        ->prefix('IDR')
+                        ->step(0.01)
+                        ->nullable(),
+                    Forms\Components\DatePicker::make('estimated_arrival')
+                        ->label('Estimated Arrival')
+                        ->nullable(),
                 ])
                 ->columns(2),
 
@@ -156,6 +182,12 @@ class SubconMaterialOutResource extends Resource
             Tables\Columns\TextColumn::make('subcon.name')->sortable(),
             Tables\Columns\TextColumn::make('departure_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')
+                ->formatStateUsing(fn (string $state): string => match ($state) {
+                    'draft' => 'Draft',
+                    'sent' => 'Sent',
+                    'received' => 'Received by Subcon',
+                    default => ucfirst($state),
+                })
                 ->color(fn (string $state): string => match ($state) {
                     'draft' => 'gray',
                     'sent' => 'info',
@@ -167,6 +199,7 @@ class SubconMaterialOutResource extends Resource
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
+                    'received' => 'Received by Subcon',
                 ]),
             ])
             ->actions([

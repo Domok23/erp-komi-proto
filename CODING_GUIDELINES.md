@@ -10,6 +10,7 @@ Selamat datang di lingkungan **Vibe Coding** terbaik untuk proyek **ERP Komi Pro
 3. **Format Kode:** Selalu jalankan Linter Pint (`./vendor/bin/pint`) agar kode konsisten.
 4. **Filament v4 Syntax:** Selalu gunakan typehint `Schema $schema` untuk form dan `Table $table` untuk table.
 5. **Dilarang Crash Raw SQL Exception:** Dilarang melempar exception SQL/Database mentah (seperti `UniqueConstraintViolationException`) ke user saat input data duplikat atau error validasi lainnya. Seluruh form WAJIB menampilkan pesan error validasi Filament atau Notification UI yang rapi.
+6. **Strict English UI & Label Standard:** Seluruh teks tampilan UI (Form Labels, Select/Radio Option Labels, Section Titles, Action Button Labels, Table Column Headers, dan Notification Messages) **WAJIB** menggunakan **Bahasa Inggris (English)**. Dilarang keras mencampurkan Bahasa Indonesia di dalam string UI atau label komponen Filament.
 
 ---
 
@@ -75,6 +76,7 @@ Setiap kali kamu membuat model baru:
 10. **Reset/Recalculate Autofilled Fields on Deselection (Form Ergonomics):** Pada setiap komponen `Select` atau toggle form Filament yang memiliki kait `afterStateUpdated` untuk meng-autofill atau memicu kalkulasi field turunan (seperti detail item, total biaya, harga unit, supplier, atau nomor dokumen):
     - **WAJIB** menangani percabangan ketika nilai parent di-deselect / dikosongkan (`!$state`).
     - Field-field turunan harus di-reset ke nilai default awal (`null`, `[]`, atau `0`) dan fungsi recalculate wajib dipanggil kembali agar state form Filament tetap bersih dan konsisten.
+11. **Strict English Display Language Standard:** Seluruh teks tampilan UI (Form Labels, Select/Radio Option Labels, Section Titles, Action Button Labels, Table Column Headers, dan Notification Messages) **WAJIB** menggunakan **Bahasa Inggris (English)**. Dilarang keras mencampurkan Bahasa Indonesia di dalam string UI atau label komponen Filament.
 
 ---
 

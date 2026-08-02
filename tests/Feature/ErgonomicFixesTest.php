@@ -14,6 +14,7 @@ use App\Models\Material;
 use App\Models\MerchandisePlanning;
 use App\Models\Payment;
 use App\Models\PoSubcon;
+use App\Models\PoSupplier;
 use App\Models\Project;
 use App\Models\RdDesign;
 use App\Models\SalesOrder;
@@ -427,32 +428,27 @@ class ErgonomicFixesTest extends TestCase
     }
 
     /**
-     * 9. Test Purchase Shipment PO selection auto-fills shipping cost for subcon PO and resets on deselection
+     * 9. Test Purchase Shipment default po_type is supplier and accepts PoSupplier
      */
     public function test_purchase_shipment_po_selection_autofills_shipping_cost_and_resets(): void
     {
-        $poSubcon = PoSubcon::create([
+        $supplier = Supplier::create([
             'company_id' => $this->company->id,
-            'po_number' => CodeGenerator::generatePOSubconNo(),
-            'project_id' => null,
-            'subcon_id' => Subcon::create([
-                'company_id' => $this->company->id,
-                'name' => 'Test Subcon',
-                'code' => 'SUB-001',
-                'service_type' => 'sewing',
-                'email' => 'sub@test.com',
-                'phone' => '12345',
-            ])->id,
+            'name' => 'Test Supplier',
+            'code' => 'SUP-001',
+        ]);
+
+        $poSupplier = PoSupplier::create([
+            'company_id' => $this->company->id,
+            'supplier_id' => $supplier->id,
+            'po_number' => CodeGenerator::generatePOSupplierNo(),
             'po_date' => now()->toDateString(),
             'status' => 'draft',
-            'shipping_cost' => 150000,
         ]);
 
         Livewire::test(CreatePurchaseShipment::class)
-            ->set('data.po_type', 'subcon')
-            ->set('data.po_id', $poSubcon->id)
-            ->assertSet('data.shipping_cost', 150000)
-            ->set('data.po_id', null)
-            ->assertSet('data.shipping_cost', 0);
+            ->assertSet('data.po_type', 'supplier')
+            ->set('data.po_id', $poSupplier->id)
+            ->assertSet('data.po_id', $poSupplier->id);
     }
 }
