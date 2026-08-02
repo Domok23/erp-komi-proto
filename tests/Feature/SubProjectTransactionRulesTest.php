@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Exceptions\SubProjectException;
 use App\Models\Company;
-use App\Models\Costing;
 use App\Models\Project;
 use App\Models\SubProject;
 use App\Support\SubProjectTransactionRules;

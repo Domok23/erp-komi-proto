@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\HrEmployee;
+use App\Models\HrLeaveRequest;
 use App\Models\HrLeaveType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class HrPublicLeaveIntakeTest extends TestCase
@@ -97,9 +100,9 @@ class HrPublicLeaveIntakeTest extends TestCase
 
     public function test_submit_with_attachment_saves_file(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
+        Storage::fake('public');
 
-        $file = \Illuminate\Http\UploadedFile::fake()->create('surat_dokter.pdf', 100, 'application/pdf');
+        $file = UploadedFile::fake()->create('surat_dokter.pdf', 100, 'application/pdf');
 
         $response = $this->post("/leave-request/{$this->company->code}/submit", [
             'employee_number' => 'EMP-700',
@@ -112,9 +115,9 @@ class HrPublicLeaveIntakeTest extends TestCase
 
         $response->assertRedirect();
 
-        $leaveRequest = \App\Models\HrLeaveRequest::where('employee_id', $this->employee->id)->latest('id')->first();
+        $leaveRequest = HrLeaveRequest::where('employee_id', $this->employee->id)->latest('id')->first();
         $this->assertNotNull($leaveRequest->file_path);
-        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($leaveRequest->file_path);
+        Storage::disk('public')->assertExists($leaveRequest->file_path);
 
         $attachmentResponse = $this->get("/leave-request/attachment/{$leaveRequest->id}");
         $attachmentResponse->assertOk();
@@ -242,7 +245,7 @@ class HrPublicLeaveIntakeTest extends TestCase
 
     public function test_rejected_leave_request_displays_rejection_reason(): void
     {
-        \App\Models\HrLeaveRequest::create([
+        HrLeaveRequest::create([
             'employee_id' => $this->employee->id,
             'leave_type_id' => $this->leaveType->id,
             'start_date' => '2026-08-01',

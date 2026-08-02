@@ -90,6 +90,7 @@ class CostingResource extends Resource
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
                             }
+
                             return $query;
                         })
                         ->searchable()
@@ -98,14 +99,20 @@ class CostingResource extends Resource
                         ->reactive()
                         ->visible(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         })
                         ->required(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         })
                         ->disabled($isLocked),

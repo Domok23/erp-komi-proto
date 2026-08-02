@@ -28,13 +28,13 @@ class ProjectMonitorStats extends BaseWidget
         foreach ($allLiveProjects as $project) {
             $progress = $project->progressPercent();
             $targetDate = $project->target_date ? $project->target_date->startOfDay() : null;
-            $isOverdue = $targetDate && $targetDate->isPast() && !$targetDate->isToday();
+            $isOverdue = $targetDate && $targetDate->isPast() && ! $targetDate->isToday();
 
             if ($isOverdue) {
                 $overdueCount++;
             }
 
-            if ($progress >= 50 && (!$targetDate || $targetDate->gte($today))) {
+            if ($progress >= 50 && (! $targetDate || $targetDate->gte($today))) {
                 $onTrackCount++;
             } elseif ($progress < 50 && $targetDate && ($targetDate->diffInDays($today, false) >= -7)) {
                 $atRiskCount++;

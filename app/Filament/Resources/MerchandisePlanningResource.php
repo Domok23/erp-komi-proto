@@ -25,6 +25,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -104,27 +105,34 @@ class MerchandisePlanningResource extends Resource
                         }),
                     Forms\Components\Select::make('sub_project_id')
                         ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Forms\Get $get) {
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
                             $projectId = $get('project_id');
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
                             }
+
                             return $query;
                         })
                         ->searchable()
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->visible(function (Forms\Get $get) {
+                        ->visible(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         })
-                        ->required(function (Forms\Get $get) {
+                        ->required(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('design_id')

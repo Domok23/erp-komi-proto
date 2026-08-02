@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
 use App\Services\SubProjectService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -30,14 +31,15 @@ class SubProjectsRelationManager extends RelationManager
                 ->maxLength(50)
                 ->nullable(),
             Forms\Components\Select::make('category')
+                ->placeholder('Select an option')
                 ->options([
-                    'colorway' => 'Colorway / Varian Warna',
-                    'variant' => 'Varian Bentuk / Ukuran',
+                    'colorway' => 'Colorway',
+                    'variant' => 'Shape / Size Variant',
                     'model' => 'Model / Style Sub-Type',
-                    'component' => 'Komponen / Sub-Assembly',
-                    'other' => 'Lainnya',
+                    'component' => 'Component / Sub-Assembly',
+                    'other' => 'Other',
                 ])
-                ->default('variant')
+                ->default(null)
                 ->nullable(),
             Forms\Components\Select::make('bom_id')
                 ->label('BOM Override (Optional)')
@@ -59,7 +61,9 @@ class SubProjectsRelationManager extends RelationManager
                     'approved' => 'Approved',
                     'rejected' => 'Rejected',
                 ])
-                ->default('pending')
+                ->default(fn () => $this->getOwnerRecord()?->type === 'mass' ? 'approved' : 'pending')
+                ->disabled(fn () => $this->getOwnerRecord()?->type === 'mass')
+                ->dehydrated()
                 ->required(),
             Forms\Components\Textarea::make('review_notes')
                 ->maxLength(65535)
@@ -94,27 +98,31 @@ class SubProjectsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('reviewedByUser.name')->label('Reviewed By'),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->hidden(fn () => $this->getOwnerRecord()?->type === 'mass'),
             ])
             ->actions([
-                Action::make('approve_review')
-                    ->label('Approve Review')
-                    ->icon('heroicon-o-check')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->review_status !== 'approved')
-                    ->action(function ($record) {
-                        SubProjectService::setReviewStatus($record, 'approved', Auth::id() ?? 1);
-                    }),
-                Action::make('reject_review')
-                    ->label('Reject Review')
-                    ->icon('heroicon-o-x-mark')
-                    ->color('danger')
-                    ->visible(fn ($record) => $record->review_status !== 'rejected')
-                    ->action(function ($record) {
-                        SubProjectService::setReviewStatus($record, 'rejected', Auth::id() ?? 1);
-                    }),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    Action::make('approve_review')
+                        ->label('Approve Review')
+                        ->icon('heroicon-o-check')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->project?->type !== 'mass' && $record->review_status !== 'approved')
+                        ->action(function ($record) {
+                            SubProjectService::setReviewStatus($record, 'approved', Auth::id() ?? 1);
+                        }),
+                    Action::make('reject_review')
+                        ->label('Reject Review')
+                        ->icon('heroicon-o-x-mark')
+                        ->color('danger')
+                        ->visible(fn ($record) => $record->project?->type !== 'mass' && $record->review_status !== 'rejected')
+                        ->action(function ($record) {
+                            SubProjectService::setReviewStatus($record, 'rejected', Auth::id() ?? 1);
+                        }),
+                    EditAction::make(),
+                    DeleteAction::make()
+                        ->hidden(fn ($record) => $record->project?->type === 'mass'),
+                ]),
             ]);
     }
 }

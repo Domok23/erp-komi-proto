@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
-use App\Models\PoSupplier;
 use App\Models\PoSubcon;
+use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Models\Subcon;
 use App\Models\SubconMaterialOut;
@@ -17,9 +17,13 @@ class PurchaseShipmentSubconRefactorTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private Supplier $supplier;
+
     private Subcon $subcon;
+
     private PoSupplier $poSupplier;
+
     private PoSubcon $poSubcon;
 
     protected function setUp(): void

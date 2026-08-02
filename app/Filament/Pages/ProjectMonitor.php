@@ -3,9 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Resources\ProjectResource;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Services\ProjectMaterialReadiness;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -99,7 +99,7 @@ class ProjectMonitor extends Page implements HasTable
                 ProgressBarColumn::make('produced_qty')
                     ->label('Progress')
                     ->maxValue(fn (Project $record): int => $record->target_qty ?? 0)
-                    ->successLabel(fn (Project $record): string => round($record->progressPercent()) . '% (' . number_format($record->produced_qty ?? 0) . '/' . number_format($record->target_qty ?? 0) . ')'),
+                    ->successLabel(fn (Project $record): string => round($record->progressPercent()).'% ('.number_format($record->produced_qty ?? 0).'/'.number_format($record->target_qty ?? 0).')'),
 
                 Tables\Columns\TextColumn::make('target_date')
                     ->label('Target Date')
@@ -115,26 +115,35 @@ class ProjectMonitor extends Page implements HasTable
                             return 'No Target';
                         }
                         if ($days < 0) {
-                            return abs($days) . ' days overdue';
+                            return abs($days).' days overdue';
                         }
                         if ($days === 0) {
                             return 'Due Today!';
                         }
-                        return $days . ' days left';
+
+                        return $days.' days left';
                     })
                     ->badge()
                     ->color(function (Project $record): string {
                         $days = $record->daysRemaining();
-                        if ($days === null) return 'gray';
-                        if ($days < 0) return 'danger';
-                        if ($days <= 7) return 'warning';
+                        if ($days === null) {
+                            return 'gray';
+                        }
+                        if ($days < 0) {
+                            return 'danger';
+                        }
+                        if ($days <= 7) {
+                            return 'warning';
+                        }
+
                         return 'success';
                     }),
 
                 Tables\Columns\TextColumn::make('material_readiness')
                     ->label('Materials')
                     ->getStateUsing(function (Project $record): string {
-                        $service = new ProjectMaterialReadiness();
+                        $service = new ProjectMaterialReadiness;
+
                         return $service->getProjectStatus($record);
                     })
                     ->badge()
@@ -178,7 +187,7 @@ class ProjectMonitor extends Page implements HasTable
                     ),
             ])
             ->actions([
-                \Filament\Actions\Action::make('view_details')
+                Action::make('view_details')
                     ->label('View Details')
                     ->hiddenLabel()
                     ->icon('heroicon-m-eye')

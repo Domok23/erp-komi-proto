@@ -6,6 +6,7 @@ use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Project extends Model
 {
@@ -86,7 +87,6 @@ class Project extends Model
         return $this->subProjects()->where('review_status', 'pending')->exists();
     }
 
-
     public function approvedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
@@ -109,7 +109,7 @@ class Project extends Model
 
     public function progressPercent(): float
     {
-        if (!$this->target_qty || $this->target_qty <= 0) {
+        if (! $this->target_qty || $this->target_qty <= 0) {
             return 0.0;
         }
 
@@ -118,11 +118,11 @@ class Project extends Model
 
     public function daysRemaining(): ?int
     {
-        if (!$this->target_date) {
+        if (! $this->target_date) {
             return null;
         }
 
-        return (int) \Illuminate\Support\Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
+        return (int) Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
     }
 
     public function placements(): HasMany

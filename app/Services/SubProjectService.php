@@ -25,6 +25,34 @@ class SubProjectService
             'reviewed_by' => $userId,
         ]);
 
+        if ($status === 'approved' && $subProject->project?->type === 'sample') {
+            $parentProject = $subProject->project;
+            $massProject = $parentProject->lifecycleChildren()->where('type', 'mass')->first();
+
+            if ($massProject) {
+                $alreadyInMass = $massProject->subProjects()
+                    ->where('name', $subProject->name)
+                    ->exists();
+
+                if (! $alreadyInMass) {
+                    SubProject::create([
+                        'company_id' => $massProject->company_id,
+                        'project_id' => $massProject->id,
+                        'name' => $subProject->name,
+                        'code' => $subProject->code,
+                        'category' => $subProject->category,
+                        'bom_id' => $subProject->bom_id,
+                        'target_qty' => $subProject->target_qty,
+                        'produced_qty' => 0,
+                        'review_status' => 'approved',
+                        'review_notes' => $subProject->review_notes,
+                        'reviewed_at' => $subProject->reviewed_at ?? Carbon::now(),
+                        'reviewed_by' => $subProject->reviewed_by ?? $userId,
+                    ]);
+                }
+            }
+        }
+
         return $subProject->fresh();
     }
 
@@ -34,6 +62,8 @@ class SubProjectService
         if ($onlyApproved) {
             $query->where('review_status', 'approved');
         }
+
+        $isMass = ($to->type === 'mass');
 
         foreach ($query->get() as $sp) {
             SubProject::create([
@@ -45,10 +75,10 @@ class SubProjectService
                 'bom_id' => $sp->bom_id,
                 'target_qty' => $sp->target_qty,
                 'produced_qty' => 0,
-                'review_status' => 'pending',
-                'review_notes' => null,
-                'reviewed_at' => null,
-                'reviewed_by' => null,
+                'review_status' => $isMass ? 'approved' : 'pending',
+                'review_notes' => $isMass ? $sp->review_notes : null,
+                'reviewed_at' => $isMass ? ($sp->reviewed_at ?? Carbon::now()) : null,
+                'reviewed_by' => $isMass ? $sp->reviewed_by : null,
             ]);
         }
     }

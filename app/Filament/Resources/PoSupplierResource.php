@@ -7,6 +7,7 @@ use App\Filament\Resources\PoSupplierResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSupplier;
+use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
@@ -64,6 +65,7 @@ class PoSupplierResource extends Resource
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
                             }
+
                             return $query;
                         })
                         ->searchable()
@@ -72,14 +74,20 @@ class PoSupplierResource extends Resource
                         ->reactive()
                         ->visible(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
-                            $project = \App\Models\Project::find($projectId);
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         })
                         ->required(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
-                            $project = \App\Models\Project::find($projectId);
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('supplier_id')

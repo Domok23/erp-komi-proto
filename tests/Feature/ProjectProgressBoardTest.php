@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Widgets\ProjectProgressBoard;
 use App\Models\Company;
-use App\Models\Project;
-use App\Models\ProductionOrder;
 use App\Models\JobOrder;
 use App\Models\MerchandisePlanning;
+use App\Models\ProductionOrder;
+use App\Models\Project;
 use App\Models\User;
-use App\Filament\Widgets\ProjectProgressBoard;
 use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -66,12 +66,12 @@ class ProjectProgressBoardTest extends TestCase
             'status' => 'in_progress',
         ]);
 
-        $widget = new ProjectProgressBoard();
-        
+        $widget = new ProjectProgressBoard;
+
         // Assert the query works
         $query = $widget->table(Table::make($widget))->getQuery();
         $this->assertNotNull($query);
-        
+
         $results = $query->get();
         $this->assertCount(1, $results);
         $this->assertEquals('PRJ-TEST-001', $results->first()->project_code);

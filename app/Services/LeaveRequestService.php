@@ -28,7 +28,7 @@ class LeaveRequestService
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($query) use ($data) {
                 $query->where('start_date', '<=', $data['end_date'])
-                      ->where('end_date', '>=', $data['start_date']);
+                    ->where('end_date', '>=', $data['start_date']);
             })
             ->exists();
 

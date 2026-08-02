@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Exceptions\SubProjectException;
 use App\Filament\Resources\ProjectResource\Pages;
-use App\Filament\Resources\ProjectResource\RelationManagers\ProjectEmployeePlacementsRelationManager;
 use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
 use App\Models\Bom;
 use App\Models\Project;
@@ -346,11 +346,20 @@ class ProjectResource extends Resource
                         ->color('success')
                         ->visible(fn ($record) => $record->status !== 'approved')
                         ->action(function ($record) {
-                            ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
-                            Notification::make()
-                                ->title('Project Approved')
-                                ->success()
-                                ->send();
+                            try {
+                                ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
+                                Notification::make()
+                                    ->title('Project Approved')
+                                    ->success()
+                                    ->send();
+                            } catch (SubProjectException $e) {
+                                Notification::make()
+                                    ->title('Review Sub-Project Belum Selesai')
+                                    ->body($e->getMessage())
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+                            }
                         })
                         ->requiresConfirmation(),
                     Action::make('duplicate')

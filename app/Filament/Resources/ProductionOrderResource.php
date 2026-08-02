@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ProductionOrderResource\Pages;
-use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionOrderProjectTeamRelationManager;
 use App\Models\MerchandisePlanning;
 use App\Models\ProductionOrder;
 use App\Models\Project;
@@ -19,6 +18,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -80,27 +80,34 @@ class ProductionOrderResource extends Resource
                         }),
                     Forms\Components\Select::make('sub_project_id')
                         ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Forms\Get $get) {
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
                             $projectId = $get('project_id');
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
                             }
+
                             return $query;
                         })
                         ->searchable()
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->visible(function (Forms\Get $get) {
+                        ->visible(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         })
-                        ->required(function (Forms\Get $get) {
+                        ->required(function (Get $get) {
                             $projectId = $get('project_id');
-                            if (! $projectId) return false;
+                            if (! $projectId) {
+                                return false;
+                            }
                             $project = Project::find($projectId);
+
                             return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('merchandising_planning_id')
@@ -309,7 +316,7 @@ class ProductionOrderResource extends Resource
                         ->label('Project Team')
                         ->icon('heroicon-o-user-group')
                         ->color('info')
-                        ->modalHeading(fn ($record) => "Project Team Members (Collaborators)")
+                        ->modalHeading(fn ($record) => 'Project Team Members (Collaborators)')
                         ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
                             'projectId' => $record->project_id,
                             'isReadOnly' => true,

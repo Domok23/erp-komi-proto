@@ -2,8 +2,10 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Project;
+use App\Filament\Pages\ProjectMonitor;
 use App\Filament\Resources\ProjectResource;
+use App\Models\Project;
+use Filament\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -80,16 +82,16 @@ class ProjectProgressBoard extends BaseWidget
                         if ($jobOrders->isEmpty()) {
                             return 'no_inspections';
                         }
-                        
+
                         $qcInspections = $jobOrders->flatMap->qcInspections;
                         if ($qcInspections->isEmpty()) {
                             return 'pending';
                         }
-                        
+
                         if ($qcInspections->contains(fn ($inspection) => $inspection->result === 'fail')) {
                             return 'failed';
                         }
-                        
+
                         return 'passed';
                     })
                     ->color(fn (string $state): string => match ($state) {
@@ -104,17 +106,20 @@ class ProjectProgressBoard extends BaseWidget
                             $qcInspections = $jobOrders->flatMap->qcInspections;
                             $passed = $qcInspections->sum('passed_qty');
                             $total = $qcInspections->sum('sample_size');
+
                             return "Pass ({$passed}/{$total})";
                         }
                         if ($state === 'failed') {
                             $jobOrders = $record->productionOrders->flatMap->jobOrders;
                             $qcInspections = $jobOrders->flatMap->qcInspections;
                             $failed = $qcInspections->sum('failed_qty');
+
                             return "Fail ({$failed} failed)";
                         }
                         if ($state === 'pending') {
                             return 'Pending QC';
                         }
+
                         return 'No QC';
                     }),
 
@@ -123,18 +128,18 @@ class ProjectProgressBoard extends BaseWidget
                     ->badge()
                     ->getStateUsing(function (Project $record): string {
                         $shipments = $record->salesOrder?->shipments;
-                        if (!$shipments || $shipments->isEmpty()) {
+                        if (! $shipments || $shipments->isEmpty()) {
                             return 'not_shipped';
                         }
-                        
+
                         if ($shipments->every(fn ($shp) => $shp->status === 'delivered')) {
                             return 'delivered';
                         }
-                        
+
                         if ($shipments->contains(fn ($shp) => in_array($shp->status, ['in_transit', 'customs']))) {
                             return 'in_transit';
                         }
-                        
+
                         return 'pending';
                     })
                     ->color(fn (string $state): string => match ($state) {
@@ -155,52 +160,52 @@ class ProjectProgressBoard extends BaseWidget
                     ->date('M d, Y')
                     ->sortable()
                     ->color(function (Project $record): string {
-                        if (!$record->target_date) {
+                        if (! $record->target_date) {
                             return 'gray';
                         }
-                        
+
                         if ($record->status !== 'completed' && $record->status !== 'cancelled' && $record->target_date->isPast()) {
                             return 'danger';
                         }
-                        
+
                         if ($record->status !== 'completed' && $record->status !== 'cancelled' && $record->target_date->diffInDays(now()) <= 7) {
                             return 'warning';
                         }
-                        
+
                         return 'gray';
                     })
                     ->description(function (Project $record): ?string {
-                        if (!$record->target_date) {
+                        if (! $record->target_date) {
                             return null;
                         }
-                        
+
                         if ($record->status === 'completed') {
                             return 'Project Completed';
                         }
-                        
+
                         if ($record->status === 'cancelled') {
                             return 'Project Cancelled';
                         }
-                        
+
                         $diff = Carbon::now()->startOfDay()->diffInDays($record->target_date->startOfDay(), false);
-                        
+
                         if ($diff < 0) {
-                            return 'Overdue by ' . abs($diff) . ' days';
+                            return 'Overdue by '.abs($diff).' days';
                         }
-                        
+
                         if ($diff === 0) {
                             return 'Due Today!';
                         }
-                        
-                        return $diff . ' days remaining';
+
+                        return $diff.' days remaining';
                     }),
             ])
             ->headerActions([
-                \Filament\Actions\Action::make('open_monitor')
+                Action::make('open_monitor')
                     ->label('Open Full Project Monitor')
                     ->icon('heroicon-o-chart-bar')
                     ->color('primary')
-                    ->url(fn (): string => \App\Filament\Pages\ProjectMonitor::getUrl()),
+                    ->url(fn (): string => ProjectMonitor::getUrl()),
             ])
             ->paginated([5, 10, 25])
             ->defaultPaginationPageOption(5);

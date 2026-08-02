@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\Material;
 use App\Services\StockPreviewService;
-use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -37,7 +36,6 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
     public array $sessionOrderedQtys = [];
 
-
     /** Cached preview results — keyed by material_id. Refreshed on every qty change. */
     public array $cachedPreview = [];
 
@@ -63,13 +61,13 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
         // Serialize to plain array so Livewire can diff the public property
         $this->cachedPreview = $preview->keyBy('materialId')->map(fn ($d) => [
-            'materialId'  => $d->materialId,
-            'required'    => $d->required,
-            'currentStock'=> $d->currentStock,
-            'toBuy'       => $d->toBuy,
-            'status'      => $d->status,
-            'unit'        => $d->unit,
-            'onOrder'     => $d->onOrder,
+            'materialId' => $d->materialId,
+            'required' => $d->required,
+            'currentStock' => $d->currentStock,
+            'toBuy' => $d->toBuy,
+            'status' => $d->status,
+            'unit' => $d->unit,
+            'onOrder' => $d->onOrder,
         ])->all();
     }
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Costing;
 use App\Models\Project;
+use App\Models\SubProject;
 
 class CostingCalculatorService
 {
@@ -50,7 +51,7 @@ class CostingCalculatorService
     /**
      * Calculate material cost from BOM (supports SubProject effective BOM).
      */
-    public static function calculateFromBOM(Project $project, ?\App\Models\SubProject $subProject = null): array
+    public static function calculateFromBOM(Project $project, ?SubProject $subProject = null): array
     {
         $materialCost = 0;
         $bom = $subProject ? $subProject->effectiveBom() : $project->bom;

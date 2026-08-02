@@ -6,12 +6,13 @@ use App\Exceptions\SubProjectException;
 use App\Models\Bom;
 use App\Models\Company;
 use App\Models\Project;
-use App\Models\SubProject;
 use App\Models\RdDesign;
+use App\Models\SubProject;
 use App\Models\User;
 use App\Services\ProjectTransitionService;
 use App\Services\SubProjectService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -63,7 +64,7 @@ class SubProjectServiceTest extends TestCase
     public function test_effective_bom_inherits_then_overrides(): void
     {
         $company = Company::create(['name' => 'Test Co', 'code' => 'TST2', 'address' => 'X']);
-        
+
         $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DSN-1',
@@ -140,7 +141,7 @@ class SubProjectServiceTest extends TestCase
         ]);
 
         $this->assertTrue($project->lifecycleChildren->contains('id', $child->id));
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $project->subProjects());
+        $this->assertInstanceOf(HasMany::class, $project->subProjects());
         $this->assertSame(SubProject::class, get_class($project->subProjects()->getRelated()));
     }
 
@@ -286,6 +287,7 @@ class SubProjectServiceTest extends TestCase
         $this->assertSame('mass', $mass->type);
         $this->assertSame(1, $mass->subProjects()->count());
         $this->assertSame('Varian Hitam', $mass->subProjects()->first()->name);
+        $this->assertSame('approved', $mass->subProjects()->first()->review_status);
         $this->assertSame(2, $sample->fresh()->subProjects()->count());
     }
 
@@ -330,5 +332,38 @@ class SubProjectServiceTest extends TestCase
 
         $this->assertSame(1, $copy->subProjects()->count());
         $this->assertSame('pending', $copy->subProjects()->first()->review_status);
+    }
+
+    public function test_late_approval_syncs_to_existing_mass_project(): void
+    {
+        $user = User::factory()->create();
+        $sample = $this->seedProject();
+        $approvedSp = SubProject::create([
+            'company_id' => $sample->company_id,
+            'project_id' => $sample->id,
+            'name' => 'Varian Hitam',
+            'review_status' => 'approved',
+            'target_qty' => 10,
+            'produced_qty' => 0,
+        ]);
+        $rejectedSp = SubProject::create([
+            'company_id' => $sample->company_id,
+            'project_id' => $sample->id,
+            'name' => 'Varian Biru',
+            'review_status' => 'rejected',
+            'target_qty' => 5,
+            'produced_qty' => 0,
+        ]);
+
+        $mass = ProjectTransitionService::approveProject($sample, $user->id);
+        $this->assertSame(1, $mass->subProjects()->count());
+
+        // Client changes mind and approves Varian Biru later
+        SubProjectService::setReviewStatus($rejectedSp, 'approved', $user->id, 'Client revised approval');
+
+        $this->assertSame(2, $mass->fresh()->subProjects()->count());
+        $synced = $mass->fresh()->subProjects()->where('name', 'Varian Biru')->first();
+        $this->assertNotNull($synced);
+        $this->assertSame('approved', $synced->review_status);
     }
 }

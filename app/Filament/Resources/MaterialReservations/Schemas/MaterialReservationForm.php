@@ -4,6 +4,7 @@ namespace App\Filament\Resources\MaterialReservations\Schemas;
 
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use Filament\Forms;
@@ -50,6 +51,7 @@ class MaterialReservationForm
                         if ($projectId) {
                             return $query->where('project_id', $projectId);
                         }
+
                         return $query;
                     })
                     ->searchable()
@@ -57,17 +59,27 @@ class MaterialReservationForm
                     ->nullable()
                     ->reactive()
                     ->visible(function (Get $get) {
-                        if ($get('reservation_type') !== 'project') return false;
+                        if ($get('reservation_type') !== 'project') {
+                            return false;
+                        }
                         $projectId = $get('project_id');
-                        if (! $projectId) return false;
-                        $project = \App\Models\Project::find($projectId);
+                        if (! $projectId) {
+                            return false;
+                        }
+                        $project = Project::find($projectId);
+
                         return $project && $project->hasSubProjects();
                     })
                     ->required(function (Get $get) {
-                        if ($get('reservation_type') !== 'project') return false;
+                        if ($get('reservation_type') !== 'project') {
+                            return false;
+                        }
                         $projectId = $get('project_id');
-                        if (! $projectId) return false;
-                        $project = \App\Models\Project::find($projectId);
+                        if (! $projectId) {
+                            return false;
+                        }
+                        $project = Project::find($projectId);
+
                         return $project && $project->hasSubProjects();
                     }),
                 Forms\Components\Select::make('warehouse_id')
