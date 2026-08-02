@@ -66,10 +66,26 @@ class Project extends Model
         return $this->belongsTo(Project::class, 'reference_project_id');
     }
 
-    public function subProjects(): HasMany
+    public function lifecycleChildren(): HasMany
     {
         return $this->hasMany(Project::class, 'reference_project_id');
     }
+
+    public function subProjects(): HasMany
+    {
+        return $this->hasMany(SubProject::class, 'project_id');
+    }
+
+    public function hasSubProjects(): bool
+    {
+        return $this->subProjects()->exists();
+    }
+
+    public function hasPendingSubProjectReviews(): bool
+    {
+        return $this->subProjects()->where('review_status', 'pending')->exists();
+    }
+
 
     public function approvedByUser(): BelongsTo
     {
