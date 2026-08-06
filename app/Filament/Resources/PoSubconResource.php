@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PoSubconResource\Pages;
 use App\Models\PoSubcon;
 use App\Models\Project;
+use App\Models\SubProject;
 use App\Services\CodeGenerator;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
@@ -54,38 +55,6 @@ class PoSubconResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive(),
-                    Forms\Components\Select::make('sub_project_id')
-                        ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Get $get) {
-                            $projectId = $get('project_id');
-                            if ($projectId) {
-                                return $query->where('project_id', $projectId);
-                            }
-
-                            return $query;
-                        })
-                        ->searchable()
-                        ->preload()
-                        ->nullable()
-                        ->reactive()
-                        ->visible(function (Get $get) {
-                            $projectId = $get('project_id');
-                            if (! $projectId) {
-                                return false;
-                            }
-                            $project = Project::find($projectId);
-
-                            return $project && $project->hasSubProjects();
-                        })
-                        ->required(function (Get $get) {
-                            $projectId = $get('project_id');
-                            if (! $projectId) {
-                                return false;
-                            }
-                            $project = Project::find($projectId);
-
-                            return $project && $project->hasSubProjects();
-                        }),
                     Forms\Components\Select::make('subcon_id')
                         ->relationship('subcon', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SubconResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -154,6 +123,29 @@ class PoSubconResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            Forms\Components\Select::make('sub_project_id')
+                                ->label('Sub-Project')
+                                ->options(function (callable $get) {
+                                    $projectId = $get('../../project_id');
+                                    if (! $projectId) {
+                                        return [];
+                                    }
+
+                                    return SubProject::where('project_id', $projectId)
+                                        ->pluck('name', 'id');
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->visible(function (callable $get) {
+                                    $projectId = $get('../../project_id');
+                                    if (! $projectId) {
+                                        return false;
+                                    }
+                                    $project = Project::find($projectId);
+
+                                    return $project && $project->hasSubProjects();
+                                }),
                             Forms\Components\TextInput::make('description')
                                 ->required(),
                             Forms\Components\TextInput::make('qty')

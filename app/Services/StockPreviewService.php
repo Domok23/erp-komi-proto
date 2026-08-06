@@ -143,14 +143,23 @@ class StockPreviewService
 
         return DB::transaction(function () use ($materialsWithSupplier, $companyId, $projectId) {
             return $materialsWithSupplier->map(function ($items, $supplierId) use ($companyId, $projectId) {
-                $po = PoSupplier::create([
-                    'company_id' => $companyId,
-                    'po_number' => CodeGenerator::generatePOSupplierNo(),
-                    'supplier_id' => (int) $supplierId,
-                    'project_id' => $projectId,
-                    'po_date' => now(),
-                    'status' => 'draft',
-                ]);
+                $po = PoSupplier::where('company_id', $companyId)
+                    ->where('project_id', $projectId)
+                    ->where('supplier_id', (int) $supplierId)
+                    ->where('status', 'draft')
+                    ->first();
+
+                if (! $po) {
+                    $po = PoSupplier::create([
+                        'company_id' => $companyId,
+                        'po_number' => CodeGenerator::generatePOSupplierNo(),
+                        'supplier_id' => (int) $supplierId,
+                        'project_id' => $projectId,
+                        'po_date' => now(),
+                        'ppn_percent' => 11,
+                        'status' => 'draft',
+                    ]);
+                }
 
                 foreach ($items as $item) {
                     PoSupplierItem::create([

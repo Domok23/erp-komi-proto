@@ -141,7 +141,7 @@ class MerchandisePlanningResource extends Resource
                         ->allowHtml()
                         ->disabled()
                         ->dehydrated()
-                        ->required(),
+                        ->nullable(),
                     Forms\Components\DatePicker::make('planning_date')
                         ->default(now()->toDateString())
                         ->required(),
@@ -391,6 +391,7 @@ class MerchandisePlanningResource extends Resource
                                     $itemTotalPrice = $shortage * floatval($item->unit_price);
                                     $poItemsData[] = [
                                         'material_id' => $item->material_id,
+                                        'sub_project_id' => $record->sub_project_id,
                                         'description' => $item->notes ?? 'Raw material',
                                         'qty' => $shortage,
                                         'unit' => $item->unit ?? 'pcs',
@@ -405,30 +406,34 @@ class MerchandisePlanningResource extends Resource
                                     continue;
                                 }
 
-                                $po = PoSupplier::create([
-                                    'company_id' => $record->company_id,
-                                    'po_number' => CodeGenerator::generatePOSupplierNo(),
-                                    'project_id' => $record->project_id,
-                                    'sub_project_id' => $record->sub_project_id,
-                                    'supplier_id' => $supplierId,
-                                    'po_date' => now()->toDateString(),
-                                    'status' => 'draft',
-                                ]);
+                                // Merge into existing draft PO or create new one
+                                $po = PoSupplier::where('company_id', $record->company_id)
+                                    ->where('project_id', $record->project_id)
+                                    ->where('supplier_id', $supplierId)
+                                    ->where('status', 'draft')
+                                    ->first();
 
-                                $generatedPoNumbers[] = $po->po_number;
+                                if (! $po) {
+                                    $po = PoSupplier::create([
+                                        'company_id' => $record->company_id,
+                                        'po_number' => CodeGenerator::generatePOSupplierNo(),
+                                        'project_id' => $record->project_id,
+                                        'supplier_id' => $supplierId,
+                                        'po_date' => now()->toDateString(),
+                                        'ppn_percent' => 11,
+                                        'status' => 'draft',
+                                    ]);
+                                    $generatedPoNumbers[] = $po->po_number;
+                                } else {
+                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
+                                }
 
                                 foreach ($poItemsData as $itemData) {
                                     $itemData['po_supplier_id'] = $po->id;
                                     PoSupplierItem::create($itemData);
                                 }
 
-                                $ppn = $subtotal * 0.11; // 11% PPN
-                                $po->update([
-                                    'subtotal' => $subtotal,
-                                    'ppn_percent' => 11,
-                                    'ppn_amount' => $ppn,
-                                    'grand_total' => $subtotal + $ppn,
-                                ]);
+                                $po->recalculateTotals();
                             }
 
                             // Group items by subcon for subcon POs
@@ -438,33 +443,42 @@ class MerchandisePlanningResource extends Resource
                                     continue;
                                 }
 
-                                $po = PoSubcon::create([
-                                    'company_id' => $record->company_id,
-                                    'po_number' => CodeGenerator::generatePOSubconNo(),
-                                    'project_id' => $record->project_id,
-                                    'sub_project_id' => $record->sub_project_id,
-                                    'subcon_id' => $subconId,
-                                    'po_date' => now()->toDateString(),
-                                    'status' => 'draft',
-                                ]);
+                                // Merge into existing draft PO or create new one
+                                $po = PoSubcon::where('company_id', $record->company_id)
+                                    ->where('project_id', $record->project_id)
+                                    ->where('subcon_id', $subconId)
+                                    ->where('status', 'draft')
+                                    ->first();
 
-                                $generatedPoNumbers[] = $po->po_number;
+                                if (! $po) {
+                                    $po = PoSubcon::create([
+                                        'company_id' => $record->company_id,
+                                        'po_number' => CodeGenerator::generatePOSubconNo(),
+                                        'project_id' => $record->project_id,
+                                        'subcon_id' => $subconId,
+                                        'po_date' => now()->toDateString(),
+                                        'status' => 'draft',
+                                    ]);
+                                    $generatedPoNumbers[] = $po->po_number;
+                                } else {
+                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
+                                }
 
-                                $serviceCost = 0;
                                 foreach ($items as $item) {
                                     PoSubconItem::create([
                                         'po_subcon_id' => $po->id,
+                                        'sub_project_id' => $record->sub_project_id,
                                         'description' => $item->notes ?? 'Subcon service',
                                         'qty' => $item->planned_qty,
                                         'unit_price' => $item->unit_price,
                                         'total_price' => $item->total_price,
                                     ]);
-                                    $serviceCost += $item->total_price;
                                 }
 
+                                $totalServiceCost = $po->items()->sum('total_price');
                                 $po->update([
-                                    'service_cost' => $serviceCost,
-                                    'total_cost' => $serviceCost,
+                                    'service_cost' => $totalServiceCost,
+                                    'total_cost' => $totalServiceCost + ($po->shipping_cost ?? 0) + ($po->shipping_return_cost ?? 0),
                                 ]);
                             }
 

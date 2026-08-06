@@ -17,7 +17,6 @@ class PoSubcon extends Model
         'company_id',
         'po_number',
         'project_id',
-        'sub_project_id',
         'subcon_id',
         'po_date',
         'delivery_date',
@@ -41,11 +40,6 @@ class PoSubcon extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project_id');
-    }
-
-    public function subProject(): BelongsTo
-    {
-        return $this->belongsTo(SubProject::class, 'sub_project_id');
     }
 
     public function subcon(): BelongsTo
