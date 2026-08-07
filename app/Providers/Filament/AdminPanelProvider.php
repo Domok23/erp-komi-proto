@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
                 'secondary' => Color::Slate,
                 'amber' => Color::Amber,
+                'purple' => Color::Purple,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->navigationGroups([
@@ -94,7 +95,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->sidebarCollapsibleOnDesktop()
             ->profile(\App\Filament\Pages\EditProfile::class, isSimple: false)
-            ->databaseNotifications()
+            ->databaseNotifications(livewireComponent: \App\Livewire\CustomDatabaseNotifications::class)
             ->registration();
     }
 }

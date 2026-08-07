@@ -19,6 +19,13 @@ class DeliveryAlertSeeder extends Seeder
         $supplier = Supplier::first() ?? Supplier::create(['company_id' => $company->id, 'name' => 'Default Supplier', 'code' => 'SUP001']);
         $subcon = Subcon::first() ?? Subcon::create(['company_id' => $company->id, 'name' => 'Default Subcon', 'code' => 'SUBC001', 'service_type' => 'assembly']);
 
+        // Cleanup old test data & logs if re-running
+        PurchaseShipment::where('shipment_number', 'SHIP-SUB-TEST-01')->delete();
+        PoSupplier::whereIn('po_number', ['PO-SUP-WARNING-TEST', 'PO-SUP-OVERDUE-TEST', 'PO-SUP-ESCALATE-TEST'])->delete();
+        PoSubcon::whereIn('po_number', ['PO-SUB-SHIP-TEST'])->delete();
+        \Illuminate\Support\Facades\DB::table('notifications')->delete();
+        \App\Models\DeliveryAlertLog::truncate();
+
         // 1. PO Supplier: Warning Alert (due in 2 days)
         PoSupplier::create([
             'company_id' => $company->id,

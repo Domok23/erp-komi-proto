@@ -40,7 +40,6 @@ class DeliveryAlertNotificationTest extends TestCase
             'company_id' => $this->company->id,
             'role' => 'admin',
         ]);
-
         $this->supplier = Supplier::create([
             'company_id' => $this->company->id,
             'name' => 'Supplier Alrt',
@@ -53,6 +52,8 @@ class DeliveryAlertNotificationTest extends TestCase
             'code' => 'SUBCALRT',
             'service_type' => 'sewing',
         ]);
+
+        \App\Services\CompanyContext::setCompany($this->company);
     }
 
     public function test_po_without_deadline_is_skipped()
@@ -197,5 +198,27 @@ class DeliveryAlertNotificationTest extends TestCase
 
         $this->assertEquals(1, DeliveryAlertLog::count());
         $this->assertEquals('warning', DeliveryAlertLog::first()->alert_level);
+    }
+
+    public function test_delivery_alert_log_resource_can_render_and_list_records()
+    {
+        DeliveryAlertLog::create([
+            'company_id' => $this->company->id,
+            'alertable_type' => PoSupplier::class,
+            'alertable_id' => 1,
+            'alert_level' => 'warning',
+            'deadline_date' => now(),
+            'days_overdue' => 0,
+            'sent_at' => now(),
+        ]);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\NotificationLogResource\Pages\ListNotificationLogs::class)
+            ->assertSuccessful();
+    }
+
+    public function test_custom_database_notifications_renders_trigger()
+    {
+        $component = new \App\Livewire\CustomDatabaseNotifications();
+        $this->assertNotNull($component->getTrigger());
     }
 }
