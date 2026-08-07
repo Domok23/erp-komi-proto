@@ -12,6 +12,8 @@ class PoSupplier extends Model
 {
     use BelongsToCompany;
 
+    public const DIRECTOR_APPROVAL_THRESHOLD = 100000000.0;
+
     protected $table = 'po_suppliers';
 
     protected $fillable = [

@@ -53,10 +53,10 @@
         <canvas
             x-ref="canvas"
             wire:ignore
-            style="background-color: #f8fafc; border: 1.5px dashed #94a3b8; border-radius: 0.5rem;"
+            style="border-style: dashed; border-width: 1.5px; border-radius: 0.5rem;"
             @class([
                 'w-full h-36 shadow-inner transition-colors',
-                'dark:bg-gray-900 dark:border-white/20',
+                'bg-slate-50 border-slate-400 dark:bg-slate-800 dark:border-slate-600',
                 'opacity-75 bg-gray-50' => $isDisabled,
             ])
         ></canvas>
