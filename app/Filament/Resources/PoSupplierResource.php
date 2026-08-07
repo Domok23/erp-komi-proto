@@ -42,8 +42,8 @@ class PoSupplierResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Placeholder::make('approval_status_banner')
-                ->label('')
+            Forms\Components\Placeholder::make('approval_status')
+                ->label('Approval status')  
                 ->content(fn (?PoSupplier $record) => $record ? new HtmlString(view('filament.components.po-approval-banner', ['record' => $record])->render()) : '')
                 ->columnSpanFull(),
 
