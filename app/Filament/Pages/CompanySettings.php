@@ -14,11 +14,15 @@ use Filament\Schemas\Schema;
 
 class CompanySettings extends Page
 {
+    protected static \UnitEnum|string|null $navigationGroup = 'Settings';
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
 
     protected static ?string $navigationLabel = 'Company Settings';
 
     protected static ?string $title = 'Company Settings';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $slug = 'company-settings';
 

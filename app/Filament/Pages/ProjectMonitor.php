@@ -13,19 +13,20 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use Tapp\FilamentProgressBarColumn\Tables\Columns\ProgressBarColumn;
 
 class ProjectMonitor extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Projects';
+    protected static \UnitEnum|string|null $navigationGroup = null;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationLabel = 'Project Monitor';
+    protected static ?string $navigationLabel = 'Project Monitoring';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?string $title = 'Project Monitoring';
+
+    protected static ?int $navigationSort = 3;
 
     protected string $view = 'filament.pages.project-monitor';
 
@@ -96,10 +97,18 @@ class ProjectMonitor extends Page implements HasTable
                     ->default('N/A')
                     ->limit(20),
 
-                ProgressBarColumn::make('produced_qty')
+                Tables\Columns\TextColumn::make('produced_qty')
                     ->label('Progress')
-                    ->maxValue(fn (Project $record): int => $record->target_qty ?? 0)
-                    ->successLabel(fn (Project $record): string => round($record->progressPercent()) . '% (' . number_format($record->produced_qty ?? 0) . '/' . number_format($record->target_qty ?? 0) . ')'),
+                    ->html()
+                    ->formatStateUsing(function (Project $record): string {
+                        $pct = min(100, max(0, round($record->progressPercent())));
+                        $produced = number_format($record->produced_qty ?? 0);
+                        $target = number_format($record->target_qty ?? 0);
+                        return "<div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden relative min-w-[120px]\">
+                            <div class=\"bg-primary-600 h-full rounded-full transition-all duration-300\" style=\"width: {$pct}%\"></div>
+                            <span class=\"absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-200\">{$pct}% ({$produced}/{$target})</span>
+                        </div>";
+                    }),
 
                 Tables\Columns\TextColumn::make('target_date')
                     ->label('Target Date')

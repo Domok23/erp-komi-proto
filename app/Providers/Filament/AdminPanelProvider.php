@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\CompanySettings;
+use App\Filament\Pages\EditProfile;
 use App\Filament\Pages\SelectCompany;
 use App\Http\Middleware\EnsureCompanySelected;
 use Filament\Http\Middleware\Authenticate;
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 'Inventory & Subcon',
                 'Finance & Invoices',
                 'HR',
+                'Settings',
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -95,7 +97,7 @@ class AdminPanelProvider extends PanelProvider
                 </script>"
             )
             ->sidebarCollapsibleOnDesktop()
-            ->profile(\App\Filament\Pages\EditProfile::class, isSimple: false)
+            ->profile(EditProfile::class, isSimple: false)
             ->databaseNotifications(livewireComponent: \App\Livewire\CustomDatabaseNotifications::class)
             ->registration();
     }

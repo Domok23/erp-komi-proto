@@ -18,6 +18,8 @@ class MaterialReservationResource extends Resource
 {
     protected static ?string $model = MaterialReservation::class;
 
+    protected static \UnitEnum|string|null $navigationGroup = 'Inventory & Subcon';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $navigationLabel = 'Material Reservations';

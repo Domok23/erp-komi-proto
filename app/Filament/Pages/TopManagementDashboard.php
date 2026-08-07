@@ -19,9 +19,11 @@ class TopManagementDashboard extends Page implements HasTable
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static ?string $navigationLabel = 'Top Management Dashboard';
+    protected static ?string $navigationLabel = 'Executive Dashboard';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?string $title = 'Executive Dashboard';
+
+    protected static ?int $navigationSort = 2;
 
     protected string $view = 'filament.pages.top-management-dashboard';
 

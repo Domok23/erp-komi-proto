@@ -10,6 +10,7 @@ use App\Models\PoSupplier;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -26,6 +27,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
@@ -396,7 +398,8 @@ class PoSupplierResource extends Resource
             })
             ->form(function (PoSupplier $record) {
                 $formFields = [];
-                $user = auth()->user();
+                /** @var User|null $user */
+                $user = Auth::user();
                 
                 if ($user && $user->signature) {
                     $formFields[] = Forms\Components\Placeholder::make('saved_signature_preview')
@@ -426,7 +429,8 @@ class PoSupplierResource extends Resource
                 return $formFields;
             })
             ->action(function (PoSupplier $record, array $data) {
-                $user = auth()->user();
+                /** @var User|null $user */
+                $user = Auth::user();
                 $signature = null;
 
                 if ($data['use_saved_signature'] ?? false) {
@@ -501,7 +505,8 @@ class PoSupplierResource extends Resource
                     ->required(),
             ])
             ->action(function (PoSupplier $record, array $data) {
-                $user = auth()->user();
+                /** @var User|null $user */
+                $user = Auth::user();
                 
                 $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
                 if ($activeLevel) {
@@ -531,7 +536,7 @@ class PoSupplierResource extends Resource
             ->icon('heroicon-o-arrow-path')
             ->color('warning')
             ->visible(fn (PoSupplier $record) => $record->approval_status === 'rejected')
-            ->action(function (PoSupplier $record) {
+            ->action(function (PoSupplier $record, $livewire) {
                 $baseNumber = preg_replace('/-R\d+$/', '', $record->po_number);
                 $newRevisionNumber = $record->revision_number + 1;
                 $newPoNumber = $baseNumber . '-R' . $newRevisionNumber;
@@ -555,7 +560,7 @@ class PoSupplierResource extends Resource
                     ->success()
                     ->send();
 
-                return redirect()->to(PoSupplierResource::getUrl('edit', ['record' => $newPo]), navigate: true);
+                return $livewire->redirect(PoSupplierResource::getUrl('edit', ['record' => $newPo]), navigate: true);
             });
     }
 }
