@@ -555,7 +555,7 @@ class PoSupplierResource extends Resource
                     ->success()
                     ->send();
 
-                return redirect()->to(PoSupplierResource::getUrl('edit', ['record' => $newPo]));
+                return redirect()->to(PoSupplierResource::getUrl('edit', ['record' => $newPo]), navigate: true);
             });
     }
 }

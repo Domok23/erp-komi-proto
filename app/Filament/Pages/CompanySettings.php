@@ -31,14 +31,14 @@ class CompanySettings extends Page
     public function mount(): void
     {
         if (! CompanyContext::hasCompany()) {
-            $this->redirect(route('filament.admin.pages.select-company'));
+            $this->redirect(route('filament.admin.pages.select-company'), navigate: true);
 
             return;
         }
 
         $company = CompanyContext::getCompany();
         if (! $company) {
-            $this->redirect(route('filament.admin.pages.select-company'));
+            $this->redirect(route('filament.admin.pages.select-company'), navigate: true);
 
             return;
         }

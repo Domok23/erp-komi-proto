@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
+            ->spa()
             ->path('')
             ->brandName('ERP Komi Proto')
             ->login()

@@ -114,7 +114,7 @@
         @if($record->parent_id)
             <div class="po-subtext" style="font-size: 0.75rem; font-weight: 500;">
                 Linked from previous PO: 
-                <a href="{{ \App\Filament\Resources\PoSupplierResource::getUrl('edit', ['record' => $record->parent_id]) }}" style="color: #3b82f6; font-weight: 600; text-decoration: underline;">
+                <a wire:navigate href="{{ \App\Filament\Resources\PoSupplierResource::getUrl('edit', ['record' => $record->parent_id]) }}" style="color: #3b82f6; font-weight: 600; text-decoration: underline;">
                     #{{ $record->parent->po_number ?? $record->parent_id }}
                 </a>
             </div>

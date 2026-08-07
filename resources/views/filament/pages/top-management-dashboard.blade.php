@@ -62,7 +62,7 @@
                         </div>
 
                         <div class="card-footer" style="border-top: 1px solid #f3f4f6; padding-top: 12px; font-size: 11px; color: #6b7280; text-align: right;">
-                            <a href="{{ \App\Filament\Resources\SalesOrderResource::getUrl('index') }}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">View All Orders →</a>
+                            <a wire:navigate href="{{ \App\Filament\Resources\SalesOrderResource::getUrl('index') }}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">View All Orders →</a>
                         </div>
                     </div>
                 </x-filament::section>

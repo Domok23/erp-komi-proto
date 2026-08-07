@@ -19,7 +19,7 @@
     <x-filament::modal
         :alignment="$hasNotifications ? null : Alignment::Center"
         close-button
-        :description="$hasNotifications ? null : new \Illuminate\Support\HtmlString(__('filament-notifications::database.modal.empty.description') . ' <a href=\'' . \App\Filament\Resources\NotificationLogResource::getUrl('index') . '\' style=\'color: var(--primary-600, #d97706); text-decoration: underline; font-weight: 600;\' class=\'hover:opacity-80\'>View History</a>')"
+        :description="$hasNotifications ? null : new \Illuminate\Support\HtmlString(__('filament-notifications::database.modal.empty.description') . ' <a wire:navigate href=\'' . \App\Filament\Resources\NotificationLogResource::getUrl('index') . '\' style=\'color: var(--primary-600, #d97706); text-decoration: underline; font-weight: 600;\' class=\'hover:opacity-80\'>View History</a>')"
         :heading="$hasNotifications ? null : __('filament-notifications::database.modal.empty.heading')"
         :icon="$hasNotifications ? null : \Filament\Support\Icons\Heroicon::OutlinedBellSlash"
         :icon-alias="
