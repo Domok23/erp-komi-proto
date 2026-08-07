@@ -93,6 +93,7 @@ class AdminPanelProvider extends PanelProvider
                 </script>"
             )
             ->sidebarCollapsibleOnDesktop()
+            ->profile(\App\Filament\Pages\EditProfile::class, isSimple: false)
             ->registration();
     }
 }

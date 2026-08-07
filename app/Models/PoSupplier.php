@@ -12,6 +12,8 @@ class PoSupplier extends Model
 {
     use BelongsToCompany;
 
+    public const DIRECTOR_APPROVAL_THRESHOLD = 100000000.0;
+
     protected $table = 'po_suppliers';
 
     protected $fillable = [
@@ -22,11 +24,15 @@ class PoSupplier extends Model
         'po_date',
         'delivery_date',
         'status',
+        'approval_status',
+        'parent_id',
+        'revision_number',
         'subtotal',
         'ppn_percent',
         'ppn_amount',
         'grand_total',
         'notes',
+        'buyer_signature',
     ];
 
     protected $casts = [
@@ -36,6 +42,7 @@ class PoSupplier extends Model
         'ppn_percent' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'revision_number' => 'integer',
     ];
 
     public function project(): BelongsTo
@@ -66,6 +73,21 @@ class PoSupplier extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(InvoicePurchase::class, 'reference_id')->where('purchase_type', 'po_supplier');
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(PoSupplierApproval::class, 'po_supplier_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(PoSupplier::class, 'parent_id');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(PoSupplier::class, 'parent_id');
     }
 
     public function syncReceivedQty(): void

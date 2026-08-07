@@ -25,6 +25,7 @@ class GoodsReceipt extends Model
         'status',
         'received_by',
         'notes',
+        'receiver_signature',
     ];
 
     protected $casts = [

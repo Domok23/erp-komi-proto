@@ -25,6 +25,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class SalesOrderResource extends Resource
 {
@@ -274,6 +275,19 @@ class SalesOrderResource extends Resource
                             $set('down_payment_amount', $grandTotal * ($dpPct / 100));
                         }),
                 ]),
+
+            Section::make('Customer Acknowledgment')
+                ->columnSpanFull()
+                ->description('Customer signature confirms acceptance of this Sales Order.')
+                ->schema([
+                    SignaturePad::make('customer_signature')
+                        ->label('Customer Signature')
+                        ->hint('Draw your signature in the box below')
+                        ->backgroundColor('rgb(255, 255, 255)')
+                        ->penColor('rgb(15, 23, 42)')
+                        ->downloadable()
+                        ->nullable(),
+                ]),
         ]);
     }
 
@@ -347,6 +361,21 @@ class SalesOrderResource extends Resource
                                 ->send();
                         })
                         ->requiresConfirmation(),
+                    \Filament\Actions\Action::make('downloadPdf')
+                        ->label('Download PDF')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sales-order', [
+                                'salesOrder' => $record,
+                                'company' => $record->company,
+                                'customer' => $record->customer,
+                            ]);
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                "sales-order-{$record->so_number}.pdf"
+                            );
+                        }),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
