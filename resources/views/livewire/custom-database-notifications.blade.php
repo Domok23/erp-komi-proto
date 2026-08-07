@@ -10,7 +10,12 @@
     $pollingInterval = $this->getPollingInterval();
 @endphp
 
-<div class="fi-no-database">
+<div class="fi-no-database overflow-x-hidden">
+    <style>
+        #database-notifications .fi-modal-window {
+            overflow-x: hidden !important;
+        }
+    </style>
     <x-filament::modal
         :alignment="$hasNotifications ? null : Alignment::Center"
         close-button
@@ -43,7 +48,7 @@
 
         @if ($hasNotifications)
             <x-slot name="header">
-                <div>
+                <div class="overflow-x-hidden">
                     <h2 class="fi-modal-heading">
                         {{ __('filament-notifications::database.modal.heading') }}
 
@@ -60,7 +65,7 @@
                         @endif
                     </h2>
 
-                    <div class="fi-ac flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                    <div class="fi-ac mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                         @if ($this->viewAlertHistoryAction?->isVisible())
                             {{ $this->viewAlertHistoryAction }}
                         @endif
@@ -79,8 +84,8 @@
             @foreach ($notifications as $notification)
                 <div
                     @class([
-                        'fi-no-notification-read-ctn' => ! $notification->unread(),
-                        'fi-no-notification-unread-ctn' => $notification->unread(),
+                        'fi-no-notification-read-ctn overflow-x-hidden break-words' => ! $notification->unread(),
+                        'fi-no-notification-unread-ctn overflow-x-hidden break-words' => $notification->unread(),
                     ])
                 >
                     {{ $this->getNotification($notification)->inline() }}
