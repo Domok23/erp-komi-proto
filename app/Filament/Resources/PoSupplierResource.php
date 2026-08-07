@@ -33,6 +33,7 @@ use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class PoSupplierResource extends Resource
 {
+    protected static ?string $recordTitleAttribute = 'po_number';
     protected static ?string $model = PoSupplier::class;
 
     protected static ?string $navigationLabel = 'PO Suppliers';

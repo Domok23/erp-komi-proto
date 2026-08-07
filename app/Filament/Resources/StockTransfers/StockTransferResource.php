@@ -22,6 +22,8 @@ class StockTransferResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Stock Transfers';
 
+    protected static ?string $recordTitleAttribute = 'transfer_number';
+
     public static function getNavigationIcon(): ?string
     {
         return 'heroicon-o-arrows-right-left';

@@ -34,6 +34,13 @@ class ProjectResource extends Resource
 
     protected static ?string $modelLabel = 'Project';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'project_code'];
+    }
+
     protected static ?string $pluralModelLabel = 'Projects';
 
     public static function form(Schema $schema): Schema

@@ -33,6 +33,8 @@ class GoodsReceiptResource extends Resource
 
     protected static ?string $modelLabel = 'Goods Receipt';
 
+    protected static ?string $recordTitleAttribute = 'gr_number';
+
     protected static ?string $pluralModelLabel = 'Goods Receipts';
 
     public static function form(Schema $schema): Schema

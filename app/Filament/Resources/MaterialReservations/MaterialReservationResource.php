@@ -28,6 +28,8 @@ class MaterialReservationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Material Reservations';
 
+    protected static ?string $recordTitleAttribute = 'document_number';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema

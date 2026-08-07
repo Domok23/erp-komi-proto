@@ -28,6 +28,13 @@ class MaterialResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Material';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'code'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

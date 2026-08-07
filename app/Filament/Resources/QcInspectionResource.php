@@ -30,6 +30,8 @@ class QcInspectionResource extends Resource
 
     protected static ?string $pluralModelLabel = 'QC Inspections';
 
+    protected static ?string $recordTitleAttribute = 'inspection_number';
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

@@ -33,6 +33,8 @@ class ProductionOrderResource extends Resource
 
     protected static ?string $modelLabel = 'Production Order';
 
+    protected static ?string $recordTitleAttribute = 'production_number';
+
     protected static ?string $pluralModelLabel = 'Production Orders';
 
     public static function form(Schema $schema): Schema

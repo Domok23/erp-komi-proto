@@ -34,6 +34,8 @@ class PoSubconResource extends Resource
 
     protected static ?string $pluralModelLabel = 'PO Subcons';
 
+    protected static ?string $recordTitleAttribute = 'po_number';
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

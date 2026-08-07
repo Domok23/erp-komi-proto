@@ -33,6 +33,13 @@ class BomResource extends Resource
 
     protected static ?string $navigationLabel = 'BOM';
 
+    protected static ?string $recordTitleAttribute = 'bom_number';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['bom_number', 'name'];
+    }
+
     protected static ?string $modelLabel = 'BOM';
 
     protected static ?string $pluralModelLabel = 'BOMs';
