@@ -19,7 +19,7 @@
     <x-filament::modal
         :alignment="$hasNotifications ? null : Alignment::Center"
         close-button
-        :description="$hasNotifications ? null : __('filament-notifications::database.modal.empty.description')"
+        :description="$hasNotifications ? null : new \Illuminate\Support\HtmlString(__('filament-notifications::database.modal.empty.description') . ' <a href=\'' . \App\Filament\Resources\NotificationLogResource::getUrl('index') . '\' style=\'color: var(--primary-600, #d97706); text-decoration: underline; font-weight: 600;\' class=\'hover:opacity-80\'>View History</a>')"
         :heading="$hasNotifications ? null : __('filament-notifications::database.modal.empty.heading')"
         :icon="$hasNotifications ? null : \Filament\Support\Icons\Heroicon::OutlinedBellSlash"
         :icon-alias="
@@ -65,17 +65,17 @@
                         @endif
                     </h2>
 
-                    <div class="fi-ac mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        @if ($this->viewAlertHistoryAction?->isVisible())
-                            {{ $this->viewAlertHistoryAction }}
-                        @endif
-
+                    <div class="fi-ac mt-2 flex flex-wrap items-center gap-y-1">
                         @if ($unreadNotificationsCount && $this->markAllNotificationsAsReadAction?->isVisible())
                             {{ $this->markAllNotificationsAsReadAction }}
                         @endif
 
                         @if ($this->clearNotificationsAction?->isVisible())
                             {{ $this->clearNotificationsAction }}
+                        @endif
+
+                        @if ($this->viewAlertHistoryAction?->isVisible())
+                            {{ $this->viewAlertHistoryAction }}
                         @endif
                     </div>
                 </div>
@@ -119,12 +119,6 @@
                     <x-filament::pagination :paginator="$notifications" />
                 </x-slot>
             @endif
-        @else
-            <x-slot name="footer">
-                <div class="flex justify-center">
-                    {{ $this->viewAlertHistoryAction }}
-                </div>
-            </x-slot>
         @endif
     </x-filament::modal>
 </div>

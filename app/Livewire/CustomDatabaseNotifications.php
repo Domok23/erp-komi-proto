@@ -14,7 +14,7 @@ class CustomDatabaseNotifications extends BaseDatabaseNotifications
         return Action::make('viewAlertHistory')
             ->button()
             ->size('xs')
-            ->color('gray')
+            ->color('secondary')
             ->label('History')
             ->url(fn (): string => NotificationLogResource::getUrl('index'));
     }
