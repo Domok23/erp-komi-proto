@@ -45,73 +45,35 @@ class PurchaseShipmentResource extends Resource
                     Forms\Components\Select::make('po_type')
                         ->options([
                             'supplier' => 'Supplier PO',
-                            'subcon' => 'Subcon PO',
                         ])
+                        ->default('supplier')
                         ->required()
-                        ->reactive()
-                        ->afterStateUpdated(fn (callable $set) => $set('po_id', null)),
+                        ->disabled()
+                        ->dehydrated(),
                     Forms\Components\Select::make('po_id')
                         ->label('Purchase Order')
-                        ->options(function (callable $get) {
-                            $type = $get('po_type');
-                            if ($type === 'supplier') {
-                                return PoSupplier::all()->mapWithKeys(function ($po) {
-                                    $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
+                        ->options(function () {
+                            return PoSupplier::all()->mapWithKeys(function ($po) {
+                                $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
 
-                                    return [$po->id => '<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>'];
-                                })->toArray();
-                            } elseif ($type === 'subcon') {
-                                return PoSubcon::all()->mapWithKeys(function ($po) {
-                                    $url = PoSubconResource::getUrl('edit', ['record' => $po]);
-
-                                    return [$po->id => '<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>'];
-                                })->toArray();
-                            }
-
-                            return [];
+                                return [$po->id => '<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>'];
+                            })->toArray();
                         })
-                        ->getOptionLabelUsing(function ($value, callable $get) {
+                        ->getOptionLabelUsing(function ($value) {
                             if (! $value) {
                                 return null;
                             }
-                            $type = $get('po_type');
-                            if ($type === 'supplier') {
-                                $po = PoSupplier::find($value);
-                                if ($po) {
-                                    $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
+                            $po = PoSupplier::find($value);
+                            if ($po) {
+                                $url = PoSupplierResource::getUrl('edit', ['record' => $po]);
 
-                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>');
-                                }
-                            } elseif ($type === 'subcon') {
-                                $po = PoSubcon::find($value);
-                                if ($po) {
-                                    $url = PoSubconResource::getUrl('edit', ['record' => $po]);
-
-                                    return new HtmlString('<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>');
-                                }
+                                return new HtmlString('<a href="'.$url.'" class="ref-link">'.$po->po_number.'</a>');
                             }
 
                             return $value;
                         })
                         ->allowHtml()
-                        ->required()
-                        ->reactive()
-                        ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                            if (! $state) {
-                                $set('shipping_cost', 0);
-
-                                return;
-                            }
-                            $type = $get('po_type');
-                            if ($type === 'subcon') {
-                                $po = PoSubcon::find($state);
-                                if ($po) {
-                                    $set('shipping_cost', $po->shipping_cost ?? 0);
-                                }
-                            } else {
-                                $set('shipping_cost', 0);
-                            }
-                        }),
+                        ->required(),
                     Forms\Components\DatePicker::make('shipment_date')
                         ->default(now()->toDateString())
                         ->required(),
@@ -224,10 +186,6 @@ class PurchaseShipmentResource extends Resource
                     'customs' => 'Customs Clearance',
                     'arrived' => 'Arrived',
                     'cancelled' => 'Cancelled',
-                ]),
-                SelectFilter::make('po_type')->options([
-                    'supplier' => 'Supplier PO',
-                    'subcon' => 'Subcon PO',
                 ]),
             ])
             ->actions([

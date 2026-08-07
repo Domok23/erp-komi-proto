@@ -3,11 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\JobOrderResource\Pages;
+use App\Models\HrEmployee;
 use App\Models\JobOrder;
 use App\Models\MerchandisePlanning;
 use App\Models\ProductionOrder;
 use App\Services\CodeGenerator;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -37,9 +39,30 @@ class JobOrderResource extends Resource
         return $schema->schema([
             Section::make('Job Order Details')
                 ->columnSpanFull()
+                ->headerActions([
+                    Action::make('select_workers')
+                        ->label('Assign Workers')
+                        ->icon('heroicon-o-user-group')
+                        ->color('primary')
+                        ->modalHeading('Assign Workers / Job Order Operators')
+                        ->modalContent(fn (callable $get, $record) => view('filament.pages.assign-workers-modal-wrapper', [
+                            'jobOrder' => $record,
+                            'productionOrderId' => $get('production_order_id'),
+                            'assignedWorkers' => ! empty($get('assigned_to')) ? $get('assigned_to') : ($record ? $record->assigned_to : []),
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl'),
+                ])
                 ->schema([
                     Forms\Components\Hidden::make('id')
                         ->default(fn ($record) => $record ? $record->id : null),
+                    Forms\Components\Hidden::make('assigned_to')
+                        ->default([])
+                        ->extraAttributes([
+                            'x-data' => '{ state: $wire.entangle(\'data.assigned_to\') }',
+                            '@set-job-order-workers.window' => 'state = $event.detail.workers',
+                        ]),
                     Forms\Components\TextInput::make('job_order_number')
                         ->disabled()
                         ->dehydrated()
@@ -99,6 +122,8 @@ class JobOrderResource extends Resource
                                         $set('materials', $materials);
                                     }
                                 }
+                            } else {
+                                $set('materials', []);
                             }
                         }),
                     Forms\Components\Select::make('task_type')
@@ -133,8 +158,9 @@ class JobOrderResource extends Resource
                         ->native(false),
                     Forms\Components\DatePicker::make('end_date')
                         ->native(false),
-                    Forms\Components\TextInput::make('assigned_to')
-                        ->maxLength(255),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
             Forms\Components\Placeholder::make('no_materials')
@@ -194,9 +220,6 @@ class JobOrderResource extends Resource
                     }
                     $set('selected_materials', $materials);
                 }),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
         ]);
     }
 
@@ -229,7 +252,6 @@ class JobOrderResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('assigned_to')->searchable(),
             Tables\Columns\TextColumn::make('start_date')->date(),
             Tables\Columns\TextColumn::make('end_date')->date(),
         ])
@@ -250,36 +272,88 @@ class JobOrderResource extends Resource
                 SelectFilter::make('production_order_id')->relationship('productionOrder', 'production_number'),
             ])
             ->actions([
-                Action::make('start_task')
-                    ->label('Start Task')
-                    ->icon('heroicon-o-play')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'pending')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'in_progress', 'start_date' => now()]);
-                        Notification::make()
-                            ->title('Task Started')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                Action::make('complete_task')
-                    ->label('Complete Task')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'in_progress')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'completed', 'end_date' => now(), 'completed_qty' => $record->planned_qty]);
-                        Notification::make()
-                            ->title('Task Completed')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    Action::make('assign_operators')
+                        ->label('Assign Workers')
+                        ->icon('heroicon-o-user-group')
+                        ->color('info')
+                        ->modalHeading(fn ($record) => "Assign Workers: Job Order #{$record->job_order_number}")
+                        ->modalContent(fn ($record) => view('filament.pages.assign-workers-modal-wrapper', [
+                            'jobOrder' => $record,
+                            'assignedWorkers' => $record->assigned_to ?? [],
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl'),
+                    Action::make('start_task')
+                        ->label('Start Task')
+                        ->icon('heroicon-o-play')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'pending')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'in_progress', 'start_date' => now()]);
+                            Notification::make()
+                                ->title('Task Started')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    Action::make('complete_task')
+                        ->label('Complete Task')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'in_progress')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'completed', 'end_date' => now(), 'completed_qty' => $record->planned_qty]);
+                            Notification::make()
+                                ->title('Task Completed')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+    public static function getWorkerListArray(?int $productionOrderId): array
+    {
+        if ($productionOrderId) {
+            $po = ProductionOrder::with(['project.activePlacements.employee.department', 'project.activePlacements.employee.position'])->find($productionOrderId);
+            if ($po && $po->project) {
+                $placements = $po->project->activePlacements;
+                if ($placements->isNotEmpty()) {
+                    $workers = [];
+                    foreach ($placements as $placement) {
+                        if ($placement->employee) {
+                            $emp = $placement->employee;
+                            $workers[] = [
+                                'number' => $emp->employee_number,
+                                'name' => $emp->name,
+                                'dept' => $emp->department?->name ?? '-',
+                                'pos' => $emp->position?->name ?? '-',
+                            ];
+                        }
+                    }
+                    if (! empty($workers)) {
+                        return $workers;
+                    }
+                }
+            }
+        }
+
+        return HrEmployee::with(['department', 'position'])
+            ->where('status', 'active')
+            ->get()
+            ->map(fn (HrEmployee $emp) => [
+                'number' => $emp->employee_number,
+                'name' => $emp->name,
+                'dept' => $emp->department?->name ?? '-',
+                'pos' => $emp->position?->name ?? '-',
+            ])
+            ->toArray();
     }
 
     public static function getNavigationIcon(): ?string

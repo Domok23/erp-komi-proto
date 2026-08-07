@@ -74,6 +74,13 @@ class CostingResource extends Resource
                                 }
 
                                 self::recalculate($get, $set);
+                            } else {
+                                $set('design_id', null);
+                                $set('mp_cost', 0);
+                                $set('overhead_pct', 0);
+                                $set('profit_margin_pct', 0);
+                                $set('material_cost', 0);
+                                self::recalculate($get, $set);
                             }
                         }),
                     Forms\Components\Select::make('design_id')

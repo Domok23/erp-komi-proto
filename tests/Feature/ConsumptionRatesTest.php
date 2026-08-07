@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager;
 use App\Models\Company;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -185,7 +186,7 @@ class ConsumptionRatesTest extends TestCase
 
     public function test_decimal_sanitization(): void
     {
-        $managerClass = \App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager::class;
+        $managerClass = ConsumptionRatesRelationManager::class;
 
         // Test normalizeDecimal with various formats
         $this->assertEquals(1.5, $managerClass::normalizeDecimal('1.5'));

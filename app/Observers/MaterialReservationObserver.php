@@ -38,7 +38,7 @@ class MaterialReservationObserver
             ->where('material_id', $reservation->material_id)
             ->first();
 
-        if (!$stock) {
+        if (! $stock) {
             return;
         }
 

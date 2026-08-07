@@ -31,6 +31,7 @@ class JobOrder extends Model
         'completed_qty' => 'integer',
         'start_date' => 'date',
         'end_date' => 'date',
+        'assigned_to' => 'array',
     ];
 
     public function productionOrder(): BelongsTo

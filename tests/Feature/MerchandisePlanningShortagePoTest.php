@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\MerchandisePlanningResource\Pages\ListMerchandisePlannings;
 use App\Models\Company;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -16,6 +17,8 @@ use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class MerchandisePlanningShortagePoTest extends TestCase
@@ -23,12 +26,19 @@ class MerchandisePlanningShortagePoTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private Supplier $supplier;
+
     private Subcon $subcon;
+
     private Material $materialInShortage;
+
     private Material $materialSkipped;
+
     private Project $project;
+
     private RdDesign $design;
+
     private Warehouse $warehouse;
 
     protected function setUp(): void
@@ -172,7 +182,7 @@ class MerchandisePlanningShortagePoTest extends TestCase
         $materialIds = $planning->items->pluck('material_id')->filter()->unique();
         $stocks = InventoryStock::whereIn('material_id', $materialIds)
             ->where('company_id', $this->company->id)
-            ->select('material_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_qty'))
+            ->select('material_id', DB::raw('SUM(quantity) as total_qty'))
             ->groupBy('material_id')
             ->pluck('total_qty', 'material_id')
             ->toArray();
@@ -190,7 +200,7 @@ class MerchandisePlanningShortagePoTest extends TestCase
         $view->assertSee('Nylon Fabric Blue');
         $view->assertSee('MAT-BLUE-01');
         $view->assertSee('8.00'); // Order Qty (Shortage)
-        
+
         // Verify Stock display and shortage calculation
         $view->assertSee('2.00 yard'); // Current stock
         $view->assertSee('Shortage: 8.00'); // Shortage warning
@@ -290,7 +300,7 @@ class MerchandisePlanningShortagePoTest extends TestCase
         ]);
 
         // Execute the PO generation action logic via Livewire/Filament table testing helpers
-        \Livewire\Livewire::test(\App\Filament\Resources\MerchandisePlanningResource\Pages\ListMerchandisePlannings::class)
+        Livewire::test(ListMerchandisePlannings::class)
             ->callTableAction('generatePO', $planning);
 
         // Assert Supplier PO was created only for the shortage quantity (8.00 nylon fabric)

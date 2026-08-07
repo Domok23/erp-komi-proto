@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\SubconMaterialOutResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -71,6 +72,7 @@ class SubconMaterialOutResource extends Resource
                         ->options([
                             'draft' => 'Draft',
                             'sent' => 'Sent',
+                            'received' => 'Received by Subcon',
                         ])
                         ->default('draft')
                         ->required(),
@@ -79,8 +81,36 @@ class SubconMaterialOutResource extends Resource
                 ])
                 ->columns(2),
 
+            Section::make('Delivery Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\Select::make('delivery_method')
+                        ->options([
+                            'fleet' => 'Company Fleet',
+                            'courier' => 'External Courier',
+                        ])
+                        ->nullable(),
+                    Forms\Components\TextInput::make('courier_name')
+                        ->label('Courier / Driver Name')
+                        ->maxLength(255)
+                        ->nullable(),
+                    Forms\Components\TextInput::make('delivery_cost')
+                        ->label('Delivery Cost')
+                        ->numeric()
+                        ->prefix('IDR')
+                        ->step(0.01)
+                        ->nullable(),
+                    Forms\Components\DatePicker::make('estimated_arrival')
+                        ->label('Estimated Arrival')
+                        ->nullable(),
+                ])
+                ->columns(2),
+
             Section::make('Sent Materials')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -92,7 +122,7 @@ class SubconMaterialOutResource extends Resource
                                     fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
                                         $companyId = CompanyContext::getCompanyId();
                                         $q->where('company_id', $companyId)
-                                          ->where('quantity', '>', 0);
+                                            ->where('quantity', '>', 0);
                                     })
                                 )
                                 ->getOptionLabelFromRecordUsing(function ($record) {
@@ -152,6 +182,12 @@ class SubconMaterialOutResource extends Resource
             Tables\Columns\TextColumn::make('subcon.name')->sortable(),
             Tables\Columns\TextColumn::make('departure_date')->date()->sortable(),
             Tables\Columns\BadgeColumn::make('status')
+                ->formatStateUsing(fn (string $state): string => match ($state) {
+                    'draft' => 'Draft',
+                    'sent' => 'Sent',
+                    'received' => 'Received by Subcon',
+                    default => ucfirst($state),
+                })
                 ->color(fn (string $state): string => match ($state) {
                     'draft' => 'gray',
                     'sent' => 'info',
@@ -163,10 +199,12 @@ class SubconMaterialOutResource extends Resource
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
                     'sent' => 'Sent',
+                    'received' => 'Received by Subcon',
                 ]),
             ])
             ->actions([
                 ActionGroup::make([
+                    StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

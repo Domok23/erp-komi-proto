@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -127,6 +128,9 @@ class PoSupplierResource extends Resource
             Section::make('PO Items')
                 ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
+                ->headerActions([
+                    StockPreviewAction::make('form'),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -475,7 +479,7 @@ class PoSupplierResource extends Resource
 
                             return redirect()->to(PoSupplierResource::getUrl('edit', ['record' => $newPo]));
                         }),
-
+                    StockPreviewAction::make('table'),
                     Action::make('generateInvoice')
                         ->label('Generate Invoice')
                         ->icon('heroicon-o-document-text')
