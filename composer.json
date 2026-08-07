@@ -11,7 +11,7 @@
         "filament/filament": "^4.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "saade/filament-autograph": "*"
+        "saade/filament-autograph": "^4.2"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.7",
