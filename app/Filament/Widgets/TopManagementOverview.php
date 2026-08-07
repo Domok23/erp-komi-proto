@@ -18,7 +18,7 @@ class TopManagementOverview extends BaseWidget
         $totalRevenue = SalesOrder::sum('grand_total');
         $totalProcurement = PoSupplier::sum('grand_total');
         
-        $pendingPoApprovals = PoSupplier::whereNull('buyer_signature')->count();
+        $pendingPoApprovals = PoSupplier::where('approval_status', 'pending_approval')->count();
         $pendingSoApprovals = SalesOrder::whereNull('customer_signature')->count();
         $pendingGrApprovals = GoodsReceipt::whereNull('receiver_signature')->count();
         $totalPendingApprovals = $pendingPoApprovals + $pendingSoApprovals + $pendingGrApprovals;

@@ -53,6 +53,8 @@ class PaymentResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $set('payment_number', CodeGenerator::generatePaymentNumber($state));
+                            } else {
+                                $set('payment_number', null);
                             }
                             $set('invoice_id', null);
                         }),

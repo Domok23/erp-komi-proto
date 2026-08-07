@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2c18df9cab8703abf9e3c728b0ccb5c5",
+    "content-hash": "5fcea0f3a877b01eb285182b5da59887",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -5247,16 +5247,16 @@
         },
         {
             "name": "saade/filament-autograph",
-            "version": "v4.1.1",
+            "version": "v4.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/saade/filament-autograph.git",
-                "reference": "2b5a42e9dfb2aa45f5d8ae261f3954f4403b6688"
+                "reference": "e7564d94d40db4209ebcbb59290b2a6593aad4f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/saade/filament-autograph/zipball/2b5a42e9dfb2aa45f5d8ae261f3954f4403b6688",
-                "reference": "2b5a42e9dfb2aa45f5d8ae261f3954f4403b6688",
+                "url": "https://api.github.com/repos/saade/filament-autograph/zipball/e7564d94d40db4209ebcbb59290b2a6593aad4f0",
+                "reference": "e7564d94d40db4209ebcbb59290b2a6593aad4f0",
                 "shasum": ""
             },
             "require": {
@@ -5323,7 +5323,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-13T18:48:22+00:00"
+            "time": "2026-08-04T01:20:01+00:00"
         },
         {
             "name": "sabberworm/php-css-parser",
@@ -11357,5 +11357,5 @@
         "php": "^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

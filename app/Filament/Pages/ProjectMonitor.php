@@ -13,6 +13,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Tapp\FilamentProgressBarColumn\Tables\Columns\ProgressBarColumn;
 
 class ProjectMonitor extends Page implements HasTable
 {
@@ -95,15 +96,16 @@ class ProjectMonitor extends Page implements HasTable
                     ->default('N/A')
                     ->limit(20),
 
-                Tables\Columns\ViewColumn::make('progress')
+                ProgressBarColumn::make('produced_qty')
                     ->label('Progress')
-                    ->view('filament.tables.columns.progress-bar'),
+                    ->maxValue(fn (Project $record): int => $record->target_qty ?? 0)
+                    ->successLabel(fn (Project $record): string => round($record->progressPercent()) . '% (' . number_format($record->produced_qty ?? 0) . '/' . number_format($record->target_qty ?? 0) . ')'),
 
                 Tables\Columns\TextColumn::make('target_date')
                     ->label('Target Date')
                     ->date('M d, Y')
                     ->sortable()
-                    ->default('Not Set'),
+                    ->placeholder('Not Set'),
 
                 Tables\Columns\TextColumn::make('days_remaining')
                     ->label('Days Remaining')
@@ -178,7 +180,12 @@ class ProjectMonitor extends Page implements HasTable
             ->actions([
                 \Filament\Actions\Action::make('view_details')
                     ->label('View Details')
+                    ->hiddenLabel()
                     ->icon('heroicon-m-eye')
+                    ->extraAttributes([
+                        'title' => '',
+                        'x-tooltip' => "{ content: 'View Details', theme: \$store.theme, placement: 'bottom' }",
+                    ])
                     ->modalHeading(fn (Project $record): string => "Project Operations — {$record->project_code}")
                     ->modalContent(fn (Project $record) => view('filament.pages.project-monitor-slide-over', ['record' => $record]))
                     ->modalSubmitAction(false)

@@ -14,6 +14,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -33,6 +34,8 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::Amber,
+                'secondary' => Color::Slate,
+                'amber' => Color::Amber,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->navigationGroups([
@@ -46,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
                 'Production',
                 'Inventory & Subcon',
                 'Finance & Invoices',
+                'HR',
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -76,9 +80,20 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => '/select-company?switch=1')
                     ->icon('heroicon-o-arrows-right-left'),
             ])
-            ->darkMode(false)
+            ->darkMode(true)
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => "<script>
+                    (function() {
+                        if (!localStorage.getItem('theme')) {
+                            localStorage.setItem('theme', 'light');
+                            document.documentElement.classList.remove('dark');
+                        }
+                    })();
+                </script>"
+            )
             ->sidebarCollapsibleOnDesktop()
-            ->profile(\App\Filament\Pages\EditProfile::class)
+            ->profile(\App\Filament\Pages\EditProfile::class, isSimple: false)
             ->databaseNotifications()
             ->registration();
     }

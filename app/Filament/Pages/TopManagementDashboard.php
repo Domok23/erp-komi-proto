@@ -45,8 +45,8 @@ class TopManagementDashboard extends Page implements HasTable
         return $table
             ->query(
                 PoSupplier::query()
-                    ->with(['supplier', 'project'])
-                    ->whereNull('buyer_signature')
+                    ->with(['supplier', 'project', 'approvals'])
+                    ->where('approval_status', 'pending_approval')
                     ->latest()
             )
             ->columns([
@@ -75,33 +75,10 @@ class TopManagementDashboard extends Page implements HasTable
                     ->sortable(),
             ])
             ->actions([
-                \Filament\Actions\Action::make('approveSign')
-                    ->label('Approve & Sign')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('success')
-                    ->modalHeading('Management E-Sign Approval')
-                    ->modalDescription('Draw your signature in the box below to authorize this Purchase Order.')
-                    ->form([
-                        SignaturePad::make('buyer_signature')
-                            ->label('Management Signature')
-                            ->backgroundColor('rgb(255, 255, 255)')
-                            ->penColor('rgb(15, 23, 42)')
-                            ->required(),
-                    ])
-                    ->action(function (PoSupplier $record, array $data) {
-                        $record->update([
-                            'buyer_signature' => $data['buyer_signature'],
-                            'status' => 'ordered', // Mark as ordered once signed
-                        ]);
-
-                        Notification::make()
-                            ->title('Purchase Order approved & signed successfully!')
-                            ->success()
-                            ->send();
-                    })
-                    ->requiresConfirmation(),
+                \App\Filament\Resources\PoSupplierResource::getApproveSignAction(),
+                \App\Filament\Resources\PoSupplierResource::getRejectApprovalAction(),
             ])
             ->emptyStateHeading('No pending approvals')
-            ->emptyStateDescription('All purchase orders have been signed and authorized by top management.');
+            ->emptyStateDescription('All purchase orders have been signed and authorized.');
     }
 }

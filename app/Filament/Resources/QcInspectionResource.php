@@ -6,6 +6,7 @@ use App\Filament\Resources\QcInspectionResource\Pages;
 use App\Models\JobOrder;
 use App\Models\QcInspection;
 use App\Services\CodeGenerator;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -55,6 +56,8 @@ class QcInspectionResource extends Resource
                                 if ($jobOrder) {
                                     $set('sample_size', $jobOrder->planned_qty);
                                 }
+                            } else {
+                                $set('sample_size', 0);
                             }
                         }),
                     Forms\Components\DatePicker::make('inspection_date')
@@ -122,8 +125,10 @@ class QcInspectionResource extends Resource
                 SelectFilter::make('job_order_id')->relationship('jobOrder', 'job_order_number'),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }

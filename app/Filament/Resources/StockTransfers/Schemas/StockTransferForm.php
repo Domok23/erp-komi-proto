@@ -137,9 +137,11 @@ class StockTransferForm
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(function ($state, callable $set) {
-                                        $material = Material::find($state, ['*']);
+                                        $material = $state ? Material::find($state, ['*']) : null;
                                         if ($material) {
                                             $set('unit', $material->unit);
+                                        } else {
+                                            $set('unit', null);
                                         }
                                     }),
                                 TextInput::make('qty_requested')

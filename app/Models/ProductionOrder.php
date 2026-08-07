@@ -74,4 +74,9 @@ class ProductionOrder extends Model
     {
         return $this->hasMany(ProductionOrderMaterial::class);
     }
+
+    public function projectPlacements(): HasMany
+    {
+        return $this->hasMany(HrEmployeePlacement::class, 'project_id', 'project_id');
+    }
 }

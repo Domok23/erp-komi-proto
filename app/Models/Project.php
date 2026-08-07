@@ -108,5 +108,14 @@ class Project extends Model
 
         return (int) \Illuminate\Support\Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
     }
-}
 
+    public function placements(): HasMany
+    {
+        return $this->hasMany(HrEmployeePlacement::class, 'project_id');
+    }
+
+    public function activePlacements(): HasMany
+    {
+        return $this->hasMany(HrEmployeePlacement::class, 'project_id')->where('status', 'active');
+    }
+}

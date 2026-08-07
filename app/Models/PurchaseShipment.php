@@ -44,6 +44,17 @@ class PurchaseShipment extends Model
         'shipping_cost' => 'decimal:2',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (PurchaseShipment $shipment) {
+            $shipment->po_type = 'supplier';
+        });
+
+        static::saving(function (PurchaseShipment $shipment) {
+            $shipment->po_type = 'supplier';
+        });
+    }
+
     public function po(): MorphTo
     {
         return $this->morphTo(__FUNCTION__, 'po_type', 'po_id');

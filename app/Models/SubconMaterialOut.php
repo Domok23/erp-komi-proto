@@ -21,11 +21,17 @@ class SubconMaterialOut extends Model
         'document_number',
         'departure_date',
         'status',
+        'delivery_method',
+        'courier_name',
+        'delivery_cost',
+        'estimated_arrival',
         'notes',
     ];
 
     protected $casts = [
         'departure_date' => 'date',
+        'estimated_arrival' => 'date',
+        'delivery_cost' => 'decimal:2',
     ];
 
     protected static function booted(): void
