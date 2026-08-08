@@ -11,6 +11,8 @@ use Illuminate\Support\Carbon;
 
 class ProjectProgressBoard extends BaseWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected static ?int $sort = 1; // Display at the top of the dashboard
 
     protected int|string|array $columnSpan = 'full';

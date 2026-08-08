@@ -7,6 +7,8 @@ use Filament\Widgets\ChartWidget;
 
 class ProjectStatusChart extends ChartWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected static ?int $sort = 3;
 
     protected ?string $heading = 'Projects by Status';

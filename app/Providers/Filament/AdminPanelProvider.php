@@ -66,7 +66,13 @@ class AdminPanelProvider extends PanelProvider
                 CompanySettings::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            ->widgets([])
+            ->widgets([
+                \App\Filament\Widgets\ErpStatsWidget::class,
+                \App\Filament\Widgets\SalesTrendChart::class,
+                \App\Filament\Widgets\RecentSalesOrders::class,
+                \App\Filament\Widgets\RecentPurchaseOrders::class,
+                \App\Filament\Widgets\LowStockMaterials::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

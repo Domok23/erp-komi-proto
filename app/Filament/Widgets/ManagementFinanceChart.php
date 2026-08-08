@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 
 class ManagementFinanceChart extends ChartWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected ?string $heading = 'Revenue vs Procurement Cost (Last 6 Months)';
     
     protected ?string $maxHeight = '300px';

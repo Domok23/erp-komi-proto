@@ -11,6 +11,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TopManagementOverview extends BaseWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected ?string $pollingInterval = '15s';
 
     protected function getStats(): array

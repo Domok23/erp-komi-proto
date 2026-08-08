@@ -7,6 +7,8 @@ use Filament\Widgets\ChartWidget;
 
 class SalesOrderStatusChart extends ChartWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected ?string $heading = 'Sales Order Status Breakdown';
     
     protected ?string $maxHeight = '250px';

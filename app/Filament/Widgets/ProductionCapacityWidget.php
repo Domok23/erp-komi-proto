@@ -7,6 +7,8 @@ use Filament\Widgets\Widget;
 
 class ProductionCapacityWidget extends Widget
 {
+    protected static bool $isDiscovered = false;
+
     protected string $view = 'filament.widgets.production-capacity';
 
     protected function getViewData(): array

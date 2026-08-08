@@ -7,6 +7,8 @@ use Filament\Widgets\ChartWidget;
 
 class MaterialReservationChart extends ChartWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected ?string $heading = 'Material Reservation Status Breakdown';
     
     protected ?string $maxHeight = '250px';
