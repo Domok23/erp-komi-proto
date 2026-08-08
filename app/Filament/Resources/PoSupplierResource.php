@@ -61,14 +61,22 @@ class PoSupplierResource extends Resource
                         ->disabled()
                         ->dehydrated()
                         ->required(),
-                    Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
-                        ->allowHtml()
+                    Forms\Components\Select::make('project_ids')
+                        ->label('Projects')
+                        ->multiple()
+                        ->options(Project::all()->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
                         ->nullable()
-                        ->reactive(),
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if (is_array($state) && count($state) > 0) {
+                                $set('project_id', $state[0]);
+                            } else {
+                                $set('project_id', null);
+                            }
+                        }),
+                    Forms\Components\Hidden::make('project_id')->dehydrated(),
                     Forms\Components\Select::make('supplier_id')
                         ->relationship('supplier', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SupplierResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -141,29 +149,72 @@ class PoSupplierResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
-                            Forms\Components\Select::make('sub_project_id')
-                                ->label('Sub-Project')
+                            Forms\Components\Select::make('allocation_target')
+                                ->label(new HtmlString('Sub-Project <span title="Selected sub-project or project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->options(function (callable $get) {
-                                    $projectId = $get('../../project_id');
-                                    if (! $projectId) {
-                                        return [];
+                                    $projectIds = $get('../../project_ids');
+                                    if (empty($projectIds)) {
+                                        $legacyId = $get('../../project_id');
+                                        if ($legacyId) {
+                                            $projectIds = [$legacyId];
+                                        } else {
+                                            return [];
+                                        }
                                     }
 
-                                    return SubProject::where('project_id', $projectId)
-                                        ->pluck('name', 'id');
+                                    if (!is_array($projectIds)) {
+                                        $projectIds = [$projectIds];
+                                    }
+
+                                    $projects = Project::with('subProjects')->whereIn('id', $projectIds)->get();
+                                    $options = [];
+
+                                    foreach ($projects as $project) {
+                                        if ($project->hasSubProjects()) {
+                                            foreach ($project->subProjects as $sp) {
+                                                $options["sp_{$sp->id}"] = "[{$project->name}] {$sp->name}";
+                                            }
+                                        } else {
+                                            $options["proj_{$project->id}"] = "[{$project->name}]";
+                                        }
+                                    }
+
+                                    return $options;
                                 })
                                 ->searchable()
                                 ->preload()
                                 ->nullable()
-                                ->visible(function (callable $get) {
-                                    $projectId = $get('../../project_id');
-                                    if (! $projectId) {
-                                        return false;
+                                ->reactive()
+                                ->afterStateHydrated(function ($component, $state, $record) {
+                                    if ($record) {
+                                        if ($record->sub_project_id) {
+                                            $component->state("sp_{$record->sub_project_id}");
+                                        } elseif ($record->project_id) {
+                                            $component->state("proj_{$record->project_id}");
+                                        }
                                     }
-                                    $project = Project::find($projectId);
+                                })
+                                ->dehydrated(false)
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if (!$state) {
+                                        $set('project_id', null);
+                                        $set('sub_project_id', null);
+                                        return;
+                                    }
 
-                                    return $project && $project->hasSubProjects();
+                                    if (str_starts_with($state, 'sp_')) {
+                                        $spId = (int) str_replace('sp_', '', $state);
+                                        $sp = SubProject::find($spId);
+                                        $set('sub_project_id', $spId);
+                                        $set('project_id', $sp?->project_id);
+                                    } elseif (str_starts_with($state, 'proj_')) {
+                                        $projId = (int) str_replace('proj_', '', $state);
+                                        $set('project_id', $projId);
+                                        $set('sub_project_id', null);
+                                    }
                                 }),
+                            Forms\Components\Hidden::make('project_id')->dehydrated(),
+                            Forms\Components\Hidden::make('sub_project_id')->dehydrated(),
                             Forms\Components\Select::make('material_id')
                                 ->label('Material')
                                 ->options(function (callable $get) {

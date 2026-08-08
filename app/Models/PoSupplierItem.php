@@ -11,6 +11,7 @@ class PoSupplierItem extends Model
 
     protected $fillable = [
         'po_supplier_id',
+        'project_id',
         'sub_project_id',
         'material_id',
         'description',
@@ -31,6 +32,11 @@ class PoSupplierItem extends Model
     public function poSupplier(): BelongsTo
     {
         return $this->belongsTo(PoSupplier::class, 'po_supplier_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
     }
 
     public function subProject(): BelongsTo

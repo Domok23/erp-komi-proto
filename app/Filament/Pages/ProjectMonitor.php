@@ -48,7 +48,7 @@ class ProjectMonitor extends Page implements HasTable
         return $table
             ->query(
                 Project::query()
-                    ->with(['customer', 'bom.items.material', 'costings', 'salesOrder', 'productionOrders'])
+                    ->with(['customer', 'bom.items.material', 'costings', 'salesOrder', 'productionOrders', 'subProjects'])
                     ->whereIn('status', ['planning', 'development', 'sampling', 'production'])
                     ->latest()
             )

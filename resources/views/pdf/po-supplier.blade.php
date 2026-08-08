@@ -70,32 +70,58 @@
                 </tr>
                 <tr>
                     <td style="border: none; padding: 2px 0;">Project Reference:</td>
-                    <td style="border: none; padding: 2px 0;">{{ $po->project->name ?? '-' }}</td>
+                    <td style="border: none; padding: 2px 0;">{{ $po->project_names }}</td>
                 </tr>
             </table>
         </div>
         <div class="clear"></div>
     </div>
 
+    @php
+        $groupedItems = $po->items->groupBy(fn($item) => $item->material_id ? 'mat_' . $item->material_id : 'desc_' . ($item->description ?? ''))
+            ->map(function($group) {
+                $first = $group->first();
+                $subProjectNames = $group->map(fn($i) => $i->subProject?->name)->filter()->unique()->implode(', ');
+
+                return (object) [
+                    'material' => $first->material,
+                    'description' => $first->description ?? $first->material?->name,
+                    'qty' => $group->sum('qty'),
+                    'unit' => $first->unit,
+                    'unit_price' => $first->unit_price,
+                    'total_price' => $group->sum('total_price'),
+                    'sub_project_names' => $subProjectNames !== '' ? $subProjectNames : '-',
+                ];
+            })->values();
+
+        $hasSubProjects = $groupedItems->contains(fn($item) => $item->sub_project_names !== '-');
+    @endphp
+
     <div class="section-title">ORDER ITEMS</div>
     <table>
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
+                @if($hasSubProjects)
+                <th style="width: 20%;">Sub-Project</th>
+                @endif
                 <th>Material Code</th>
                 <th>Description</th>
-                <th class="text-right" style="width: 15%;">Qty</th>
-                <th style="width: 10%;">Unit</th>
-                <th class="text-right" style="width: 20%;">Unit Price (IDR)</th>
-                <th class="text-right" style="width: 20%;">Total Price (IDR)</th>
+                <th class="text-right" style="width: 12%;">Qty</th>
+                <th style="width: 8%;">Unit</th>
+                <th class="text-right" style="width: 18%;">Unit Price (IDR)</th>
+                <th class="text-right" style="width: 18%;">Total Price (IDR)</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($po->items as $index => $item)
+            @forelse($groupedItems as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
+                    @if($hasSubProjects)
+                    <td>{{ $item->sub_project_names }}</td>
+                    @endif
                     <td>{{ $item->material->code ?? '-' }}</td>
-                    <td>{{ $item->description ?? $item->material->name }}</td>
+                    <td>{{ $item->description }}</td>
                     <td class="text-right">{{ number_format($item->qty, 2) }}</td>
                     <td>{{ $item->unit }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
@@ -103,7 +129,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center">No items found in this Purchase Order.</td>
+                    <td colspan="{{ $hasSubProjects ? 8 : 7 }}" class="text-center">No items found in this Purchase Order.</td>
                 </tr>
             @endforelse
         </tbody>

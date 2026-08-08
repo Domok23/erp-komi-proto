@@ -6,9 +6,24 @@ use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 class SubProject extends Model
 {
     use BelongsToCompany;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (SubProject $subProject) {
+            if ($subProject->poSupplierItems()->exists() ||
+                $subProject->poSubconItems()->exists() ||
+                $subProject->productionOrders()->exists() ||
+                $subProject->costings()->exists() ||
+                $subProject->materialReservations()->exists()) {
+                throw new \Exception("Cannot delete SubProject '{$subProject->name}' because active transactions are attached to it.");
+            }
+        });
+    }
 
     protected $fillable = [
         'company_id',
@@ -44,6 +59,31 @@ class SubProject extends Model
     public function reviewedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function poSupplierItems(): HasMany
+    {
+        return $this->hasMany(PoSupplierItem::class, 'sub_project_id');
+    }
+
+    public function poSubconItems(): HasMany
+    {
+        return $this->hasMany(PoSubconItem::class, 'sub_project_id');
+    }
+
+    public function productionOrders(): HasMany
+    {
+        return $this->hasMany(ProductionOrder::class, 'sub_project_id');
+    }
+
+    public function costings(): HasMany
+    {
+        return $this->hasMany(Costing::class, 'sub_project_id');
+    }
+
+    public function materialReservations(): HasMany
+    {
+        return $this->hasMany(MaterialReservation::class, 'sub_project_id');
     }
 
     public function effectiveBom(): ?Bom
