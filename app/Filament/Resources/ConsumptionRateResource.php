@@ -92,11 +92,8 @@ class ConsumptionRateResource extends Resource
                         ->options(function ($state) {
                             $companyId = CompanyContext::getCompanyId();
 
-                            $options = ConsumptionRate::where('company_id', $companyId)
-                                ->whereNotNull('component')
-                                ->where('component', '!=', '')
-                                ->distinct()
-                                ->pluck('component', 'component')
+                            $options = \App\Models\Component::where('company_id', $companyId)
+                                ->pluck('name', 'name')
                                 ->toArray();
 
                             if ($state && ! isset($options[$state])) {
@@ -108,12 +105,18 @@ class ConsumptionRateResource extends Resource
                         ->searchable()
                         ->preload()
                         ->createOptionForm([
-                            Forms\Components\TextInput::make('component')
+                            Forms\Components\TextInput::make('name')
                                 ->label('Component Name')
                                 ->required(),
                         ])
                         ->createOptionUsing(function (array $data): string {
-                            return $data['component'];
+                            $companyId = CompanyContext::getCompanyId();
+                            $comp = \App\Models\Component::firstOrCreate([
+                                'company_id' => $companyId,
+                                'name' => trim($data['name']),
+                            ]);
+
+                            return $comp->name;
                         })
                         ->createOptionModalHeading('Add New Component')
                         ->nullable(),
