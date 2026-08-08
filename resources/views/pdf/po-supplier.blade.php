@@ -78,13 +78,14 @@
     </div>
 
     @php
-        $groupedItems = $po->items->groupBy(fn($item) => $item->material_id ? 'mat_' . $item->material_id : 'desc_' . ($item->description ?? ''))
+        $groupedItems = $po->items->groupBy(fn($item) => ($item->material_id ? 'mat_' . $item->material_id : 'desc_' . ($item->description ?? '')) . '_' . ($item->component ?? ''))
             ->map(function($group) {
                 $first = $group->first();
                 $subProjectNames = $group->map(fn($i) => $i->subProject?->name)->filter()->unique()->implode(', ');
 
                 return (object) [
                     'material' => $first->material,
+                    'component' => $first->component,
                     'description' => $first->description ?? $first->material?->name,
                     'qty' => $group->sum('qty'),
                     'unit' => $first->unit,
@@ -121,7 +122,12 @@
                     <td>{{ $item->sub_project_names }}</td>
                     @endif
                     <td>{{ $item->material->code ?? '-' }}</td>
-                    <td>{{ $item->description }}</td>
+                    <td>
+                        {{ $item->description }}
+                        @if($item->component)
+                            <br><small style="color: #666;">Component: {{ $item->component }}</small>
+                        @endif
+                    </td>
                     <td class="text-right">{{ number_format($item->qty, 2) }}</td>
                     <td>{{ $item->unit }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>

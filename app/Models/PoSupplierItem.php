@@ -14,6 +14,7 @@ class PoSupplierItem extends Model
         'project_id',
         'sub_project_id',
         'material_id',
+        'component',
         'description',
         'qty',
         'unit',

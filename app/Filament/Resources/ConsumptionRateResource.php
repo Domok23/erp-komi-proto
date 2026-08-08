@@ -87,6 +87,36 @@ class ConsumptionRateResource extends Resource
                         ->required()
                         ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
+                    Forms\Components\Select::make('component')
+                        ->label('Component')
+                        ->options(function ($state) {
+                            $companyId = CompanyContext::getCompanyId();
+
+                            $options = ConsumptionRate::where('company_id', $companyId)
+                                ->whereNotNull('component')
+                                ->where('component', '!=', '')
+                                ->distinct()
+                                ->pluck('component', 'component')
+                                ->toArray();
+
+                            if ($state && ! isset($options[$state])) {
+                                $options[$state] = $state;
+                            }
+
+                            return $options;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('component')
+                                ->label('Component Name')
+                                ->required(),
+                        ])
+                        ->createOptionUsing(function (array $data): string {
+                            return $data['component'];
+                        })
+                        ->createOptionModalHeading('Add New Component')
+                        ->nullable(),
                     Forms\Components\Textarea::make('notes')
                         ->maxLength(65535)
                         ->columnSpanFull(),
@@ -107,6 +137,7 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('unit'),
             Tables\Columns\TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([

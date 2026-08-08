@@ -10,6 +10,7 @@ class BomItem extends Model
     protected $fillable = [
         'bom_id',
         'material_id',
+        'component',
         'category',
         'quantity_per_unit',
         'unit',

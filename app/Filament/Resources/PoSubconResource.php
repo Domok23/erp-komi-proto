@@ -3,10 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PoSubconResource\Pages;
+use App\Models\ConsumptionRate;
 use App\Models\PoSubcon;
 use App\Models\Project;
 use App\Models\SubProject;
 use App\Services\CodeGenerator;
+use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -233,6 +235,37 @@ class PoSubconResource extends Resource
                                 ->prefix('IDR')
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                                 ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                            Forms\Components\Select::make('component')
+                                ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
+
+                                    $options = ConsumptionRate::where('company_id', $companyId)
+                                        ->whereNotNull('component')
+                                        ->where('component', '!=', '')
+                                        ->distinct()
+                                        ->pluck('component', 'component')
+                                        ->toArray();
+
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('component')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    return $data['component'];
+                                })
+                                ->createOptionModalHeading('Add New Component')
+                                ->nullable()
+                                ->dehydrated(),
                         ])
                         ->columns(3)
                         ->columnSpanFull()

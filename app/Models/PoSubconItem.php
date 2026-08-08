@@ -13,6 +13,7 @@ class PoSubconItem extends Model
         'po_subcon_id',
         'project_id',
         'sub_project_id',
+        'component',
         'description',
         'qty',
         'unit_price',

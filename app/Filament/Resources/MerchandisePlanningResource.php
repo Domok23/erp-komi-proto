@@ -83,6 +83,7 @@ class MerchandisePlanningResource extends Resource
 
                                         return [
                                             'material_id' => $bomItem->material_id,
+                                            'component' => $bomItem->component,
                                             'supplier_id' => $bomItem->material?->supplier_id,
                                             'planned_qty' => $plannedQty,
                                             'unit' => $bomItem->unit,
@@ -212,51 +213,6 @@ class MerchandisePlanningResource extends Resource
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            Forms\Components\Select::make('supplier_id')
-                                ->relationship('supplier', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled()
-                                ->dehydrated(),
-                            Forms\Components\Select::make('subcon_id')
-                                ->relationship('subcon', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled(fn (callable $get) => ! $get('is_subcon'))
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('planned_qty')
-                                ->numeric()
-                                ->step(0.01)
-                                ->default(1)
-                                ->required()
-                                ->minValue(0.01)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $qty = floatval($state);
-                                    $price = floatval(str_replace(',', '', $get('unit_price')));
-                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
-                                })
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('unit')
-                                ->default('pcs')
-                                ->disabled()
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('unit_price')
-                                ->default(0)
-                                ->required()
-                                ->disabled()
-                                ->dehydrated()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-                            Forms\Components\TextInput::make('total_price')
-                                ->default(0)
-                                ->disabled()
-                                ->dehydrated()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\Toggle::make('is_subcon')
                                 ->default(false)
                                 ->label('Is Subcon Service')
@@ -267,6 +223,10 @@ class MerchandisePlanningResource extends Resource
                                         $set('subcon_id', null);
                                     }
                                 }),
+                            Forms\Components\TextInput::make('component')
+                                ->label('Component')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('notes')
                                 ->maxLength(255)
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
@@ -391,6 +351,7 @@ class MerchandisePlanningResource extends Resource
                                     $itemTotalPrice = $shortage * floatval($item->unit_price);
                                     $poItemsData[] = [
                                         'material_id' => $item->material_id,
+                                        'component' => $item->component,
                                         'sub_project_id' => $record->sub_project_id,
                                         'description' => $item->notes ?? 'Raw material',
                                         'qty' => $shortage,
@@ -467,7 +428,9 @@ class MerchandisePlanningResource extends Resource
                                 foreach ($items as $item) {
                                     PoSubconItem::create([
                                         'po_subcon_id' => $po->id,
+                                        'project_id' => $record->project_id,
                                         'sub_project_id' => $record->sub_project_id,
+                                        'component' => $item->component,
                                         'description' => $item->notes ?? 'Subcon service',
                                         'qty' => $item->planned_qty,
                                         'unit_price' => $item->unit_price,

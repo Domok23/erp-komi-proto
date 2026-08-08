@@ -70,7 +70,7 @@ class BomResource extends Resource
                                 $items = $rates->map(function ($rate) {
                                     return [
                                         'material_id' => $rate->material_id,
-                                        'category' => 'main_material', // default category
+                                        'component' => $rate->component,
                                         'quantity_per_unit' => $rate->standard_rate,
                                         'unit' => $rate->unit,
                                         'wastage_percent' => $rate->wastage_rate,
@@ -150,16 +150,6 @@ class BomResource extends Resource
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            Forms\Components\Select::make('category')
-                                ->options([
-                                    'main_material' => 'Main Material',
-                                    'hardware' => 'Hardware',
-                                    'trim' => 'Trim',
-                                    'packaging' => 'Packaging',
-                                ])
-                                ->required()
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
                                 ->numeric()
                                 ->step(0.0001)
@@ -177,6 +167,38 @@ class BomResource extends Resource
                                 ->suffix('%')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
+                            Forms\Components\Select::make('component')
+                                ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
+
+                                    $options = ConsumptionRate::where('company_id', $companyId)
+                                        ->whereNotNull('component')
+                                        ->where('component', '!=', '')
+                                        ->distinct()
+                                        ->pluck('component', 'component')
+                                        ->toArray();
+
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('component')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    return $data['component'];
+                                })
+                                ->createOptionModalHeading('Add New Component')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->nullable(),
                             Forms\Components\TextInput::make('notes')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
