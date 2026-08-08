@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PoSubconResource\Pages;
-use App\Models\ConsumptionRate;
+use App\Models\Component;
 use App\Models\PoSubcon;
 use App\Models\Project;
 use App\Models\SubProject;
@@ -54,7 +54,7 @@ class PoSubconResource extends Resource
                     Forms\Components\Select::make('project_ids')
                         ->label('Projects')
                         ->multiple()
-                        ->options(Project::all()->pluck('name', 'id'))
+                        ->options(fn () => Project::active()->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -148,7 +148,7 @@ class PoSubconResource extends Resource
                                         }
                                     }
 
-                                    if (!is_array($projectIds)) {
+                                    if (! is_array($projectIds)) {
                                         $projectIds = [$projectIds];
                                     }
 
@@ -182,9 +182,10 @@ class PoSubconResource extends Resource
                                 })
                                 ->dehydrated(false)
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    if (!$state) {
+                                    if (! $state) {
                                         $set('project_id', null);
                                         $set('sub_project_id', null);
+
                                         return;
                                     }
 
@@ -240,7 +241,7 @@ class PoSubconResource extends Resource
                                 ->options(function ($state) {
                                     $companyId = CompanyContext::getCompanyId();
 
-                                    $options = \App\Models\Component::where('company_id', $companyId)
+                                    $options = Component::where('company_id', $companyId)
                                         ->pluck('name', 'name')
                                         ->toArray();
 
@@ -259,7 +260,7 @@ class PoSubconResource extends Resource
                                 ])
                                 ->createOptionUsing(function (array $data): string {
                                     $companyId = CompanyContext::getCompanyId();
-                                    $comp = \App\Models\Component::firstOrCreate([
+                                    $comp = Component::firstOrCreate([
                                         'company_id' => $companyId,
                                         'name' => trim($data['name']),
                                     ]);

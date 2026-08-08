@@ -55,6 +55,7 @@ class PoSupplier extends Model
     public function getProjectsAttribute()
     {
         $ids = $this->project_ids ?? ($this->project_id ? [$this->project_id] : []);
+
         return Project::whereIn('id', $ids)->get();
     }
 
@@ -64,6 +65,7 @@ class PoSupplier extends Model
         if ($projects->isEmpty()) {
             return $this->project->name ?? '-';
         }
+
         return $projects->pluck('name')->implode(', ');
     }
 

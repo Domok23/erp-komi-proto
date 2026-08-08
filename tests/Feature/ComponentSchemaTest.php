@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\ConsumptionRate;
 use App\Models\BomItem;
+use App\Models\ConsumptionRate;
 use App\Models\MerchandisePlanningItem;
-use App\Models\PoSupplierItem;
 use App\Models\PoSubconItem;
+use App\Models\PoSupplierItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

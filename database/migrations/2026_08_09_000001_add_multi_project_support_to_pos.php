@@ -42,19 +42,19 @@ return new class extends Migration
                 WHERE project_id IS NOT NULL AND (project_ids IS NULL OR project_ids = '[]')
             ");
 
-            DB::statement("
+            DB::statement('
                 UPDATE po_supplier_items item
                 LEFT JOIN sub_projects sp ON item.sub_project_id = sp.id
                 LEFT JOIN po_suppliers po ON item.po_supplier_id = po.id
                 SET item.project_id = COALESCE(sp.project_id, po.project_id)
-            ");
+            ');
 
-            DB::statement("
+            DB::statement('
                 UPDATE po_subcon_items item
                 LEFT JOIN sub_projects sp ON item.sub_project_id = sp.id
                 LEFT JOIN po_subcons po ON item.po_subcon_id = po.id
                 SET item.project_id = COALESCE(sp.project_id, po.project_id)
-            ");
+            ');
         } else {
             // Portable Eloquent/DB loop for SQLite / testing
             foreach (DB::table('po_suppliers')->whereNotNull('project_id')->get() as $po) {
@@ -72,7 +72,7 @@ return new class extends Migration
                 if ($item->sub_project_id) {
                     $projId = DB::table('sub_projects')->where('id', $item->sub_project_id)->value('project_id');
                 }
-                if (!$projId && $item->po_supplier_id) {
+                if (! $projId && $item->po_supplier_id) {
                     $projId = DB::table('po_suppliers')->where('id', $item->po_supplier_id)->value('project_id');
                 }
                 if ($projId) {
@@ -84,7 +84,7 @@ return new class extends Migration
                 if ($item->sub_project_id) {
                     $projId = DB::table('sub_projects')->where('id', $item->sub_project_id)->value('project_id');
                 }
-                if (!$projId && $item->po_subcon_id) {
+                if (! $projId && $item->po_subcon_id) {
                     $projId = DB::table('po_subcons')->where('id', $item->po_subcon_id)->value('project_id');
                 }
                 if ($projId) {

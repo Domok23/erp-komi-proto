@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager;
+use App\Models\Bom;
+use App\Models\BomItem;
 use App\Models\Company;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -225,7 +227,7 @@ class ConsumptionRatesTest extends TestCase
             'stock' => 0,
         ]);
 
-        $bom = \App\Models\Bom::create([
+        $bom = Bom::create([
             'company_id' => $company->id,
             'design_id' => $design->id,
             'bom_number' => 'BOM-SYNC-01',
@@ -246,7 +248,7 @@ class ConsumptionRatesTest extends TestCase
         ]);
 
         // Assert BOM item was automatically created with component
-        $bomItem = \App\Models\BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->first();
+        $bomItem = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->first();
         $this->assertNotNull($bomItem);
         $this->assertEquals('Front Pocket', $bomItem->component);
 

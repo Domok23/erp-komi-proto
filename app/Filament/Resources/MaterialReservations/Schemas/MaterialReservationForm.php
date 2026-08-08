@@ -37,7 +37,17 @@ class MaterialReservationForm
                         }
                     }),
                 Forms\Components\Select::make('project_id')
-                    ->relationship('project', 'project_code')
+                    ->relationship(
+                        name: 'project',
+                        titleAttribute: 'project_code',
+                        modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                            $selectedId = $get('project_id') ?? $record?->project_id;
+                            $q->whereNull('archived_at');
+                            if ($selectedId) {
+                                $q->orWhere('projects.id', $selectedId);
+                            }
+                        })
+                    )
                     ->searchable()
                     ->preload()
                     ->nullable()

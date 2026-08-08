@@ -31,6 +31,8 @@ class Project extends Model
         'completed_at',
         'target_qty',
         'produced_qty',
+        'archived_at',
+        'archived_by',
     ];
 
     protected $casts = [
@@ -38,9 +40,30 @@ class Project extends Model
         'target_date' => 'date',
         'completed_at' => 'datetime',
         'approved_at' => 'datetime',
+        'archived_at' => 'datetime',
         'target_qty' => 'integer',
         'produced_qty' => 'integer',
     ];
+
+    public function archivedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
+    }
 
     public function customer(): BelongsTo
     {

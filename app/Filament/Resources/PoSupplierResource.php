@@ -4,17 +4,17 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
-use App\Models\Company;
-use App\Models\ConsumptionRate;
+use App\Models\Component;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSupplier;
 use App\Models\Project;
 use App\Models\SubProject;
+use App\Models\User;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
-use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -38,6 +38,7 @@ use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 class PoSupplierResource extends Resource
 {
     protected static ?string $recordTitleAttribute = 'po_number';
+
     protected static ?string $model = PoSupplier::class;
 
     protected static ?string $navigationLabel = 'PO Suppliers';
@@ -50,7 +51,7 @@ class PoSupplierResource extends Resource
     {
         return $schema->schema([
             Forms\Components\Placeholder::make('approval_status')
-                ->label('Approval status')  
+                ->label('Approval status')
                 ->content(fn (?PoSupplier $record) => $record ? new HtmlString(view('filament.components.po-approval-banner', ['record' => $record])->render()) : '')
                 ->columnSpanFull(),
 
@@ -66,7 +67,7 @@ class PoSupplierResource extends Resource
                     Forms\Components\Select::make('project_ids')
                         ->label('Projects')
                         ->multiple()
-                        ->options(Project::all()->pluck('name', 'id'))
+                        ->options(fn () => Project::active()->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -164,7 +165,7 @@ class PoSupplierResource extends Resource
                                         }
                                     }
 
-                                    if (!is_array($projectIds)) {
+                                    if (! is_array($projectIds)) {
                                         $projectIds = [$projectIds];
                                     }
 
@@ -198,9 +199,10 @@ class PoSupplierResource extends Resource
                                 })
                                 ->dehydrated(false)
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    if (!$state) {
+                                    if (! $state) {
                                         $set('project_id', null);
                                         $set('sub_project_id', null);
+
                                         return;
                                     }
 
@@ -285,39 +287,39 @@ class PoSupplierResource extends Resource
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                                 ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\Select::make('component')
-                                 ->label('Component')
-                                 ->options(function ($state) {
-                                     $companyId = CompanyContext::getCompanyId();
+                                ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
 
-                                     $options = \App\Models\Component::where('company_id', $companyId)
-                                         ->pluck('name', 'name')
-                                         ->toArray();
+                                    $options = Component::where('company_id', $companyId)
+                                        ->pluck('name', 'name')
+                                        ->toArray();
 
-                                     if ($state && ! isset($options[$state])) {
-                                         $options[$state] = $state;
-                                     }
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
 
-                                     return $options;
-                                 })
-                                 ->searchable()
-                                 ->preload()
-                                 ->createOptionForm([
-                                     Forms\Components\TextInput::make('name')
-                                         ->label('Component Name')
-                                         ->required(),
-                                 ])
-                                 ->createOptionUsing(function (array $data): string {
-                                     $companyId = CompanyContext::getCompanyId();
-                                     $comp = \App\Models\Component::firstOrCreate([
-                                         'company_id' => $companyId,
-                                         'name' => trim($data['name']),
-                                     ]);
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $comp = Component::firstOrCreate([
+                                        'company_id' => $companyId,
+                                        'name' => trim($data['name']),
+                                    ]);
 
-                                     return $comp->name;
-                                 })
-                                 ->createOptionModalHeading('Add New Component')
-                                 ->nullable()
-                                 ->dehydrated(),
+                                    return $comp->name;
+                                })
+                                ->createOptionModalHeading('Add New Component')
+                                ->nullable()
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('qty_received')
                                 ->default(0)
                                 ->disabled()
@@ -406,18 +408,19 @@ class PoSupplierResource extends Resource
                         })
                         ->requiresConfirmation(),
 
-                    \Filament\Actions\Action::make('downloadPdf')
+                    Action::make('downloadPdf')
                         ->label('Download PDF')
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.po-supplier', [
+                            $pdf = Pdf::loadView('pdf.po-supplier', [
                                 'po' => $record,
                                 'company' => $record->company,
                                 'supplier' => $record->supplier,
                             ]);
+
                             return response()->streamDownload(
-                                fn () => print($pdf->output()),
+                                fn () => print ($pdf->output()),
                                 "po-{$record->po_number}.pdf"
                             );
                         }),
@@ -495,15 +498,15 @@ class PoSupplierResource extends Resource
                 if ($record->approval_status !== 'pending_approval') {
                     return false;
                 }
-                
+
                 $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
-                if (!$activeLevel) {
+                if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
                     $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
-                    if (!$managerApproved) {
+                    if (! $managerApproved) {
                         return false;
                     }
                 }
@@ -514,12 +517,12 @@ class PoSupplierResource extends Resource
                 $formFields = [];
                 /** @var User|null $user */
                 $user = Auth::user();
-                
+
                 if ($user && $user->signature) {
                     $formFields[] = Forms\Components\Placeholder::make('saved_signature_preview')
                         ->label('Your Saved Signature')
-                        ->content(new HtmlString('<div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; max-width: 250px;"><img src="' . e($user->signature) . '" style="max-height: 80px;" /></div>'));
-                        
+                        ->content(new HtmlString('<div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; max-width: 250px;"><img src="'.e($user->signature).'" style="max-height: 80px;" /></div>'));
+
                     $formFields[] = Forms\Components\Toggle::make('use_saved_signature')
                         ->label('Use my saved profile signature')
                         ->default(true)
@@ -531,10 +534,10 @@ class PoSupplierResource extends Resource
                     ->backgroundColor('rgb(248, 250, 252)')
                     ->exportBackgroundColor('rgb(255, 255, 255)')
                     ->penColor('rgb(15, 23, 42)')
-                    ->visible(fn ($get) => !($get('use_saved_signature') ?? false))
-                    ->required(fn ($get) => !($get('use_saved_signature') ?? false));
+                    ->visible(fn ($get) => ! ($get('use_saved_signature') ?? false))
+                    ->required(fn ($get) => ! ($get('use_saved_signature') ?? false));
 
-                if ($user && !$user->signature) {
+                if ($user && ! $user->signature) {
                     $formFields[] = Forms\Components\Checkbox::make('save_to_profile')
                         ->label('Save this signature to my profile for future use')
                         ->default(true);
@@ -551,14 +554,15 @@ class PoSupplierResource extends Resource
                     $signature = $user->signature;
                 } else {
                     $signature = $data['drawn_signature'] ?? null;
-                    
+
                     if ($signature && ($data['save_to_profile'] ?? false)) {
                         $user->update(['signature' => $signature]);
                     }
                 }
 
-                if (!$signature) {
+                if (! $signature) {
                     Notification::make()->title('Signature is required!')->danger()->send();
+
                     return;
                 }
 
@@ -573,7 +577,7 @@ class PoSupplierResource extends Resource
                 }
 
                 $remainingPending = $record->approvals()->where('status', 'pending')->exists();
-                if (!$remainingPending) {
+                if (! $remainingPending) {
                     $record->update([
                         'approval_status' => 'approved',
                         'status' => 'ordered',
@@ -597,15 +601,15 @@ class PoSupplierResource extends Resource
                 if ($record->approval_status !== 'pending_approval') {
                     return false;
                 }
-                
+
                 $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
-                if (!$activeLevel) {
+                if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
                     $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
-                    if (!$managerApproved) {
+                    if (! $managerApproved) {
                         return false;
                     }
                 }
@@ -621,7 +625,7 @@ class PoSupplierResource extends Resource
             ->action(function (PoSupplier $record, array $data) {
                 /** @var User|null $user */
                 $user = Auth::user();
-                
+
                 $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
                 if ($activeLevel) {
                     $activeLevel->update([
@@ -653,7 +657,7 @@ class PoSupplierResource extends Resource
             ->action(function (PoSupplier $record, $livewire) {
                 $baseNumber = preg_replace('/-R\d+$/', '', $record->po_number);
                 $newRevisionNumber = $record->revision_number + 1;
-                $newPoNumber = $baseNumber . '-R' . $newRevisionNumber;
+                $newPoNumber = $baseNumber.'-R'.$newRevisionNumber;
 
                 $newPo = $record->replicate();
                 $newPo->po_number = $newPoNumber;

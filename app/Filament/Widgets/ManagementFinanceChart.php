@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\SalesOrder;
 use App\Models\PoSupplier;
+use App\Models\SalesOrder;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
@@ -12,7 +12,7 @@ class ManagementFinanceChart extends ChartWidget
     protected static bool $isDiscovered = false;
 
     protected ?string $heading = 'Revenue vs Procurement Cost (Last 6 Months)';
-    
+
     protected ?string $maxHeight = '300px';
 
     protected function getData(): array
@@ -24,7 +24,7 @@ class ManagementFinanceChart extends ChartWidget
         for ($i = 5; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $months[] = $date->format('M Y');
-            
+
             $start = $date->copy()->startOfMonth();
             $end = $date->copy()->endOfMonth();
 

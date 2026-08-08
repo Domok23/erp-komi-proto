@@ -46,7 +46,17 @@ class CostingResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
+                        ->relationship(
+                            name: 'project',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                                $selectedId = $get('project_id') ?? $record?->project_id;
+                                $q->whereNull('archived_at');
+                                if ($selectedId) {
+                                    $q->orWhere('projects.id', $selectedId);
+                                }
+                            })
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()

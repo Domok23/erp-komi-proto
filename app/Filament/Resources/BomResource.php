@@ -6,6 +6,7 @@ use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\BomResource\Pages;
 use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
+use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -172,7 +173,7 @@ class BomResource extends Resource
                                 ->options(function ($state) {
                                     $companyId = CompanyContext::getCompanyId();
 
-                                    $options = \App\Models\Component::where('company_id', $companyId)
+                                    $options = Component::where('company_id', $companyId)
                                         ->pluck('name', 'name')
                                         ->toArray();
 
@@ -191,7 +192,7 @@ class BomResource extends Resource
                                 ])
                                 ->createOptionUsing(function (array $data): string {
                                     $companyId = CompanyContext::getCompanyId();
-                                    $comp = \App\Models\Component::firstOrCreate([
+                                    $comp = Component::firstOrCreate([
                                         'company_id' => $companyId,
                                         'name' => trim($data['name']),
                                     ]);

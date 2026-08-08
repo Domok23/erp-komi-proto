@@ -104,6 +104,7 @@ class ProjectMonitor extends Page implements HasTable
                         $pct = min(100, max(0, round($record->progressPercent())));
                         $produced = number_format($record->produced_qty ?? 0);
                         $target = number_format($record->target_qty ?? 0);
+
                         return "<div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden relative min-w-[120px]\">
                             <div class=\"bg-primary-600 h-full rounded-full transition-all duration-300\" style=\"width: {$pct}%\"></div>
                             <span class=\"absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-200\">{$pct}% ({$produced}/{$target})</span>

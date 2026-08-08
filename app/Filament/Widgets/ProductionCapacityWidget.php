@@ -15,12 +15,12 @@ class ProductionCapacityWidget extends Widget
     {
         // Calculate utilization based on planned vs completed quantities in active/planned/running orders
         $activeOrdersQuery = ProductionOrder::whereIn('status', ['planned', 'running', 'in_progress', 'draft']);
-        
+
         $totalPlanned = floatval($activeOrdersQuery->sum('planned_qty'));
         $totalCompleted = floatval($activeOrdersQuery->sum('completed_qty'));
-        
+
         $utilizationRate = $totalPlanned > 0 ? ($totalCompleted / $totalPlanned) * 100 : 0;
-        
+
         $runningOrdersCount = ProductionOrder::whereIn('status', ['running', 'in_progress'])->count();
         $plannedOrdersCount = ProductionOrder::whereIn('status', ['planned', 'draft'])->count();
         $remainingUnits = max(0, $totalPlanned - $totalCompleted);

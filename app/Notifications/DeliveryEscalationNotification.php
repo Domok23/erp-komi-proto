@@ -2,13 +2,15 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
 use Filament\Notifications\Notification as FilamentNotification;
+use Illuminate\Notifications\Notification;
 
 class DeliveryEscalationNotification extends Notification
 {
     private $po;
+
     private $deadline;
+
     private $daysOverdue;
 
     public function __construct($po, $deadline, $daysOverdue)

@@ -10,6 +10,8 @@ use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -313,19 +315,20 @@ class GoodsReceiptResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
-                    \Filament\Actions\Action::make('downloadPdf')
+                    Action::make('downloadPdf')
                         ->label('Download PDF')
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.goods-receipt', [
+                            $pdf = Pdf::loadView('pdf.goods-receipt', [
                                 'goodsReceipt' => $record,
                                 'company' => $record->company,
                                 'warehouse' => $record->warehouse,
                                 'po' => $record->po,
                             ]);
+
                             return response()->streamDownload(
-                                fn () => print($pdf->output()),
+                                fn () => print ($pdf->output()),
                                 "goods-receipt-{$record->gr_number}.pdf"
                             );
                         }),

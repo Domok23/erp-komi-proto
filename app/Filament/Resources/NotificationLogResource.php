@@ -15,9 +15,9 @@ class NotificationLogResource extends Resource
 {
     protected static ?string $model = DeliveryAlertLog::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-bell-alert';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bell-alert';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'System';
+    protected static string|\UnitEnum|null $navigationGroup = 'System';
 
     protected static ?string $navigationLabel = 'Notification Logs';
 
@@ -99,6 +99,7 @@ class NotificationLogResource extends Resource
                         if ($alertable instanceof SubconMaterialOut) {
                             return $alertable->delivery_number ?? '#'.$alertable->id;
                         }
+
                         return '#'.$alertable->id;
                     })
                     ->url(function ($record): ?string {
@@ -109,6 +110,7 @@ class NotificationLogResource extends Resource
                         if ($alertable instanceof SubconMaterialOut) {
                             return SubconMaterialOutResource::getUrl('edit', ['record' => $alertable->id]);
                         }
+
                         return null;
                     }),
 

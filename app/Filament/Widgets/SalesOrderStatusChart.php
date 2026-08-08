@@ -12,14 +12,14 @@ class SalesOrderStatusChart extends ChartWidget
     protected ?string $heading = 'Sales Order Status Breakdown';
 
     protected ?string $description = 'Distribution of sales orders by fulfillment status';
-    
+
     protected ?string $maxHeight = '250px';
 
     protected function getData(): array
     {
         $statuses = ['draft', 'confirmed', 'in_production', 'shipped', 'delivered', 'cancelled'];
         $labels = ['Draft', 'Confirmed', 'In Production', 'Shipped', 'Delivered', 'Cancelled'];
-        
+
         $data = [];
         foreach ($statuses as $status) {
             $count = SalesOrder::where('status', $status)->count();

@@ -5,7 +5,14 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\CompanySettings;
 use App\Filament\Pages\EditProfile;
 use App\Filament\Pages\SelectCompany;
+use App\Filament\Widgets\ErpStatsWidget;
+use App\Filament\Widgets\LowStockMaterials;
+use App\Filament\Widgets\ProjectStatusChart;
+use App\Filament\Widgets\RecentPurchaseOrders;
+use App\Filament\Widgets\RecentSalesOrders;
+use App\Filament\Widgets\SalesTrendChart;
 use App\Http\Middleware\EnsureCompanySelected;
+use App\Livewire\CustomDatabaseNotifications;
 use App\Services\CompanyContext;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -67,12 +74,12 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                \App\Filament\Widgets\ErpStatsWidget::class,
-                \App\Filament\Widgets\SalesTrendChart::class,
-                \App\Filament\Widgets\ProjectStatusChart::class,
-                \App\Filament\Widgets\RecentSalesOrders::class,
-                \App\Filament\Widgets\RecentPurchaseOrders::class,
-                \App\Filament\Widgets\LowStockMaterials::class,
+                ErpStatsWidget::class,
+                SalesTrendChart::class,
+                ProjectStatusChart::class,
+                RecentSalesOrders::class,
+                RecentPurchaseOrders::class,
+                LowStockMaterials::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -109,7 +116,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->sidebarCollapsibleOnDesktop()
             ->profile(EditProfile::class, isSimple: false)
-            ->databaseNotifications(livewireComponent: \App\Livewire\CustomDatabaseNotifications::class)
+            ->databaseNotifications(livewireComponent: CustomDatabaseNotifications::class)
             ->registration();
     }
 }
