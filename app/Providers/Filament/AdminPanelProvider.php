@@ -3,8 +3,10 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\CompanySettings;
+use App\Filament\Pages\EditProfile;
 use App\Filament\Pages\SelectCompany;
 use App\Http\Middleware\EnsureCompanySelected;
+use App\Services\CompanyContext;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -20,6 +22,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -29,13 +32,17 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
+            ->spa()
             ->path('')
-            ->brandName('ERP Komi Proto')
+            ->brandName(fn () => CompanyContext::getCompany()?->brand_name ?? CompanyContext::getCompany()?->name ?? 'ERP Komi Proto')
+            ->brandLogo(fn () => CompanyContext::getCompany()?->logo_path ? Storage::disk('public')->url(CompanyContext::getCompany()->logo_path) : null)
+            ->brandLogoHeight('2.5rem')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
                 'secondary' => Color::Slate,
                 'amber' => Color::Amber,
+                'purple' => Color::Purple,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->navigationGroups([
@@ -50,6 +57,7 @@ class AdminPanelProvider extends PanelProvider
                 'Inventory & Subcon',
                 'Finance & Invoices',
                 'HR',
+                'Settings',
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -58,7 +66,14 @@ class AdminPanelProvider extends PanelProvider
                 CompanySettings::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            ->widgets([])
+            ->widgets([
+                \App\Filament\Widgets\ErpStatsWidget::class,
+                \App\Filament\Widgets\SalesTrendChart::class,
+                \App\Filament\Widgets\ProjectStatusChart::class,
+                \App\Filament\Widgets\RecentSalesOrders::class,
+                \App\Filament\Widgets\RecentPurchaseOrders::class,
+                \App\Filament\Widgets\LowStockMaterials::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -93,6 +108,8 @@ class AdminPanelProvider extends PanelProvider
                 </script>"
             )
             ->sidebarCollapsibleOnDesktop()
+            ->profile(EditProfile::class, isSimple: false)
+            ->databaseNotifications(livewireComponent: \App\Livewire\CustomDatabaseNotifications::class)
             ->registration();
     }
 }

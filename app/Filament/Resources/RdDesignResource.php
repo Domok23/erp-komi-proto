@@ -29,6 +29,13 @@ class RdDesignResource extends Resource
 
     protected static ?string $pluralModelLabel = 'R&D Designs';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'code', 'brand'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

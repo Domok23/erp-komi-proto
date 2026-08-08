@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\PoSupplierResource;
 use App\Models\PoSupplier;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,11 +20,15 @@ class RecentPurchaseOrders extends BaseWidget
     {
         return $table
             ->query(
-                PoSupplier::query()->latest()->limit(5)
+                PoSupplier::query()->latest()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('po_number')
                     ->label('PO Number')
+                    ->fontFamily('mono')
+                    ->weight('bold')
+                    ->color('primary')
+                    ->url(fn (PoSupplier $record): string => PoSupplierResource::getUrl('edit', ['record' => $record]))
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('supplier.name')
@@ -46,6 +51,8 @@ class RecentPurchaseOrders extends BaseWidget
                         'cancelled' => 'danger',
                         default => 'gray',
                     }),
-            ]);
+            ])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 25]);
     }
 }

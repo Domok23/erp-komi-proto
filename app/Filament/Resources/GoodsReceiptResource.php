@@ -23,6 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class GoodsReceiptResource extends Resource
 {
@@ -31,6 +32,8 @@ class GoodsReceiptResource extends Resource
     protected static ?string $navigationLabel = 'Goods Receipt';
 
     protected static ?string $modelLabel = 'Goods Receipt';
+
+    protected static ?string $recordTitleAttribute = 'gr_number';
 
     protected static ?string $pluralModelLabel = 'Goods Receipts';
 
@@ -265,6 +268,19 @@ class GoodsReceiptResource extends Resource
                         ->collapsible()
                         ->itemLabel(fn (array $state): ?string => $state['retur_number'] ?? 'New Return'),
                 ]),
+
+            Section::make('Receiver Sign-off')
+                ->columnSpanFull()
+                ->description('Warehouse / receiver signature to confirm goods have been received.')
+                ->schema([
+                    SignaturePad::make('receiver_signature')
+                        ->label('Receiver Signature')
+                        ->hint('Draw signature to confirm receipt')
+                        ->backgroundColor('rgb(255, 255, 255)')
+                        ->penColor('rgb(15, 23, 42)')
+                        ->downloadable()
+                        ->nullable(),
+                ]),
         ]);
     }
 
@@ -297,6 +313,22 @@ class GoodsReceiptResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    \Filament\Actions\Action::make('downloadPdf')
+                        ->label('Download PDF')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->action(function ($record) {
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.goods-receipt', [
+                                'goodsReceipt' => $record,
+                                'company' => $record->company,
+                                'warehouse' => $record->warehouse,
+                                'po' => $record->po,
+                            ]);
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                "goods-receipt-{$record->gr_number}.pdf"
+                            );
+                        }),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

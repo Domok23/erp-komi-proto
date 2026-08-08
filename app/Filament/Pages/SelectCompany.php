@@ -26,7 +26,7 @@ class SelectCompany extends Page
         if (request()->query('switch') === '1') {
             CompanyContext::clearCompany();
         } elseif (CompanyContext::hasCompany()) {
-            $this->redirect(Filament::getUrl());
+            $this->redirect(Filament::getUrl(), navigate: true);
         }
     }
 
@@ -60,6 +60,6 @@ class SelectCompany extends Page
 
         CompanyContext::setCompany($company);
 
-        $this->redirect(Filament::getUrl());
+        $this->redirect(Filament::getUrl(), navigate: true);
     }
 }

@@ -28,6 +28,13 @@ class ShipmentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Shipments';
 
+    protected static ?string $recordTitleAttribute = 'shipment_number';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['shipment_number', 'container_number', 'bl_number'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

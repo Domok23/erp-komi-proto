@@ -34,6 +34,8 @@ class JobOrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Job Orders';
 
+    protected static ?string $recordTitleAttribute = 'job_order_number';
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

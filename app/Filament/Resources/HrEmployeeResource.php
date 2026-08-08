@@ -30,6 +30,13 @@ class HrEmployeeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Employees';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'employee_number', 'email'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

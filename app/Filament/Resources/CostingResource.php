@@ -35,6 +35,8 @@ class CostingResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Costings';
 
+    protected static ?string $recordTitleAttribute = 'version';
+
     public static function form(Schema $schema): Schema
     {
         $isLocked = fn (?Costing $record): bool => $record && $record->isLocked();

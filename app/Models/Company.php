@@ -10,11 +10,13 @@ class Company extends Model
     protected $fillable = [
         'code',
         'name',
+        'brand_name',
         'address',
         'city',
         'phone',
         'email',
         'npwp',
+        'logo_path',
         'type',
         'is_active',
     ];

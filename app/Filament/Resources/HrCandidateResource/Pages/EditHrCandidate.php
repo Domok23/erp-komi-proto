@@ -102,7 +102,7 @@ class EditHrCandidate extends EditRecord
                             ->success()
                             ->send();
 
-                        return redirect(HrEmployeeResource::getUrl('edit', ['record' => $employee]));
+                        return $this->redirect(HrEmployeeResource::getUrl('edit', ['record' => $employee]), navigate: true);
                     } catch (HrHireException $e) {
                         Notification::make()
                             ->title('Hire failed')

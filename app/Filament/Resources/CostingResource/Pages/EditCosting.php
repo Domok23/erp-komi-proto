@@ -141,7 +141,7 @@ class EditCosting extends EditRecord
                         ->success()
                         ->send();
 
-                    $this->redirect(CostingResource::getUrl('edit', ['record' => $new->id]));
+                    $this->redirect(CostingResource::getUrl('edit', ['record' => $new->id]), navigate: true);
                 }),
 
             Actions\Action::make('duplicate')
@@ -157,7 +157,7 @@ class EditCosting extends EditRecord
                         ->success()
                         ->send();
 
-                    $this->redirect(CostingResource::getUrl('edit', ['record' => $new->id]));
+                    $this->redirect(CostingResource::getUrl('edit', ['record' => $new->id]), navigate: true);
                 }),
 
             Actions\DeleteAction::make()

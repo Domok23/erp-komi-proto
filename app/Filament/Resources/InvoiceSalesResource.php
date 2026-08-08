@@ -34,6 +34,13 @@ class InvoiceSalesResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Invoice Sales';
 
+    protected static ?string $recordTitleAttribute = 'invoice_number';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['invoice_number', 'tax_invoice_number'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

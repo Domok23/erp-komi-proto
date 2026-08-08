@@ -27,6 +27,13 @@ class CustomerResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Customers';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'code', 'email', 'phone'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

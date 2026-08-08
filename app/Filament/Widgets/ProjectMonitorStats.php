@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 
 class ProjectMonitorStats extends BaseWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected ?string $pollingInterval = '30s';
 
     protected function getStats(): array
