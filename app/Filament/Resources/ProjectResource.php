@@ -446,17 +446,26 @@ class ProjectResource extends Resource
                                 return [];
                             }
 
-                            $blockerLines = collect(ProjectArchiveService::blockers($record))
-                                ->map(fn (array $b) => '• '.$b['label'])
-                                ->implode("\n");
+                            $blockers = ProjectArchiveService::blockers($record);
+                            $html = "<div>Force-archive project <strong>{$record->project_code}</strong>.</div>";
+
+                            if (! in_array($record->status, ['completed', 'cancelled'], true)) {
+                                $html .= '<div class="mt-1 text-sm text-gray-500">Project status is not completed/cancelled.</div>';
+                            }
+
+                            if ($blockers !== []) {
+                                $html .= '<div class="mt-2 text-sm font-semibold text-danger-600">Active Blockers:</div>';
+                                $html .= '<ul class="mt-1 list-inside list-disc text-sm space-y-1 text-gray-700 dark:text-gray-300">';
+                                foreach ($blockers as $b) {
+                                    $html .= '<li>'.e($b['label']).'</li>';
+                                }
+                                $html .= '</ul>';
+                            }
 
                             return [
                                 Forms\Components\Placeholder::make('force_warning')
                                     ->label('Warning')
-                                    ->content(
-                                        "Force-archive project {$record->project_code}.\n"
-                                        .($blockerLines !== '' ? "Blockers:\n{$blockerLines}" : 'Project status is not completed/cancelled.')
-                                    ),
+                                    ->content(new HtmlString($html)),
                                 Forms\Components\Checkbox::make('confirm_risk')
                                     ->label('I understand the risks')
                                     ->accepted()
@@ -491,7 +500,7 @@ class ProjectResource extends Resource
                             } catch (ProjectArchiveException $e) {
                                 $body = $e->getMessage();
                                 if ($e->blockers() !== []) {
-                                    $body .= "\n".collect($e->blockers())->pluck('label')->map(fn ($l) => '• '.$l)->implode("\n");
+                                    $body .= "\n\nBlockers:\n".collect($e->blockers())->pluck('label')->map(fn ($l) => '- '.$l)->implode("\n");
                                 }
                                 Notification::make()
                                     ->title('Archive failed')
