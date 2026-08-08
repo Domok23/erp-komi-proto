@@ -55,9 +55,11 @@ class TopManagementDashboard extends Page implements HasTable
                 Tables\Columns\TextColumn::make('po_number')
                     ->label('PO Number')
                     ->fontFamily('mono')
+                    ->weight('bold')
+                    ->color('primary')
+                    ->url(fn (PoSupplier $record): string => \App\Filament\Resources\PoSupplierResource::getUrl('edit', ['record' => $record]))
                     ->searchable()
-                    ->sortable()
-                    ->weight('bold'),
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('supplier.name')
                     ->label('Supplier')
                     ->searchable()
@@ -81,6 +83,8 @@ class TopManagementDashboard extends Page implements HasTable
                 \App\Filament\Resources\PoSupplierResource::getRejectApprovalAction(),
             ])
             ->emptyStateHeading('No pending approvals')
-            ->emptyStateDescription('All purchase orders have been signed and authorized.');
+            ->emptyStateDescription('All purchase orders have been signed and authorized.')
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 25]);
     }
 }

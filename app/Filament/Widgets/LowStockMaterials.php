@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\MaterialResource;
 use App\Models\Material;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -23,11 +24,13 @@ class LowStockMaterials extends BaseWidget
                     ->whereColumn('stock', '<=', 'min_stock')
                     ->where('is_active', true)
                     ->orderBy('stock')
-                    ->limit(5)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Material')
+                    ->weight('bold')
+                    ->color('primary')
+                    ->url(fn (Material $record): string => MaterialResource::getUrl('edit', ['record' => $record]))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock')
                     ->label('Stock')
@@ -37,6 +40,8 @@ class LowStockMaterials extends BaseWidget
                     ->label('Min')
                     ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->suffix(fn ($record) => ' '.$record->unit),
-            ]);
+            ])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 25]);
     }
 }

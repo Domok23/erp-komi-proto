@@ -202,7 +202,7 @@ class ProjectMonitor extends Page implements HasTable
                     ->slideOver()
                     ->modalWidth('4xl'),
             ])
-            ->paginated([10, 25, 50])
-            ->defaultPaginationPageOption(10);
+            ->paginated([5, 10, 25, 50])
+            ->defaultPaginationPageOption(5);
     }
 }

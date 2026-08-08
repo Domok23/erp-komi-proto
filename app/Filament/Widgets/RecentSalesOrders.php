@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\SalesOrderResource;
 use App\Models\SalesOrder;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,11 +20,15 @@ class RecentSalesOrders extends BaseWidget
     {
         return $table
             ->query(
-                SalesOrder::query()->latest()->limit(5)
+                SalesOrder::query()->latest()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('so_number')
                     ->label('SO Number')
+                    ->fontFamily('mono')
+                    ->weight('bold')
+                    ->color('primary')
+                    ->url(fn (SalesOrder $record): string => SalesOrderResource::getUrl('edit', ['record' => $record]))
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer.name')
@@ -46,6 +51,8 @@ class RecentSalesOrders extends BaseWidget
                         'cancelled' => 'danger',
                         default => 'gray',
                     }),
-            ]);
+            ])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 25]);
     }
 }
