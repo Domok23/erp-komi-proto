@@ -370,10 +370,57 @@ class ProjectResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('approve')
+                        ->label('Approve')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn ($record) => ! $record->isArchived() && $record->status !== 'approved')
+                        ->action(function ($record) {
+                            try {
+                                ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
+                                Notification::make()
+                                    ->title('Project Approved')
+                                    ->success()
+                                    ->send();
+                            } catch (SubProjectException $e) {
+                                Notification::make()
+                                    ->title('Review Sub-Project Belum Selesai')
+                                    ->body($e->getMessage())
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation(),
+                    Action::make('duplicate')
+                        ->label('Duplicate')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('info')
+                        ->visible(fn ($record) => ! $record->isArchived())
+                        ->action(function ($record) {
+                            $copy = ProjectTransitionService::duplicateProject($record);
+                            Notification::make()
+                                ->title('Project Duplicated: '.$copy->project_code)
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('manage_team')
+                        ->label('Team Members')
+                        ->icon('heroicon-o-user-group')
+                        ->color('info')
+                        ->modalHeading(fn ($record) => "Team Members: {$record->name} [{$record->project_code}]")
+                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
+                            'projectId' => $record->id,
+                            'isReadOnly' => false,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalWidth('4xl'),
+                    EditAction::make(),
                     Action::make('archive')
                         ->label('Archive')
                         ->icon('heroicon-o-archive-box')
-                        ->color('warning')
+                        ->color('danger')
                         ->visible(function (Project $record): bool {
                             if ($record->isArchived()) {
                                 return false;
@@ -467,53 +514,6 @@ class ProjectResource extends Resource
                                 Notification::make()->title('Restore failed')->body($e->getMessage())->danger()->send();
                             }
                         }),
-                    Action::make('approve')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(fn ($record) => ! $record->isArchived() && $record->status !== 'approved')
-                        ->action(function ($record) {
-                            try {
-                                ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
-                                Notification::make()
-                                    ->title('Project Approved')
-                                    ->success()
-                                    ->send();
-                            } catch (SubProjectException $e) {
-                                Notification::make()
-                                    ->title('Review Sub-Project Belum Selesai')
-                                    ->body($e->getMessage())
-                                    ->warning()
-                                    ->persistent()
-                                    ->send();
-                            }
-                        })
-                        ->requiresConfirmation(),
-                    Action::make('duplicate')
-                        ->label('Duplicate')
-                        ->icon('heroicon-o-document-duplicate')
-                        ->color('info')
-                        ->visible(fn ($record) => ! $record->isArchived())
-                        ->action(function ($record) {
-                            $copy = ProjectTransitionService::duplicateProject($record);
-                            Notification::make()
-                                ->title('Project Duplicated: '.$copy->project_code)
-                                ->success()
-                                ->send();
-                        }),
-                    Action::make('manage_team')
-                        ->label('Team Members')
-                        ->icon('heroicon-o-user-group')
-                        ->color('info')
-                        ->modalHeading(fn ($record) => "Team Members: {$record->name} [{$record->project_code}]")
-                        ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
-                            'projectId' => $record->id,
-                            'isReadOnly' => false,
-                        ]))
-                        ->modalSubmitAction(false)
-                        ->modalCancelActionLabel('Close')
-                        ->modalWidth('4xl'),
-                    EditAction::make(),
                     DeleteAction::make()->visible(fn ($record) => ! $record->isArchived()),
                 ]),
             ])
