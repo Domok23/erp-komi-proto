@@ -69,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 \App\Filament\Widgets\ErpStatsWidget::class,
                 \App\Filament\Widgets\SalesTrendChart::class,
+                \App\Filament\Widgets\ProjectStatusChart::class,
                 \App\Filament\Widgets\RecentSalesOrders::class,
                 \App\Filament\Widgets\RecentPurchaseOrders::class,
                 \App\Filament\Widgets\LowStockMaterials::class,
