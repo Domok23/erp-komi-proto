@@ -21,11 +21,20 @@ class ProductionCapacityWidget extends Widget
         
         $utilizationRate = $totalPlanned > 0 ? ($totalCompleted / $totalPlanned) * 100 : 0;
         
+        $runningOrdersCount = ProductionOrder::whereIn('status', ['running', 'in_progress'])->count();
+        $plannedOrdersCount = ProductionOrder::whereIn('status', ['planned', 'draft'])->count();
+        $remainingUnits = max(0, $totalPlanned - $totalCompleted);
+        $runningOrderRate = $activeOrdersQuery->count() > 0 ? round(($runningOrdersCount / $activeOrdersQuery->count()) * 100) : 0;
+
         return [
             'totalPlanned' => $totalPlanned,
             'totalCompleted' => $totalCompleted,
+            'remainingUnits' => $remainingUnits,
             'utilizationRate' => min(100, round($utilizationRate, 1)),
             'activeOrdersCount' => $activeOrdersQuery->count(),
+            'runningOrdersCount' => $runningOrdersCount,
+            'plannedOrdersCount' => $plannedOrdersCount,
+            'runningOrderRate' => $runningOrderRate,
         ];
     }
 }

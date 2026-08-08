@@ -10,6 +10,8 @@ class SalesOrderStatusChart extends ChartWidget
     protected static bool $isDiscovered = false;
 
     protected ?string $heading = 'Sales Order Status Breakdown';
+
+    protected ?string $description = 'Distribution of sales orders by fulfillment status';
     
     protected ?string $maxHeight = '250px';
 

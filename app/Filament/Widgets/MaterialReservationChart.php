@@ -11,7 +11,7 @@ class MaterialReservationChart extends ChartWidget
 
     protected ?string $heading = 'Material Reservation Status Breakdown';
     
-    protected ?string $maxHeight = '250px';
+    protected ?string $maxHeight = '300px';
 
     protected function getData(): array
     {
