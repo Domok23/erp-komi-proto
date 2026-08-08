@@ -420,7 +420,7 @@ class ProjectResource extends Resource
                     Action::make('archive')
                         ->label('Archive')
                         ->icon('heroicon-o-archive-box')
-                        ->color('danger')
+                        ->color('secondary')
                         ->visible(function (Project $record): bool {
                             if ($record->isArchived()) {
                                 return false;
