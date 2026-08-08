@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HrLeaveRequestResource\Pages;
 
+use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -19,13 +20,13 @@ class ListHrLeaveRequests extends ListRecords
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->color('gray')
                 ->url(function (): ?string {
-                    $company = CompanyContext::getCompany() ?? Auth::user()?->company ?? \App\Models\Company::first();
+                    $company = CompanyContext::getCompany() ?? Auth::user()?->company ?? Company::first();
 
                     return $company ? route('leave-request.lookup', $company->code) : null;
                 })
                 ->openUrlInNewTab()
                 ->visible(function (): bool {
-                    $company = CompanyContext::getCompany() ?? Auth::user()?->company ?? \App\Models\Company::first();
+                    $company = CompanyContext::getCompany() ?? Auth::user()?->company ?? Company::first();
 
                     return $company !== null;
                 }),

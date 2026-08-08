@@ -2,16 +2,16 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\PoSupplierResource;
+use App\Filament\Widgets\TopManagementOverview;
 use App\Models\PoSupplier;
 use App\Models\SalesOrder;
-use App\Models\GoodsReceipt;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Saade\FilamentAutograph\Forms\Components\SignaturePad;
+use Illuminate\Support\Collection;
 
 class TopManagementDashboard extends Page implements HasTable
 {
@@ -30,13 +30,13 @@ class TopManagementDashboard extends Page implements HasTable
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Widgets\TopManagementOverview::class,
+            TopManagementOverview::class,
         ];
     }
 
-    public function getHighValueOrders(): \Illuminate\Support\Collection
+    public function getHighValueOrders(): Collection
     {
-        return \App\Models\SalesOrder::with('customer')
+        return SalesOrder::with('customer')
             ->orderByDesc('grand_total')
             ->limit(3)
             ->get();
@@ -57,7 +57,7 @@ class TopManagementDashboard extends Page implements HasTable
                     ->fontFamily('mono')
                     ->weight('bold')
                     ->color('primary')
-                    ->url(fn (PoSupplier $record): string => \App\Filament\Resources\PoSupplierResource::getUrl('edit', ['record' => $record]))
+                    ->url(fn (PoSupplier $record): string => PoSupplierResource::getUrl('edit', ['record' => $record]))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('supplier.name')
@@ -79,8 +79,8 @@ class TopManagementDashboard extends Page implements HasTable
                     ->sortable(),
             ])
             ->actions([
-                \App\Filament\Resources\PoSupplierResource::getApproveSignAction(),
-                \App\Filament\Resources\PoSupplierResource::getRejectApprovalAction(),
+                PoSupplierResource::getApproveSignAction(),
+                PoSupplierResource::getRejectApprovalAction(),
             ])
             ->emptyStateHeading('No pending approvals')
             ->emptyStateDescription('All purchase orders have been signed and authorized.')

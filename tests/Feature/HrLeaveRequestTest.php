@@ -3,13 +3,16 @@
 namespace Tests\Feature;
 
 use App\Exceptions\HrLeaveRequestException;
+use App\Filament\Resources\HrLeaveRequestResource\Pages\ListHrLeaveRequests;
 use App\Models\Company;
 use App\Models\HrEmployee;
 use App\Models\HrLeaveBalance;
 use App\Models\HrLeaveType;
 use App\Models\User;
+use App\Services\CompanyContext;
 use App\Services\LeaveRequestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class HrLeaveRequestTest extends TestCase
@@ -258,7 +261,7 @@ class HrLeaveRequestTest extends TestCase
 
     public function test_submit_leave_on_weekend_only_throws_exception(): void
     {
-        $this->expectException(\App\Exceptions\HrLeaveRequestException::class);
+        $this->expectException(HrLeaveRequestException::class);
         $this->expectExceptionMessage('minimal 1 hari kerja');
 
         LeaveRequestService::submit($this->employee, [
@@ -276,7 +279,7 @@ class HrLeaveRequestTest extends TestCase
             ->where('leave_type_id', $this->quotaType->id)
             ->update(['quota_days' => 1]);
 
-        $this->expectException(\App\Exceptions\HrLeaveRequestException::class);
+        $this->expectException(HrLeaveRequestException::class);
         $this->expectExceptionMessage('tidak mencukupi');
 
         LeaveRequestService::submit($this->employee, [
@@ -290,9 +293,9 @@ class HrLeaveRequestTest extends TestCase
     public function test_list_page_contains_self_service_action_button(): void
     {
         $this->actingAs($this->user);
-        \App\Services\CompanyContext::setCompany($this->company);
+        CompanyContext::setCompany($this->company);
 
-        \Livewire\Livewire::test(\App\Filament\Resources\HrLeaveRequestResource\Pages\ListHrLeaveRequests::class)
+        Livewire::test(ListHrLeaveRequests::class)
             ->assertActionExists('self_service')
             ->assertActionVisible('self_service');
     }

@@ -20,6 +20,7 @@ class PoSupplier extends Model
         'company_id',
         'po_number',
         'project_id',
+        'project_ids',
         'supplier_id',
         'po_date',
         'delivery_date',
@@ -36,6 +37,7 @@ class PoSupplier extends Model
     ];
 
     protected $casts = [
+        'project_ids' => 'array',
         'po_date' => 'date',
         'delivery_date' => 'date',
         'subtotal' => 'decimal:2',
@@ -48,6 +50,23 @@ class PoSupplier extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function getProjectsAttribute()
+    {
+        $ids = $this->project_ids ?? ($this->project_id ? [$this->project_id] : []);
+
+        return Project::whereIn('id', $ids)->get();
+    }
+
+    public function getProjectNamesAttribute(): string
+    {
+        $projects = $this->projects;
+        if ($projects->isEmpty()) {
+            return $this->project->name ?? '-';
+        }
+
+        return $projects->pluck('name')->implode(', ');
     }
 
     public function supplier(): BelongsTo

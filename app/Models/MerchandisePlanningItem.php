@@ -10,6 +10,7 @@ class MerchandisePlanningItem extends Model
     protected $fillable = [
         'merchandise_planning_id',
         'material_id',
+        'component',
         'supplier_id',
         'subcon_id',
         'planned_qty',

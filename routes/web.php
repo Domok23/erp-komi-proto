@@ -16,4 +16,3 @@ Route::middleware('throttle:30,1')->prefix('leave-request')->name('leave-request
     Route::post('/{companyCode}/submit', [PublicLeaveRequestController::class, 'submit'])->name('submit');
     Route::get('/attachment/{leaveRequest}', [PublicLeaveRequestController::class, 'attachment'])->name('attachment');
 });
-

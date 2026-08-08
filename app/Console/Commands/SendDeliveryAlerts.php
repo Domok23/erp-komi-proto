@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DeliveryAlertLog;
 use App\Models\PoSubcon;
 use App\Models\PoSupplier;
-use App\Models\DeliveryAlertLog;
 use App\Models\User;
-use App\Notifications\DeliveryWarningNotification;
-use App\Notifications\DeliveryOverdueNotification;
 use App\Notifications\DeliveryEscalationNotification;
+use App\Notifications\DeliveryOverdueNotification;
+use App\Notifications\DeliveryWarningNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class SendDeliveryAlerts extends Command
 {
     protected $signature = 'app:send-delivery-alerts';
+
     protected $description = 'Scan active POs and shipments and send delivery alert notifications';
 
     public function handle(): int
@@ -34,6 +35,7 @@ class SendDeliveryAlerts extends Command
         }
 
         $this->info('Delivery alerts scan completed.');
+
         return 0;
     }
 
@@ -56,7 +58,7 @@ class SendDeliveryAlerts extends Command
             $deadlineDate = $po->delivery_date;
         }
 
-        if (!$deadlineDate) {
+        if (! $deadlineDate) {
             return; // No deadline reference, skip
         }
 
@@ -76,7 +78,7 @@ class SendDeliveryAlerts extends Command
             $targetLevel = 'warning';
         }
 
-        if (!$targetLevel) {
+        if (! $targetLevel) {
             return;
         }
 
@@ -103,7 +105,7 @@ class SendDeliveryAlerts extends Command
                 'alert_level' => $level,
             ])->exists();
 
-            if (!$alreadySent) {
+            if (! $alreadySent) {
                 // Determine notification class
                 $notificationClass = match ($level) {
                     'warning' => DeliveryWarningNotification::class,

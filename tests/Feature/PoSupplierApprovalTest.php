@@ -14,7 +14,9 @@ class PoSupplierApprovalTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Company $company;
+
     private Supplier $supplier;
 
     protected function setUp(): void
@@ -128,7 +130,7 @@ class PoSupplierApprovalTest extends TestCase
         ]);
 
         $remainingPending = $po->approvals()->where('status', 'pending')->exists();
-        if (!$remainingPending) {
+        if (! $remainingPending) {
             $po->update([
                 'approval_status' => 'approved',
                 'status' => 'ordered',
@@ -182,7 +184,7 @@ class PoSupplierApprovalTest extends TestCase
         // Clone/replicate to create revision
         $baseNumber = preg_replace('/-R\d+$/', '', $po->po_number);
         $newRevisionNumber = $po->revision_number + 1;
-        $newPoNumber = $baseNumber . '-R' . $newRevisionNumber;
+        $newPoNumber = $baseNumber.'-R'.$newRevisionNumber;
 
         $newPo = $po->replicate();
         $newPo->po_number = $newPoNumber;

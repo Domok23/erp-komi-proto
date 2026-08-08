@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager;
+use App\Models\Bom;
+use App\Models\BomItem;
 use App\Models\Company;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -197,5 +199,64 @@ class ConsumptionRatesTest extends TestCase
         $this->assertNull($managerClass::normalizeDecimal(''));
         $this->assertEquals(10.5, $managerClass::normalizeDecimal('10.5'));
         $this->assertEquals(10.5, $managerClass::normalizeDecimal('10,5'));
+    }
+
+    public function test_consumption_rate_syncs_with_existing_bom_items(): void
+    {
+        $company = Company::create([
+            'name' => 'Sync Test Co',
+            'code' => 'STC',
+            'address' => 'Test Address',
+        ]);
+
+        $design = RdDesign::create([
+            'company_id' => $company->id,
+            'code' => 'DES-SYNC-01',
+            'name' => 'Sync Design',
+            'product_type' => 'jacket',
+            'status' => 'approved',
+        ]);
+
+        $material = Material::create([
+            'company_id' => $company->id,
+            'code' => 'MAT-SYNC-01',
+            'name' => 'Sync Material',
+            'category' => 'fabric',
+            'unit' => 'yard',
+            'price' => 5000,
+            'stock' => 0,
+        ]);
+
+        $bom = Bom::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'bom_number' => 'BOM-SYNC-01',
+            'name' => 'BOM Sync Test',
+            'version' => '1.0',
+            'status' => 'draft',
+        ]);
+
+        // Create initial consumption rate
+        $rate = ConsumptionRate::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'material_id' => $material->id,
+            'component' => 'Front Pocket',
+            'standard_rate' => 2.0,
+            'unit' => 'yard',
+            'wastage_rate' => 5,
+        ]);
+
+        // Assert BOM item was automatically created with component
+        $bomItem = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->first();
+        $this->assertNotNull($bomItem);
+        $this->assertEquals('Front Pocket', $bomItem->component);
+
+        // Update consumption rate component
+        $rate->update(['component' => 'Back Pocket & Flap']);
+
+        // Assert BOM item component was automatically updated
+        $bomItem->refresh();
+        $this->assertEquals('Back Pocket & Flap', $bomItem->component);
     }
 }

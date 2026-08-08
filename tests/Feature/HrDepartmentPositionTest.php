@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\HrDepartmentResource;
 use App\Filament\Resources\HrDepartmentResource\Pages\CreateHrDepartment;
 use App\Filament\Resources\HrDepartmentResource\Pages\EditHrDepartment;
 use App\Filament\Resources\HrDepartmentResource\Pages\ListHrDepartments;

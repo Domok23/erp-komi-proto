@@ -19,9 +19,9 @@ use App\Models\HrPositionHistory;
 use App\Models\HrWarningLetter;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Seeder;
 
 class HrModuleSeeder extends Seeder
 {

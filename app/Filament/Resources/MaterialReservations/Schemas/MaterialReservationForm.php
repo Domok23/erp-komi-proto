@@ -4,6 +4,7 @@ namespace App\Filament\Resources\MaterialReservations\Schemas;
 
 use App\Models\InventoryStock;
 use App\Models\Material;
+use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use Filament\Forms;
@@ -36,12 +37,61 @@ class MaterialReservationForm
                         }
                     }),
                 Forms\Components\Select::make('project_id')
-                    ->relationship('project', 'project_code')
+                    ->relationship(
+                        name: 'project',
+                        titleAttribute: 'project_code',
+                        modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                            $selectedId = $get('project_id') ?? $record?->project_id;
+                            $q->whereNull('archived_at');
+                            if ($selectedId) {
+                                $q->orWhere('projects.id', $selectedId);
+                            }
+                        })
+                    )
                     ->searchable()
                     ->preload()
                     ->nullable()
+                    ->reactive()
                     ->visible(fn (callable $get) => $get('reservation_type') === 'project')
                     ->required(fn (callable $get) => $get('reservation_type') === 'project'),
+                Forms\Components\Select::make('sub_project_id')
+                    ->label('Sub-Project')
+                    ->relationship('subProject', 'name', function ($query, Get $get) {
+                        $projectId = $get('project_id');
+                        if ($projectId) {
+                            return $query->where('project_id', $projectId);
+                        }
+
+                        return $query;
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->reactive()
+                    ->visible(function (Get $get) {
+                        if ($get('reservation_type') !== 'project') {
+                            return false;
+                        }
+                        $projectId = $get('project_id');
+                        if (! $projectId) {
+                            return false;
+                        }
+                        $project = Project::find($projectId);
+
+                        return $project && $project->hasSubProjects();
+                    })
+                    ->required(function (Get $get) {
+                        if ($get('reservation_type') !== 'project') {
+                            return false;
+                        }
+                        $projectId = $get('project_id');
+                        if (! $projectId) {
+                            return false;
+                        }
+                        $project = Project::find($projectId);
+
+                        return $project && $project->hasSubProjects();
+                    }),
                 Forms\Components\Select::make('warehouse_id')
                     ->relationship('warehouse', 'name')
                     ->searchable()

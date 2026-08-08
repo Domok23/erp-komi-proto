@@ -3,8 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PoSubconResource\Pages;
+use App\Models\Component;
 use App\Models\PoSubcon;
+use App\Models\Project;
+use App\Models\SubProject;
 use App\Services\CodeGenerator;
+use App\Services\CompanyContext;
 use App\Services\InvoiceGeneratorService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -47,13 +51,22 @@ class PoSubconResource extends Resource
                         ->disabled()
                         ->dehydrated()
                         ->required(),
-                    Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
-                        ->allowHtml()
+                    Forms\Components\Select::make('project_ids')
+                        ->label('Projects')
+                        ->multiple()
+                        ->options(fn () => Project::active()->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
-                        ->nullable(),
+                        ->nullable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if (is_array($state) && count($state) > 0) {
+                                $set('project_id', $state[0]);
+                            } else {
+                                $set('project_id', null);
+                            }
+                        }),
+                    Forms\Components\Hidden::make('project_id')->dehydrated(),
                     Forms\Components\Select::make('subcon_id')
                         ->relationship('subcon', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SubconResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -122,6 +135,73 @@ class PoSubconResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            Forms\Components\Select::make('allocation_target')
+                                ->label(new HtmlString('Sub-Project <span title="Selected sub-project or project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                                ->options(function (callable $get) {
+                                    $projectIds = $get('../../project_ids');
+                                    if (empty($projectIds)) {
+                                        $legacyId = $get('../../project_id');
+                                        if ($legacyId) {
+                                            $projectIds = [$legacyId];
+                                        } else {
+                                            return [];
+                                        }
+                                    }
+
+                                    if (! is_array($projectIds)) {
+                                        $projectIds = [$projectIds];
+                                    }
+
+                                    $projects = Project::with('subProjects')->whereIn('id', $projectIds)->get();
+                                    $options = [];
+
+                                    foreach ($projects as $project) {
+                                        if ($project->hasSubProjects()) {
+                                            foreach ($project->subProjects as $sp) {
+                                                $options["sp_{$sp->id}"] = "[{$project->name}] {$sp->name}";
+                                            }
+                                        } else {
+                                            $options["proj_{$project->id}"] = "[{$project->name}]";
+                                        }
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->reactive()
+                                ->afterStateHydrated(function ($component, $state, $record) {
+                                    if ($record) {
+                                        if ($record->sub_project_id) {
+                                            $component->state("sp_{$record->sub_project_id}");
+                                        } elseif ($record->project_id) {
+                                            $component->state("proj_{$record->project_id}");
+                                        }
+                                    }
+                                })
+                                ->dehydrated(false)
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if (! $state) {
+                                        $set('project_id', null);
+                                        $set('sub_project_id', null);
+
+                                        return;
+                                    }
+
+                                    if (str_starts_with($state, 'sp_')) {
+                                        $spId = (int) str_replace('sp_', '', $state);
+                                        $sp = SubProject::find($spId);
+                                        $set('sub_project_id', $spId);
+                                        $set('project_id', $sp?->project_id);
+                                    } elseif (str_starts_with($state, 'proj_')) {
+                                        $projId = (int) str_replace('proj_', '', $state);
+                                        $set('project_id', $projId);
+                                        $set('sub_project_id', null);
+                                    }
+                                }),
+                            Forms\Components\Hidden::make('project_id')->dehydrated(),
+                            Forms\Components\Hidden::make('sub_project_id')->dehydrated(),
                             Forms\Components\TextInput::make('description')
                                 ->required(),
                             Forms\Components\TextInput::make('qty')
@@ -156,6 +236,40 @@ class PoSubconResource extends Resource
                                 ->prefix('IDR')
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                                 ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                            Forms\Components\Select::make('component')
+                                ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
+
+                                    $options = Component::where('company_id', $companyId)
+                                        ->pluck('name', 'name')
+                                        ->toArray();
+
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $comp = Component::firstOrCreate([
+                                        'company_id' => $companyId,
+                                        'name' => trim($data['name']),
+                                    ]);
+
+                                    return $comp->name;
+                                })
+                                ->createOptionModalHeading('Add New Component')
+                                ->nullable()
+                                ->dehydrated(),
                         ])
                         ->columns(3)
                         ->columnSpanFull()

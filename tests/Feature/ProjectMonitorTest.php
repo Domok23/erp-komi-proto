@@ -6,11 +6,12 @@ use App\Filament\Pages\ProjectMonitor;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
-use App\Models\Customer;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\Project;
+use App\Models\RdDesign;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\ProjectMaterialReadiness;
 use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,7 +44,7 @@ class ProjectMonitorTest extends TestCase
             'target_date' => now()->addDays(5),
         ]);
 
-        $page = new ProjectMonitor();
+        $page = new ProjectMonitor;
         $query = $page->table(Table::make($page))->getQuery();
 
         $this->assertNotNull($query);
@@ -82,7 +83,7 @@ class ProjectMonitorTest extends TestCase
             'status' => 'completed',
         ]);
 
-        $page = new ProjectMonitor();
+        $page = new ProjectMonitor;
         $results = $page->table(Table::make($page))->getQuery()->get();
 
         $this->assertTrue($results->contains('id', $liveProject->id));
@@ -107,7 +108,7 @@ class ProjectMonitorTest extends TestCase
             'total_stock' => 500,
         ]);
 
-        $design = \App\Models\RdDesign::create([
+        $design = RdDesign::create([
             'company_id' => $company->id,
             'code' => 'DSG-001',
             'name' => 'Test Design',
@@ -141,7 +142,7 @@ class ProjectMonitorTest extends TestCase
             'status' => 'production',
         ]);
 
-        $warehouse = \App\Models\Warehouse::create([
+        $warehouse = Warehouse::create([
             'company_id' => $company->id,
             'code' => 'WH-MAIN',
             'name' => 'Main Warehouse',
@@ -156,7 +157,7 @@ class ProjectMonitorTest extends TestCase
             'unit' => 'm',
         ]);
 
-        $service = new ProjectMaterialReadiness();
+        $service = new ProjectMaterialReadiness;
         $status = $service->getProjectStatus($project);
 
         $this->assertEquals('Ready', $status);

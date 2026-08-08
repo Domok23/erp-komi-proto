@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
+use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -87,6 +88,39 @@ class ConsumptionRateResource extends Resource
                         ->required()
                         ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
+                    Forms\Components\Select::make('component')
+                        ->label('Component')
+                        ->options(function ($state) {
+                            $companyId = CompanyContext::getCompanyId();
+
+                            $options = Component::where('company_id', $companyId)
+                                ->pluck('name', 'name')
+                                ->toArray();
+
+                            if ($state && ! isset($options[$state])) {
+                                $options[$state] = $state;
+                            }
+
+                            return $options;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('name')
+                                ->label('Component Name')
+                                ->required(),
+                        ])
+                        ->createOptionUsing(function (array $data): string {
+                            $companyId = CompanyContext::getCompanyId();
+                            $comp = Component::firstOrCreate([
+                                'company_id' => $companyId,
+                                'name' => trim($data['name']),
+                            ]);
+
+                            return $comp->name;
+                        })
+                        ->createOptionModalHeading('Add New Component')
+                        ->nullable(),
                     Forms\Components\Textarea::make('notes')
                         ->maxLength(65535)
                         ->columnSpanFull(),
@@ -107,6 +141,7 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('unit'),
             Tables\Columns\TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([

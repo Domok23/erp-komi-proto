@@ -213,6 +213,43 @@
             </div>
         </div>
 
+        @if ($project->subProjects->count() > 0)
+        <!-- Card 1b: Sub-Projects Progress Breakdown -->
+        <div style="border-radius: 12px; padding: 16px;" class="pm-card pm-card-spacer">
+            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;" class="pm-text-main">
+                Sub-Projects Breakdown ({{ $project->subProjects->count() }})
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                @foreach ($project->subProjects as $sp)
+                    @php
+                        $spTarget = $sp->target_qty ?? 0;
+                        $spProduced = $sp->produced_qty ?? 0;
+                        $spPct = $spTarget > 0 ? min(100, round(($spProduced / $spTarget) * 100, 1)) : 0;
+                    @endphp
+                    <div style="padding: 10px 12px; border-radius: 8px; border: 1px solid #e5e7eb;" class="dark:border-gray-700">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px;">
+                            <div>
+                                <span style="font-family: monospace; font-weight: 700; background-color: #f3f4f6; padding: 2px 6px; border-radius: 4px;" class="dark:bg-gray-700 pm-text-main">
+                                    {{ $sp->code }}
+                                </span>
+                                <strong class="pm-text-main" style="margin-left: 6px;">{{ $sp->name }}</strong>
+                                @if($sp->category)
+                                    <span class="pm-text-muted" style="font-size: 11px;">({{ ucfirst($sp->category) }})</span>
+                                @endif
+                            </div>
+                            <span style="font-family: monospace; font-weight: 700; color: #3b82f6;">
+                                {{ $spPct }}% ({{ number_format($spProduced) }} / {{ number_format($spTarget) }} pcs)
+                            </span>
+                        </div>
+                        <div style="width: 100%; border-radius: 9999px; height: 6px; overflow: hidden; background-color: #e5e7eb;" class="dark:bg-gray-700">
+                            <div style="background-color: #3b82f6; height: 6px; border-radius: 9999px; width: {{ $spPct }}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         <!-- Card 2: Stage Checklist -->
         <div style="border-radius: 12px; padding: 16px;" class="pm-card">
             <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;" class="pm-text-main">Milestone Progression</h4>

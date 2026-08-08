@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\NotificationLogResource\Pages;
 
 use App\Filament\Resources\NotificationLogResource;
+use App\Models\DeliveryAlertLog;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +22,7 @@ class ListNotificationLogs extends ListRecords
         return [
             'all' => Tab::make('All Notifications'),
             'delivery_alerts' => Tab::make('Delivery Alerts')
-                ->badge(fn () => \App\Models\DeliveryAlertLog::whereNotNull('alertable_type')->count())
+                ->badge(fn () => DeliveryAlertLog::whereNotNull('alertable_type')->count())
                 ->badgeColor('primary')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereNotNull('alertable_type')),
         ];

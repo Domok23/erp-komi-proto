@@ -2,17 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\NotificationLogResource\Pages\ListNotificationLogs;
+use App\Livewire\CustomDatabaseNotifications;
 use App\Models\Company;
-use App\Models\PoSupplier;
-use App\Models\PoSubcon;
-use App\Models\PurchaseShipment;
-use App\Models\Supplier;
-use App\Models\Subcon;
-use App\Models\User;
 use App\Models\DeliveryAlertLog;
+use App\Models\PoSubcon;
+use App\Models\PoSupplier;
+use App\Models\Subcon;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Services\CompanyContext;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class DeliveryAlertNotificationTest extends TestCase
@@ -20,8 +23,11 @@ class DeliveryAlertNotificationTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private User $user;
+
     private Supplier $supplier;
+
     private Subcon $subcon;
 
     protected function setUp(): void
@@ -53,7 +59,7 @@ class DeliveryAlertNotificationTest extends TestCase
             'service_type' => 'sewing',
         ]);
 
-        \App\Services\CompanyContext::setCompany($this->company);
+        CompanyContext::setCompany($this->company);
     }
 
     public function test_po_without_deadline_is_skipped()
@@ -212,13 +218,13 @@ class DeliveryAlertNotificationTest extends TestCase
             'sent_at' => now(),
         ]);
 
-        \Livewire\Livewire::test(\App\Filament\Resources\NotificationLogResource\Pages\ListNotificationLogs::class)
+        Livewire::test(ListNotificationLogs::class)
             ->assertSuccessful();
     }
 
     public function test_custom_database_notifications_renders_trigger()
     {
-        $component = new \App\Livewire\CustomDatabaseNotifications();
+        $component = new CustomDatabaseNotifications;
         $this->assertNotNull($component->getTrigger());
     }
 }

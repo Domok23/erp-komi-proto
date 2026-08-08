@@ -10,14 +10,14 @@ class MaterialReservationChart extends ChartWidget
     protected static bool $isDiscovered = false;
 
     protected ?string $heading = 'Material Reservation Status Breakdown';
-    
+
     protected ?string $maxHeight = '300px';
 
     protected function getData(): array
     {
         $statuses = ['pending', 'partially_issued', 'issued', 'cancelled'];
         $labels = ['Pending', 'Partially Issued', 'Issued', 'Cancelled'];
-        
+
         $data = [];
         foreach ($statuses as $status) {
             $count = MaterialReservation::where('status', $status)->count();

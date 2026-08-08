@@ -14,6 +14,7 @@ class ProjectMaterialReadiness
     public function getProjectStatus(Project $project): string
     {
         $details = $this->getDetails($project);
+
         return $details['overall_status'];
     }
 
@@ -24,7 +25,7 @@ class ProjectMaterialReadiness
     {
         $bom = $project->bom;
 
-        if (!$bom || !$project->target_qty || $project->target_qty <= 0) {
+        if (! $bom || ! $project->target_qty || $project->target_qty <= 0) {
             return [
                 'overall_status' => 'N/A',
                 'total_items' => 0,

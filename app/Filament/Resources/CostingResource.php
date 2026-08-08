@@ -46,7 +46,17 @@ class CostingResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
+                        ->relationship(
+                            name: 'project',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                                $selectedId = $get('project_id') ?? $record?->project_id;
+                                $q->whereNull('archived_at');
+                                if ($selectedId) {
+                                    $q->orWhere('projects.id', $selectedId);
+                                }
+                            })
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
@@ -85,6 +95,39 @@ class CostingResource extends Resource
                                 self::recalculate($get, $set);
                             }
                         }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->disabled($isLocked),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
@@ -311,7 +354,7 @@ class CostingResource extends Resource
                                 return;
                             }
 
-                            $result = CostingCalculatorService::calculateFromBOM($record->project);
+                            $result = CostingCalculatorService::calculateFromBOM($record->project, $record->subProject);
                             $record->update(['material_cost' => $result['material_cost']]);
                             CostingCalculatorService::recalculateCosting($record);
 

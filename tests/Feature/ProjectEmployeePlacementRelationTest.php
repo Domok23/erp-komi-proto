@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\HrEmployee;
-use App\Models\HrEmployeePlacement;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\PlaceEmployeeService;

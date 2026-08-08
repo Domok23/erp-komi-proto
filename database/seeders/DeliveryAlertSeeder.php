@@ -3,13 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
-use App\Models\PoSupplier;
+use App\Models\DeliveryAlertLog;
 use App\Models\PoSubcon;
-use App\Models\Supplier;
-use App\Models\Subcon;
+use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
+use App\Models\Subcon;
+use App\Models\Supplier;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DeliveryAlertSeeder extends Seeder
 {
@@ -23,8 +25,8 @@ class DeliveryAlertSeeder extends Seeder
         PurchaseShipment::where('shipment_number', 'SHIP-SUB-TEST-01')->delete();
         PoSupplier::whereIn('po_number', ['PO-SUP-WARNING-TEST', 'PO-SUP-OVERDUE-TEST', 'PO-SUP-ESCALATE-TEST'])->delete();
         PoSubcon::whereIn('po_number', ['PO-SUB-SHIP-TEST'])->delete();
-        \Illuminate\Support\Facades\DB::table('notifications')->delete();
-        \App\Models\DeliveryAlertLog::truncate();
+        DB::table('notifications')->delete();
+        DeliveryAlertLog::truncate();
 
         // 1. PO Supplier: Warning Alert (due in 2 days)
         PoSupplier::create([

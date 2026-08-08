@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources;
 
+use App\Exceptions\ProjectArchiveException;
+use App\Exceptions\SubProjectException;
 use App\Filament\Resources\ProjectResource\Pages;
-use App\Filament\Resources\ProjectResource\RelationManagers\ProjectEmployeePlacementsRelationManager;
+use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
 use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
 use App\Services\CodeGenerator;
+use App\Services\ProjectArchiveService;
 use App\Services\ProjectTransitionService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -23,6 +26,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -332,13 +336,34 @@ class ProjectResource extends Resource
                     'cancelled' => 'danger',
                     default => 'gray',
                 }),
+            Tables\Columns\TextColumn::make('archive_badge')
+                ->label('')
+                ->state(fn (Project $record) => $record->isArchived() ? 'Archived' : null)
+                ->badge()
+                ->color('warning')
+                ->placeholder(''),
             Tables\Columns\TextColumn::make('customer.name')->searchable(),
+            Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
             Tables\Columns\TextColumn::make('target_qty')
                 ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('produced_qty')
                 ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
         ])
             ->filters([
+                SelectFilter::make('visibility')
+                    ->label('Visibility')
+                    ->options([
+                        'archived' => 'Archived',
+                        'all' => 'All',
+                    ])
+                    ->placeholder('Active')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'archived' => $query->archived(),
+                            'all' => $query,
+                            default => $query->active(),
+                        };
+                    }),
                 SelectFilter::make('status')->options(['planning' => 'Planning', 'development' => 'Development', 'sampling' => 'Sampling', 'approved' => 'Approved', 'production' => 'Production', 'completed' => 'Completed', 'cancelled' => 'Cancelled']),
                 SelectFilter::make('type')->options(['proto' => 'Prototype', 'sample' => 'Sample', 'mass' => 'Mass Production']),
                 SelectFilter::make('customer_id')->relationship('customer', 'name'),
@@ -349,19 +374,29 @@ class ProjectResource extends Resource
                         ->label('Approve')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn ($record) => $record->status !== 'approved')
+                        ->visible(fn ($record) => ! $record->isArchived() && $record->status !== 'approved')
                         ->action(function ($record) {
-                            ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
-                            Notification::make()
-                                ->title('Project Approved')
-                                ->success()
-                                ->send();
+                            try {
+                                ProjectTransitionService::approveProject($record, Auth::id() ?? 1);
+                                Notification::make()
+                                    ->title('Project Approved')
+                                    ->success()
+                                    ->send();
+                            } catch (SubProjectException $e) {
+                                Notification::make()
+                                    ->title('Review Sub-Project Belum Selesai')
+                                    ->body($e->getMessage())
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+                            }
                         })
                         ->requiresConfirmation(),
                     Action::make('duplicate')
                         ->label('Duplicate')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
+                        ->visible(fn ($record) => ! $record->isArchived())
                         ->action(function ($record) {
                             $copy = ProjectTransitionService::duplicateProject($record);
                             Notification::make()
@@ -382,7 +417,115 @@ class ProjectResource extends Resource
                         ->modalCancelActionLabel('Close')
                         ->modalWidth('4xl'),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    Action::make('archive')
+                        ->label('Archive')
+                        ->icon('heroicon-o-archive-box')
+                        ->color('secondary')
+                        ->visible(function (Project $record): bool {
+                            if ($record->isArchived()) {
+                                return false;
+                            }
+                            $user = Auth::user();
+                            if (! $user) {
+                                return false;
+                            }
+                            if ($user->isAdmin()) {
+                                return true;
+                            }
+
+                            return in_array($record->status, ['completed', 'cancelled'], true);
+                        })
+                        ->form(function (Project $record) {
+                            $user = Auth::user();
+                            $needsForce = $user?->isAdmin() && (
+                                ! in_array($record->status, ['completed', 'cancelled'], true)
+                                || ProjectArchiveService::blockers($record) !== []
+                            );
+
+                            if (! $needsForce) {
+                                return [];
+                            }
+
+                            $blockers = ProjectArchiveService::blockers($record);
+                            $text = "Force-archive project {$record->project_code}. ";
+
+                            if (! in_array($record->status, ['completed', 'cancelled'], true)) {
+                                $text .= 'Project status is not completed/cancelled. ';
+                            }
+
+                            if ($blockers !== []) {
+                                $text .= 'Blockers:';
+                                $html = '<div>'.e($text).'</div><ul class="mt-1 space-y-1" style="list-style-type: disc; padding-left: 1.25rem;">';
+                                foreach ($blockers as $b) {
+                                    $html .= '<li>'.e($b['label']).'</li>';
+                                }
+                                $html .= '</ul>';
+                            } else {
+                                $html = '<div>'.e(trim($text)).'</div>';
+                            }
+
+                            return [
+                                Forms\Components\Placeholder::make('force_warning')
+                                    ->label('Warning')
+                                    ->content(new HtmlString($html)),
+                                Forms\Components\Checkbox::make('confirm_risk')
+                                    ->label('I understand the risks')
+                                    ->accepted()
+                                    ->required(),
+                                Forms\Components\TextInput::make('confirm_code')
+                                    ->label('Type project code to confirm')
+                                    ->required()
+                                    ->rules([
+                                        fn () => function (string $attribute, $value, $fail) use ($record) {
+                                            if ($value !== $record->project_code) {
+                                                $fail('Project code does not match.');
+                                            }
+                                        },
+                                    ]),
+                            ];
+                        })
+                        ->requiresConfirmation(fn (Project $record) => ProjectArchiveService::blockers($record) === []
+                            && in_array($record->status, ['completed', 'cancelled'], true))
+                        ->action(function (Project $record) {
+                            $user = Auth::user();
+                            $force = $user?->isAdmin() && (
+                                ! in_array($record->status, ['completed', 'cancelled'], true)
+                                || ProjectArchiveService::blockers($record) !== []
+                            );
+
+                            try {
+                                ProjectArchiveService::archive($record, $user, force: $force);
+                                Notification::make()
+                                    ->title($force ? 'Project force-archived' : 'Project archived')
+                                    ->success()
+                                    ->send();
+                            } catch (ProjectArchiveException $e) {
+                                $body = $e->getMessage();
+                                if ($e->blockers() !== []) {
+                                    $body .= "\n\nBlockers:\n".collect($e->blockers())->pluck('label')->map(fn ($l) => '- '.$l)->implode("\n");
+                                }
+                                Notification::make()
+                                    ->title('Archive failed')
+                                    ->body($body)
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    Action::make('restore')
+                        ->label('Restore')
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('success')
+                        ->visible(fn (Project $record) => $record->isArchived() && Auth::user()?->isAdmin())
+                        ->requiresConfirmation()
+                        ->action(function (Project $record) {
+                            try {
+                                ProjectArchiveService::restore($record, Auth::user());
+                                Notification::make()->title('Project restored')->success()->send();
+                            } catch (ProjectArchiveException $e) {
+                                Notification::make()->title('Restore failed')->body($e->getMessage())->danger()->send();
+                            }
+                        }),
+                    DeleteAction::make()->visible(fn ($record) => ! $record->isArchived()),
                 ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
@@ -405,7 +548,9 @@ class ProjectResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            SubProjectsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

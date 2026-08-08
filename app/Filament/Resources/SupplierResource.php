@@ -12,6 +12,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -78,7 +79,7 @@ class SupplierResource extends Resource
                         ->icon('heroicon-m-cube')
                         ->visible(fn ($record) => $record !== null)
                         ->schema([
-                            \Filament\Schemas\Components\Livewire::make(RelationManagers\MaterialsRelationManager::class, fn ($record) => [
+                            Livewire::make(RelationManagers\MaterialsRelationManager::class, fn ($record) => [
                                 'ownerRecord' => $record,
                                 'pageClass' => Pages\EditSupplier::class,
                             ]),

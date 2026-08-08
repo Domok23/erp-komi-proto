@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ProductionOrderResource\Pages;
-use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionOrderProjectTeamRelationManager;
 use App\Models\MerchandisePlanning;
 use App\Models\ProductionOrder;
 use App\Models\Project;
@@ -19,6 +18,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -67,7 +67,17 @@ class ProductionOrderResource extends Resource
                         ->required()
                         ->maxLength(50),
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
+                        ->relationship(
+                            name: 'project',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                                $selectedId = $get('project_id') ?? $record?->project_id;
+                                $q->whereNull('archived_at');
+                                if ($selectedId) {
+                                    $q->orWhere('projects.id', $selectedId);
+                                }
+                            })
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
@@ -79,6 +89,38 @@ class ProductionOrderResource extends Resource
                         })
                         ->afterStateUpdated(function ($state, callable $set) {
                             self::loadProjectMaterials($state, $set);
+                        }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('merchandising_planning_id')
                         ->relationship('merchandisingPlanning', 'id')
@@ -286,7 +328,7 @@ class ProductionOrderResource extends Resource
                         ->label('Project Team')
                         ->icon('heroicon-o-user-group')
                         ->color('info')
-                        ->modalHeading(fn ($record) => "Project Team Members (Collaborators)")
+                        ->modalHeading(fn ($record) => 'Project Team Members (Collaborators)')
                         ->modalContent(fn ($record) => view('filament.pages.manage-project-team-modal-wrapper', [
                             'projectId' => $record->project_id,
                             'isReadOnly' => true,

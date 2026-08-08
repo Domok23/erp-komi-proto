@@ -6,6 +6,7 @@ use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Project extends Model
 {
@@ -30,6 +31,8 @@ class Project extends Model
         'completed_at',
         'target_qty',
         'produced_qty',
+        'archived_at',
+        'archived_by',
     ];
 
     protected $casts = [
@@ -37,9 +40,30 @@ class Project extends Model
         'target_date' => 'date',
         'completed_at' => 'datetime',
         'approved_at' => 'datetime',
+        'archived_at' => 'datetime',
         'target_qty' => 'integer',
         'produced_qty' => 'integer',
     ];
+
+    public function archivedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
+    }
 
     public function customer(): BelongsTo
     {
@@ -66,9 +90,24 @@ class Project extends Model
         return $this->belongsTo(Project::class, 'reference_project_id');
     }
 
-    public function subProjects(): HasMany
+    public function lifecycleChildren(): HasMany
     {
         return $this->hasMany(Project::class, 'reference_project_id');
+    }
+
+    public function subProjects(): HasMany
+    {
+        return $this->hasMany(SubProject::class, 'project_id');
+    }
+
+    public function hasSubProjects(): bool
+    {
+        return $this->subProjects()->exists();
+    }
+
+    public function hasPendingSubProjectReviews(): bool
+    {
+        return $this->subProjects()->where('review_status', 'pending')->exists();
     }
 
     public function approvedByUser(): BelongsTo
@@ -93,7 +132,7 @@ class Project extends Model
 
     public function progressPercent(): float
     {
-        if (!$this->target_qty || $this->target_qty <= 0) {
+        if (! $this->target_qty || $this->target_qty <= 0) {
             return 0.0;
         }
 
@@ -102,11 +141,11 @@ class Project extends Model
 
     public function daysRemaining(): ?int
     {
-        if (!$this->target_date) {
+        if (! $this->target_date) {
             return null;
         }
 
-        return (int) \Illuminate\Support\Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
+        return (int) Carbon::now()->startOfDay()->diffInDays($this->target_date->startOfDay(), false);
     }
 
     public function placements(): HasMany

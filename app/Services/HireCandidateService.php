@@ -7,6 +7,7 @@ use App\Models\HrCandidate;
 use App\Models\HrEmployee;
 use App\Models\HrEmploymentContract;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class HireCandidateService
@@ -118,7 +119,7 @@ class HireCandidateService
 
                 return $employee;
             });
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             if (str_contains($e->getMessage(), 'hr_employees_company_id_nik_unique')) {
                 throw new HrHireException("The NIK ({$candidate->nik}) has already been registered for an employee in this company.");
             }

@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\HrLeaveRequestException;
 use App\Models\Company;
 use App\Models\HrLeaveRequest;
 use App\Models\HrLeaveType;
 use App\Services\LeaveRequestService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -102,8 +105,8 @@ class PublicLeaveRequestController extends Controller
                 $splitParts = preg_split('/\s+(?:to|-|s\/d|sampai)\s+/i', $rawRange);
                 if (count($splitParts) >= 2) {
                     try {
-                        $start = \Carbon\Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
-                        $end = \Carbon\Carbon::parse(trim($splitParts[1]))->format('Y-m-d');
+                        $start = Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
+                        $end = Carbon::parse(trim($splitParts[1]))->format('Y-m-d');
                         $request->merge([
                             'start_date' => $start,
                             'end_date' => $end,
@@ -113,7 +116,7 @@ class PublicLeaveRequestController extends Controller
                     }
                 } elseif (count($splitParts) === 1) {
                     try {
-                        $start = \Carbon\Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
+                        $start = Carbon::parse(trim($splitParts[0]))->format('Y-m-d');
                         $request->merge([
                             'start_date' => $start,
                             'end_date' => $start,
@@ -125,7 +128,7 @@ class PublicLeaveRequestController extends Controller
             }
         }
 
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'employee_number' => 'required|string',
             'leave_type_id' => [
                 'required',
@@ -185,7 +188,7 @@ class PublicLeaveRequestController extends Controller
                 'reason' => $data['reason'] ?? null,
                 'file_path' => $filePath,
             ], 'public_intake');
-        } catch (\App\Exceptions\HrLeaveRequestException $e) {
+        } catch (HrLeaveRequestException $e) {
             $errorField = str_contains(strtolower($e->getMessage()), 'kuota') ? 'leave_type_id' : 'start_date';
 
             return redirect()

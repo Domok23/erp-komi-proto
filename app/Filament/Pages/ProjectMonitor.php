@@ -3,9 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Resources\ProjectResource;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Services\ProjectMaterialReadiness;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -48,7 +48,7 @@ class ProjectMonitor extends Page implements HasTable
         return $table
             ->query(
                 Project::query()
-                    ->with(['customer', 'bom.items.material', 'costings', 'salesOrder', 'productionOrders'])
+                    ->with(['customer', 'bom.items.material', 'costings', 'salesOrder', 'productionOrders', 'subProjects'])
                     ->whereIn('status', ['planning', 'development', 'sampling', 'production'])
                     ->latest()
             )
@@ -104,6 +104,7 @@ class ProjectMonitor extends Page implements HasTable
                         $pct = min(100, max(0, round($record->progressPercent())));
                         $produced = number_format($record->produced_qty ?? 0);
                         $target = number_format($record->target_qty ?? 0);
+
                         return "<div class=\"w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden relative min-w-[120px]\">
                             <div class=\"bg-primary-600 h-full rounded-full transition-all duration-300\" style=\"width: {$pct}%\"></div>
                             <span class=\"absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-200\">{$pct}% ({$produced}/{$target})</span>
@@ -124,26 +125,35 @@ class ProjectMonitor extends Page implements HasTable
                             return 'No Target';
                         }
                         if ($days < 0) {
-                            return abs($days) . ' days overdue';
+                            return abs($days).' days overdue';
                         }
                         if ($days === 0) {
                             return 'Due Today!';
                         }
-                        return $days . ' days left';
+
+                        return $days.' days left';
                     })
                     ->badge()
                     ->color(function (Project $record): string {
                         $days = $record->daysRemaining();
-                        if ($days === null) return 'gray';
-                        if ($days < 0) return 'danger';
-                        if ($days <= 7) return 'warning';
+                        if ($days === null) {
+                            return 'gray';
+                        }
+                        if ($days < 0) {
+                            return 'danger';
+                        }
+                        if ($days <= 7) {
+                            return 'warning';
+                        }
+
                         return 'success';
                     }),
 
                 Tables\Columns\TextColumn::make('material_readiness')
                     ->label('Materials')
                     ->getStateUsing(function (Project $record): string {
-                        $service = new ProjectMaterialReadiness();
+                        $service = new ProjectMaterialReadiness;
+
                         return $service->getProjectStatus($record);
                     })
                     ->badge()
@@ -187,7 +197,7 @@ class ProjectMonitor extends Page implements HasTable
                     ),
             ])
             ->actions([
-                \Filament\Actions\Action::make('view_details')
+                Action::make('view_details')
                     ->label('View Details')
                     ->hiddenLabel()
                     ->icon('heroicon-m-eye')

@@ -8,7 +8,6 @@ use App\Livewire\ManageCandidatesModal;
 use App\Models\Company;
 use App\Models\HrCandidate;
 use App\Models\HrDepartment;
-use App\Models\HrEmployee;
 use App\Models\HrPosition;
 use App\Models\User;
 use App\Services\CompanyContext;

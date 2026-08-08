@@ -37,17 +37,17 @@ class StockPreviewService
                 ->map(fn ($group) => (float) $group->sum('reserved_qty'))
             : collect();
 
-        $poOrders = ($projectId !== null)
-            ? PoSupplierItem::whereHas('poSupplier', function ($q) use ($companyId, $projectId) {
-                $q->where('company_id', $companyId)
-                    ->where('project_id', $projectId)
-                    ->whereIn('status', ['draft', 'approved', 'sent', 'partial']);
-            })
-                ->whereIn('material_id', $materialIds)
-                ->get()
-                ->groupBy('material_id')
-                ->map(fn ($group) => (float) $group->sum('qty'))
-            : collect();
+        $poOrders = PoSupplierItem::whereHas('poSupplier', function ($q) use ($companyId, $projectId) {
+            $q->where('company_id', $companyId)
+                ->whereIn('status', ['draft', 'ordered', 'approved', 'sent', 'partial']);
+            if ($projectId !== null) {
+                $q->where('project_id', $projectId);
+            }
+        })
+            ->whereIn('material_id', $materialIds)
+            ->get()
+            ->groupBy('material_id')
+            ->map(fn ($group) => (float) $group->sum('qty'));
 
         return collect($materials)->map(function ($material) use ($availableStocks, $projectReservations, $additionalReservedQtys, $poOrders, $additionalOrderedQtys, $productionQty, $companyId) {
             $materialId = (int) $material['material_id'];
@@ -143,14 +143,23 @@ class StockPreviewService
 
         return DB::transaction(function () use ($materialsWithSupplier, $companyId, $projectId) {
             return $materialsWithSupplier->map(function ($items, $supplierId) use ($companyId, $projectId) {
-                $po = PoSupplier::create([
-                    'company_id' => $companyId,
-                    'po_number' => CodeGenerator::generatePOSupplierNo(),
-                    'supplier_id' => (int) $supplierId,
-                    'project_id' => $projectId,
-                    'po_date' => now(),
-                    'status' => 'draft',
-                ]);
+                $po = PoSupplier::where('company_id', $companyId)
+                    ->where('project_id', $projectId)
+                    ->where('supplier_id', (int) $supplierId)
+                    ->where('status', 'draft')
+                    ->first();
+
+                if (! $po) {
+                    $po = PoSupplier::create([
+                        'company_id' => $companyId,
+                        'po_number' => CodeGenerator::generatePOSupplierNo(),
+                        'supplier_id' => (int) $supplierId,
+                        'project_id' => $projectId,
+                        'po_date' => now(),
+                        'ppn_percent' => 11,
+                        'status' => 'draft',
+                    ]);
+                }
 
                 foreach ($items as $item) {
                     PoSupplierItem::create([

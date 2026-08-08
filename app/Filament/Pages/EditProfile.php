@@ -7,6 +7,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 class EditProfile extends BaseEditProfile
@@ -28,7 +29,7 @@ class EditProfile extends BaseEditProfile
             ->required(fn (Get $get): bool => filled($get('password')));
     }
 
-    public function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
+    public function form(Schema $schema): Schema
     {
         return $schema
             ->inlineLabel(false)
@@ -57,4 +58,3 @@ class EditProfile extends BaseEditProfile
             ]);
     }
 }
-

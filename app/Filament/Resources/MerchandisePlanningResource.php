@@ -25,6 +25,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -49,7 +50,17 @@ class MerchandisePlanningResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\Select::make('project_id')
-                        ->relationship('project', 'name')
+                        ->relationship(
+                            name: 'project',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn ($query, $get, $record) => $query->where(function ($q) use ($get, $record) {
+                                $selectedId = $get('project_id') ?? $record?->project_id;
+                                $q->whereNull('archived_at');
+                                if ($selectedId) {
+                                    $q->orWhere('projects.id', $selectedId);
+                                }
+                            })
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.ProjectResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a> <span class="project-code-prefix">['.$record->project_code.']</span>'))
                         ->allowHtml()
                         ->searchable()
@@ -82,6 +93,7 @@ class MerchandisePlanningResource extends Resource
 
                                         return [
                                             'material_id' => $bomItem->material_id,
+                                            'component' => $bomItem->component,
                                             'supplier_id' => $bomItem->material?->supplier_id,
                                             'planned_qty' => $plannedQty,
                                             'unit' => $bomItem->unit,
@@ -102,13 +114,45 @@ class MerchandisePlanningResource extends Resource
                                 }
                             }
                         }),
+                    Forms\Components\Select::make('sub_project_id')
+                        ->label('Sub-Project')
+                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                            $projectId = $get('project_id');
+                            if ($projectId) {
+                                return $query->where('project_id', $projectId);
+                            }
+
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->reactive()
+                        ->visible(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
+                        })
+                        ->required(function (Get $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return false;
+                            }
+                            $project = Project::find($projectId);
+
+                            return $project && $project->hasSubProjects();
+                        }),
                     Forms\Components\Select::make('design_id')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
                         ->allowHtml()
                         ->disabled()
                         ->dehydrated()
-                        ->required(),
+                        ->nullable(),
                     Forms\Components\DatePicker::make('planning_date')
                         ->default(now()->toDateString())
                         ->required(),
@@ -179,51 +223,6 @@ class MerchandisePlanningResource extends Resource
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            Forms\Components\Select::make('supplier_id')
-                                ->relationship('supplier', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled()
-                                ->dehydrated(),
-                            Forms\Components\Select::make('subcon_id')
-                                ->relationship('subcon', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled(fn (callable $get) => ! $get('is_subcon'))
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('planned_qty')
-                                ->numeric()
-                                ->step(0.01)
-                                ->default(1)
-                                ->required()
-                                ->minValue(0.01)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $qty = floatval($state);
-                                    $price = floatval(str_replace(',', '', $get('unit_price')));
-                                    $set('total_price', number_format($qty * $price, 2, '.', ','));
-                                })
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('unit')
-                                ->default('pcs')
-                                ->disabled()
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('unit_price')
-                                ->default(0)
-                                ->required()
-                                ->disabled()
-                                ->dehydrated()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
-                            Forms\Components\TextInput::make('total_price')
-                                ->default(0)
-                                ->disabled()
-                                ->dehydrated()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
-                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\Toggle::make('is_subcon')
                                 ->default(false)
                                 ->label('Is Subcon Service')
@@ -234,6 +233,10 @@ class MerchandisePlanningResource extends Resource
                                         $set('subcon_id', null);
                                     }
                                 }),
+                            Forms\Components\TextInput::make('component')
+                                ->label('Component')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('notes')
                                 ->maxLength(255)
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
@@ -358,6 +361,8 @@ class MerchandisePlanningResource extends Resource
                                     $itemTotalPrice = $shortage * floatval($item->unit_price);
                                     $poItemsData[] = [
                                         'material_id' => $item->material_id,
+                                        'component' => $item->component,
+                                        'sub_project_id' => $record->sub_project_id,
                                         'description' => $item->notes ?? 'Raw material',
                                         'qty' => $shortage,
                                         'unit' => $item->unit ?? 'pcs',
@@ -372,29 +377,34 @@ class MerchandisePlanningResource extends Resource
                                     continue;
                                 }
 
-                                $po = PoSupplier::create([
-                                    'company_id' => $record->company_id,
-                                    'po_number' => CodeGenerator::generatePOSupplierNo(),
-                                    'project_id' => $record->project_id,
-                                    'supplier_id' => $supplierId,
-                                    'po_date' => now()->toDateString(),
-                                    'status' => 'draft',
-                                ]);
+                                // Merge into existing draft PO or create new one
+                                $po = PoSupplier::where('company_id', $record->company_id)
+                                    ->where('project_id', $record->project_id)
+                                    ->where('supplier_id', $supplierId)
+                                    ->where('status', 'draft')
+                                    ->first();
 
-                                $generatedPoNumbers[] = $po->po_number;
+                                if (! $po) {
+                                    $po = PoSupplier::create([
+                                        'company_id' => $record->company_id,
+                                        'po_number' => CodeGenerator::generatePOSupplierNo(),
+                                        'project_id' => $record->project_id,
+                                        'supplier_id' => $supplierId,
+                                        'po_date' => now()->toDateString(),
+                                        'ppn_percent' => 11,
+                                        'status' => 'draft',
+                                    ]);
+                                    $generatedPoNumbers[] = $po->po_number;
+                                } else {
+                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
+                                }
 
                                 foreach ($poItemsData as $itemData) {
                                     $itemData['po_supplier_id'] = $po->id;
                                     PoSupplierItem::create($itemData);
                                 }
 
-                                $ppn = $subtotal * 0.11; // 11% PPN
-                                $po->update([
-                                    'subtotal' => $subtotal,
-                                    'ppn_percent' => 11,
-                                    'ppn_amount' => $ppn,
-                                    'grand_total' => $subtotal + $ppn,
-                                ]);
+                                $po->recalculateTotals();
                             }
 
                             // Group items by subcon for subcon POs
@@ -404,32 +414,44 @@ class MerchandisePlanningResource extends Resource
                                     continue;
                                 }
 
-                                $po = PoSubcon::create([
-                                    'company_id' => $record->company_id,
-                                    'po_number' => CodeGenerator::generatePOSubconNo(),
-                                    'project_id' => $record->project_id,
-                                    'subcon_id' => $subconId,
-                                    'po_date' => now()->toDateString(),
-                                    'status' => 'draft',
-                                ]);
+                                // Merge into existing draft PO or create new one
+                                $po = PoSubcon::where('company_id', $record->company_id)
+                                    ->where('project_id', $record->project_id)
+                                    ->where('subcon_id', $subconId)
+                                    ->where('status', 'draft')
+                                    ->first();
 
-                                $generatedPoNumbers[] = $po->po_number;
+                                if (! $po) {
+                                    $po = PoSubcon::create([
+                                        'company_id' => $record->company_id,
+                                        'po_number' => CodeGenerator::generatePOSubconNo(),
+                                        'project_id' => $record->project_id,
+                                        'subcon_id' => $subconId,
+                                        'po_date' => now()->toDateString(),
+                                        'status' => 'draft',
+                                    ]);
+                                    $generatedPoNumbers[] = $po->po_number;
+                                } else {
+                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
+                                }
 
-                                $serviceCost = 0;
                                 foreach ($items as $item) {
                                     PoSubconItem::create([
                                         'po_subcon_id' => $po->id,
+                                        'project_id' => $record->project_id,
+                                        'sub_project_id' => $record->sub_project_id,
+                                        'component' => $item->component,
                                         'description' => $item->notes ?? 'Subcon service',
                                         'qty' => $item->planned_qty,
                                         'unit_price' => $item->unit_price,
                                         'total_price' => $item->total_price,
                                     ]);
-                                    $serviceCost += $item->total_price;
                                 }
 
+                                $totalServiceCost = $po->items()->sum('total_price');
                                 $po->update([
-                                    'service_cost' => $serviceCost,
-                                    'total_cost' => $serviceCost,
+                                    'service_cost' => $totalServiceCost,
+                                    'total_cost' => $totalServiceCost + ($po->shipping_cost ?? 0) + ($po->shipping_return_cost ?? 0),
                                 ]);
                             }
 

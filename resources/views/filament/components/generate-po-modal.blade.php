@@ -6,14 +6,25 @@
     $skippedSupplierItems = $record->items->where('is_subcon', false)->whereNull('supplier_id');
     $skippedSubconItems = $record->items->where('is_subcon', true)->whereNull('subcon_id');
     $hasSkipped = $skippedSupplierItems->isNotEmpty() || $skippedSubconItems->isNotEmpty();
-    
-    $totalPoCount = 0;
+
+    // Count actual POs to be generated (suppliers with shortage > 0 + subcons)
+    $validSupplierPoCount = 0;
     foreach ($supplierItems as $supplierId => $items) {
-        if ($supplierId) $totalPoCount++;
+        if (! $supplierId) {
+            continue;
+        }
+        $hasShortage = $items->contains(function ($item) use ($stocks) {
+            $stockVal = $stocks[$item->material_id] ?? 0;
+
+            return (floatval($item->planned_qty) - floatval($stockVal)) > 0;
+        });
+        if ($hasShortage) {
+            $validSupplierPoCount++;
+        }
     }
-    foreach ($subconItems as $subconId => $items) {
-        if ($subconId) $totalPoCount++;
-    }
+
+    $validSubconCount = $subconItems->filter(fn ($items, $key) => ! empty($key))->count();
+    $totalPoCount = $validSupplierPoCount + $validSubconCount;
 @endphp
 
 <div class="po-modal-container">
@@ -364,10 +375,16 @@
         }
     </style>
 
-    <div class="po-intro">
-        Generating POs will create draft purchase orders based on finalized planning items.
-        A total of <strong>{{ $totalPoCount }}</strong> Purchase Order(s) will be created.
-    </div>
+    @if ($totalPoCount > 0)
+        <div class="po-intro">
+            Generating POs will create draft purchase orders based on finalized planning items.
+            A total of <strong>{{ $totalPoCount }}</strong> Purchase Order(s) will be created.
+        </div>
+    @else
+        <div class="po-intro" style="background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); color: #15803d;">
+            All planning items are fully stocked or have no supplier/subcon assigned. No draft purchase orders will be created.
+        </div>
+    @endif
 
     {{-- Supplier POs --}}
     @if ($supplierItems->isNotEmpty() && $supplierItems->keys()->filter()->isNotEmpty())
@@ -386,6 +403,10 @@
                 @php
                     $supplier = $items->first()->supplier;
                     $subtotal = 0;
+                    $hasShortage = $items->contains(function ($item) use ($stocks) {
+                        $stockVal = $stocks[$item->material_id] ?? 0;
+                        return (floatval($item->planned_qty) - floatval($stockVal)) > 0;
+                    });
                 @endphp
                 <div class="po-card">
                     <div class="po-card-header">
@@ -393,7 +414,11 @@
                             <div class="po-card-subtitle po-subtitle-supplier">Supplier PO</div>
                             <h4 class="po-card-title">{{ $supplier?->name ?? 'Unknown Supplier' }}</h4>
                         </div>
-                        <span class="badge badge-draft">Draft</span>
+                        @if ($hasShortage)
+                            <span class="badge badge-draft">Draft</span>
+                        @else
+                            <span class="badge badge-ok">Fully Stocked (No PO)</span>
+                        @endif
                     </div>
 
                     <div class="po-table-wrapper">

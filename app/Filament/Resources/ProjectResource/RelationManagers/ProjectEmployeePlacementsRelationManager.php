@@ -117,7 +117,7 @@ class ProjectEmployeePlacementsRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            throw new Halt();
+                            throw new Halt;
                         }
                     }),
             ])

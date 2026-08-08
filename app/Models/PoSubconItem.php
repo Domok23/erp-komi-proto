@@ -11,6 +11,9 @@ class PoSubconItem extends Model
 
     protected $fillable = [
         'po_subcon_id',
+        'project_id',
+        'sub_project_id',
+        'component',
         'description',
         'qty',
         'unit_price',
@@ -26,5 +29,15 @@ class PoSubconItem extends Model
     public function poSubcon(): BelongsTo
     {
         return $this->belongsTo(PoSubcon::class, 'po_subcon_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function subProject(): BelongsTo
+    {
+        return $this->belongsTo(SubProject::class, 'sub_project_id');
     }
 }

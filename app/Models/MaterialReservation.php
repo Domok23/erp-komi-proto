@@ -15,6 +15,7 @@ class MaterialReservation extends Model
         'warehouse_id',
         'material_id',
         'project_id',
+        'sub_project_id',
         'document_number',
         'reservation_type',
         'reserved_qty',
@@ -41,5 +42,10 @@ class MaterialReservation extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function subProject(): BelongsTo
+    {
+        return $this->belongsTo(SubProject::class);
     }
 }
