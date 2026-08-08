@@ -447,19 +447,21 @@ class ProjectResource extends Resource
                             }
 
                             $blockers = ProjectArchiveService::blockers($record);
-                            $html = "<div>Force-archive project <strong>{$record->project_code}</strong>.</div>";
+                            $text = "Force-archive project {$record->project_code}. ";
 
                             if (! in_array($record->status, ['completed', 'cancelled'], true)) {
-                                $html .= '<div class="mt-1 text-sm text-gray-500">Project status is not completed/cancelled.</div>';
+                                $text .= 'Project status is not completed/cancelled. ';
                             }
 
                             if ($blockers !== []) {
-                                $html .= '<div class="mt-2 text-sm font-semibold text-danger-600">Active Blockers:</div>';
-                                $html .= '<ul class="mt-1 list-inside list-disc text-sm space-y-1 text-gray-700 dark:text-gray-300">';
+                                $text .= 'Blockers:';
+                                $html = '<div>'.e($text).'</div><ul class="mt-1 space-y-1" style="list-style-type: disc; padding-left: 1.25rem;">';
                                 foreach ($blockers as $b) {
                                     $html .= '<li>'.e($b['label']).'</li>';
                                 }
                                 $html .= '</ul>';
+                            } else {
+                                $html = '<div>'.e(trim($text)).'</div>';
                             }
 
                             return [
