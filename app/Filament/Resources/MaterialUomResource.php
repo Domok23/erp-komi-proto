@@ -52,7 +52,9 @@ class MaterialUomResource extends Resource
         return $schema->schema([
             Forms\Components\TextInput::make('name')
                 ->label('UOM Name')
+                ->validationAttribute('UOM Name')
                 ->required()
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
                 ->maxLength(100),
             Forms\Components\TextInput::make('description')
                 ->label('Description (Optional)')

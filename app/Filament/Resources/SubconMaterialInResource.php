@@ -186,7 +186,7 @@ class SubconMaterialInResource extends Resource
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
 
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
                                 })
                                 ->searchable()
                                 ->preload()

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['company_id', 'name']);
+            $table->unique(['company_id', 'code']);
         });
     }
 

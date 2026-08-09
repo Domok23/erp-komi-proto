@@ -80,7 +80,7 @@ class MaterialResource extends Resource
                         ->searchable()
                         ->preload()
                         ->createOptionForm([
-                            Forms\Components\TextInput::make('name')->label('UOM Name')->required(),
+                            Forms\Components\TextInput::make('name')->label('UOM Name')->validationAttribute('UOM Name')->required(),
                             Forms\Components\TextInput::make('description')->label('Description (Optional)'),
                         ])
                         ->createOptionUsing(function (array $data): int {

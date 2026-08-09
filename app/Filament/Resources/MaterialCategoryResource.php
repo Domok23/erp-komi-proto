@@ -53,9 +53,11 @@ class MaterialCategoryResource extends Resource
             Forms\Components\TextInput::make('name')
                 ->label('Category Name')
                 ->required()
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
                 ->maxLength(255),
             Forms\Components\TextInput::make('code')
                 ->label('Code (Optional)')
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
                 ->maxLength(100),
         ])->columns(2);
     }
