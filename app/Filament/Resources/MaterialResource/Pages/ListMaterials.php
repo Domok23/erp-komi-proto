@@ -4,7 +4,10 @@ namespace App\Filament\Resources\MaterialResource\Pages;
 
 use App\Filament\Resources\MaterialResource;
 use App\Models\Material;
+use App\Models\MaterialCategory;
+use App\Models\MaterialUom;
 use App\Models\Supplier;
+use App\Services\CompanyContext;
 use Filament\Actions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
@@ -16,7 +19,7 @@ use OpenSpout\Writer\XLSX\Writer as XLSXWriter;
 
 class ListMaterials extends ListRecords
 {
-    protected static string $resource = 'App\Filament\Resources\MaterialResource';
+    protected static string $resource = MaterialResource::class;
 
     protected function getHeaderActions(): array
     {
@@ -31,9 +34,9 @@ class ListMaterials extends ListRecords
                     $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
                     $writer->openToFile($tempFilePath);
 
-                    $writer->addRow(Row::fromValues(['Code', 'Name', 'Category', 'Unit', 'Stock', 'Min Stock', 'Price', 'Supplier', 'Description']));
-                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'Fabric', 'kg', '100', '10', '5.50', 'SUP-001', 'High quality cotton fabric']));
-                    $writer->addRow(Row::fromValues(['ZIP-001', 'YKK Zipper 20cm', 'Zipper', 'pcs', '500', '50', '0.80', 'SUP-002', 'YKK nylon coil zipper']));
+                    $writer->addRow(Row::fromValues(['Code', 'Name', 'Size', 'Color', 'Category', 'UOM', 'Stock', 'Min Stock', 'Price', 'Is Import', 'Supplier', 'Description']));
+                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'XL', 'Red', 'Fabric', 'kg', '100', '10', '50000', '1', 'SUP-001', 'High quality cotton']));
+                    $writer->addRow(Row::fromValues(['ZIP-001', 'YKK Zipper 20cm', '', '', 'Zipper', 'pcs', '500', '50', '2000', '0', 'SUP-002', 'YKK nylon coil zipper']));
 
                     $writer->close();
 
@@ -66,6 +69,7 @@ class ListMaterials extends ListRecords
                         $rowCount = 0;
                         $successCount = 0;
                         $errors = [];
+                        $companyId = CompanyContext::getCompanyId();
 
                         foreach ($reader->getSheetIterator() as $sheet) {
                             foreach ($sheet->getRowIterator() as $row) {
@@ -90,11 +94,14 @@ class ListMaterials extends ListRecords
 
                                 $code = $rowData['code'] ?? null;
                                 $name = $rowData['name'] ?? null;
+                                $sizeRaw = $rowData['size'] ?? null;
+                                $colorRaw = $rowData['color'] ?? null;
                                 $categoryRaw = $rowData['category'] ?? null;
-                                $unit = $rowData['unit'] ?? 'pcs';
+                                $uomRaw = $rowData['uom'] ?? $rowData['unit'] ?? 'pcs';
                                 $stockRaw = $rowData['stock'] ?? 0.0;
                                 $minStockRaw = $rowData['min stock'] ?? $rowData['min_stock'] ?? 0.0;
                                 $priceRaw = $rowData['price'] ?? 0.0;
+                                $isImportRaw = $rowData['is import'] ?? $rowData['is_import'] ?? 0;
                                 $supplierRaw = $rowData['supplier'] ?? null;
                                 $description = $rowData['description'] ?? null;
 
@@ -110,11 +117,36 @@ class ListMaterials extends ListRecords
                                     continue;
                                 }
 
-                                $category = MaterialResource::normalizeCategory($categoryRaw);
-                                if ($category === null) {
-                                    $errors[] = "Row {$rowCount}: Category '{$categoryRaw}' is invalid.";
+                                // Resolve/create category
+                                $categoryId = null;
+                                if (filled($categoryRaw)) {
+                                    $cat = MaterialCategory::withoutGlobalScope('company')
+                                        ->where('company_id', $companyId)
+                                        ->where('name', trim($categoryRaw))
+                                        ->first();
+                                    if (! $cat) {
+                                        $cat = MaterialCategory::create([
+                                            'company_id' => $companyId,
+                                            'name' => trim($categoryRaw),
+                                        ]);
+                                    }
+                                    $categoryId = $cat->id;
+                                }
 
-                                    continue;
+                                // Resolve/create UOM
+                                $uomId = null;
+                                if (filled($uomRaw)) {
+                                    $uomModel = MaterialUom::withoutGlobalScope('company')
+                                        ->where('company_id', $companyId)
+                                        ->where('name', trim($uomRaw))
+                                        ->first();
+                                    if (! $uomModel) {
+                                        $uomModel = MaterialUom::create([
+                                            'company_id' => $companyId,
+                                            'name' => trim($uomRaw),
+                                        ]);
+                                    }
+                                    $uomId = $uomModel->id;
                                 }
 
                                 $stock = MaterialResource::normalizeDecimal($stockRaw) ?? 0.0;
@@ -140,11 +172,16 @@ class ListMaterials extends ListRecords
                                 }
 
                                 $material->name = $name;
-                                $material->category = $category;
-                                $material->unit = $unit;
+                                $material->size = filled($sizeRaw) ? trim($sizeRaw) : null;
+                                $material->color = filled($colorRaw) ? trim($colorRaw) : null;
+                                $material->category = $categoryRaw;
+                                $material->category_id = $categoryId;
+                                $material->uom = $uomRaw;
+                                $material->uom_id = $uomId;
                                 $material->stock = $stock;
                                 $material->min_stock = $minStock;
                                 $material->price = $price;
+                                $material->is_import = (bool) $isImportRaw;
                                 $material->supplier_id = $supplierId;
                                 $material->description = $description;
                                 $material->is_active = true;

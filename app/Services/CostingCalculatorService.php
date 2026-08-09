@@ -57,12 +57,21 @@ class CostingCalculatorService
         $bom = $subProject ? $subProject->effectiveBom() : $project->bom;
 
         if ($bom) {
+            $wastage = config('costing.wastage_pct', 3);
+            $importCostPct = config('costing.import_cost_pct', 5);
+
             foreach ($bom->items as $item) {
                 $material = $item->material;
                 if ($material) {
-                    $wastageMultiplier = 1 + ($item->wastage_percent / 100);
+                    $wastageMultiplier = 1 + ($wastage / 100);
                     $qtyAdjusted = $item->quantity_per_unit * $wastageMultiplier;
-                    $materialCost += $qtyAdjusted * $material->price;
+
+                    $effectivePrice = $material->price;
+                    if ($material->is_import) {
+                        $effectivePrice *= (1 + ($importCostPct / 100));
+                    }
+
+                    $materialCost += $qtyAdjusted * $effectivePrice;
                 }
             }
         }

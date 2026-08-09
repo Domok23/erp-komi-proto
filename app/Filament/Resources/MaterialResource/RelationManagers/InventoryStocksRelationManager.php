@@ -40,7 +40,7 @@ class InventoryStocksRelationManager extends RelationManager
                     ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                     ->sortable(),
                 TextColumn::make('unit')
-                    ->label('Unit'),
+                    ->label('UOM'),
                 TextColumn::make('location')
                     ->label('Location/Bin')
                     ->searchable(),

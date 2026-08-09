@@ -198,7 +198,7 @@ class SubconMaterialInResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $material = Material::find($state, ['*']);
                                     if ($material) {
-                                        $set('unit', $material->unit);
+                                        $set('unit', $material->uom);
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')
@@ -272,6 +272,7 @@ class SubconMaterialInResource extends Resource
                                     },
                                 ]),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->disabled()
                                 ->dehydrated()
                                 ->default('pcs'),

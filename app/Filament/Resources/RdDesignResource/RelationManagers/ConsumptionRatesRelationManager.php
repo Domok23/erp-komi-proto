@@ -53,21 +53,22 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     $material = $state ? Material::find($state) : null;
-                    $set('unit', $material?->unit);
+                    $set('unit', $material?->uom);
                 }),
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
                 ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
+                ->label('UOM')
                 ->default('pcs')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('wastage_rate')
-                ->numeric()
-                ->default(0)
-                ->required()
-                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->default(config('costing.wastage_pct', 3))
+                ->disabled()
+                ->dehydrated()
+                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -113,10 +114,10 @@ class ConsumptionRatesRelationManager extends RelationManager
         return $table->columns([
             TextColumn::make('id')->sortable(),
             TextColumn::make('material.name')->sortable()->searchable(),
+            TextColumn::make('unit')->label('UOM'),
             TextColumn::make('standard_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
-            TextColumn::make('unit'),
             TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             TextColumn::make('component')->sortable()->searchable(),
@@ -238,8 +239,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     }
 
                                     $consumptionRate->standard_rate = $standardRate;
-                                    $consumptionRate->wastage_rate = $wastageRate;
-                                    $consumptionRate->unit = $material->unit;
+                                    $consumptionRate->wastage_rate = config('costing.wastage_pct', 3);
+                                    $consumptionRate->unit = $material->uom;
                                     $consumptionRate->notes = $notes;
                                     $consumptionRate->save();
 

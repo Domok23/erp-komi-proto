@@ -68,12 +68,21 @@ class RdDesign extends Model
     public function recalculateEstimates(): void
     {
         $materialCost = 0;
+        $wastage = config('costing.wastage_pct', 3);
+        $importCostPct = config('costing.import_cost_pct', 5);
+
         foreach ($this->consumptionRates()->with('material')->get() as $rate) {
             $material = $rate->material;
             if ($material) {
-                $wastageMultiplier = 1 + ($rate->wastage_rate / 100);
+                $wastageMultiplier = 1 + ($wastage / 100);
                 $qtyAdjusted = $rate->standard_rate * $wastageMultiplier;
-                $materialCost += $qtyAdjusted * $material->price;
+
+                $effectivePrice = $material->price;
+                if ($material->is_import) {
+                    $effectivePrice *= (1 + ($importCostPct / 100));
+                }
+
+                $materialCost += $qtyAdjusted * $effectivePrice;
             }
         }
 

@@ -245,6 +245,7 @@ class SalesOrderResource extends Resource
                                     $set('total_price', $qty * $price);
                                 }),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->default('pcs')
                                 ->required(),
                             Forms\Components\TextInput::make('unit_price')

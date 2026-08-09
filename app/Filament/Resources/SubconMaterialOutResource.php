@@ -163,6 +163,7 @@ class SubconMaterialOutResource extends Resource
                                     },
                                 ]),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->disabled()
                                 ->dehydrated()
                                 ->default('pcs'),

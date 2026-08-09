@@ -60,7 +60,7 @@ class ConsumptionRateResource extends Resource
                                 ->where('company_id', $companyId)
                                 ->sum('quantity');
 
-                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
                         })
                         ->searchable()
                         ->preload()
@@ -69,7 +69,7 @@ class ConsumptionRateResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set) {
                             $material = Material::find($state);
                             if ($material) {
-                                $set('unit', $material->unit);
+                                $set('unit', $material->uom);
                             }
                         }),
                     Forms\Components\TextInput::make('standard_rate')
@@ -78,15 +78,15 @@ class ConsumptionRateResource extends Resource
                         ->required()
                         ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
+                        ->label('UOM')
                         ->default('pcs')
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\TextInput::make('wastage_rate')
-                        ->numeric()
-                        ->step(0.01)
-                        ->default(0)
-                        ->required()
-                        ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->default(config('costing.wastage_pct', 3))
+                        ->disabled()
+                        ->dehydrated()
+                        ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
                     Forms\Components\Select::make('component')
                         ->label('Component')
@@ -135,10 +135,10 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('standard_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
-            Tables\Columns\TextColumn::make('unit'),
             Tables\Columns\TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('component')->sortable()->searchable(),

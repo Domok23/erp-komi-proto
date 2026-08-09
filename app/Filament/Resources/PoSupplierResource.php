@@ -263,6 +263,7 @@ class PoSupplierResource extends Resource
                                     $set('total_price', number_format($qty * $price, 2, '.', ','));
                                 }),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->default('pcs')
                                 ->disabled()
                                 ->dehydrated(),

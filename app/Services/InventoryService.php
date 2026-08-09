@@ -370,7 +370,7 @@ class InventoryService
             'quantity' => 0,
             'reserved_qty' => 0,
             'available_qty' => 0,
-            'unit' => $material->unit ?? 'pcs',
+            'unit' => $material->uom ?? 'pcs',
             'min_stock' => 0,
         ]);
 
@@ -615,7 +615,7 @@ class InventoryService
             'quantity' => 0,
             'reserved_qty' => 0,
             'available_qty' => 0,
-            'unit' => $material->unit ?? 'pcs',
+            'unit' => $material->uom ?? 'pcs',
             'min_stock' => 0,
         ]);
 
