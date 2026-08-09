@@ -32,6 +32,11 @@ class MaterialCategoryResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return 'Material';
+    }
+
     public static function getNavigationIcon(): ?string
     {
         return 'heroicon-o-tag';
@@ -39,7 +44,7 @@ class MaterialCategoryResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 8;
+        return 1;
     }
 
     public static function form(Schema $schema): Schema

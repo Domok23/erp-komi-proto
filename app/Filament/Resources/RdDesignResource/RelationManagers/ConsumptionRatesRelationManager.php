@@ -114,10 +114,10 @@ class ConsumptionRatesRelationManager extends RelationManager
         return $table->columns([
             TextColumn::make('id')->sortable(),
             TextColumn::make('material.name')->sortable()->searchable(),
-            TextColumn::make('unit')->label('UOM'),
             TextColumn::make('standard_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
+            TextColumn::make('unit')->label('UOM'),
             TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             TextColumn::make('component')->sortable()->searchable(),
@@ -127,30 +127,32 @@ class ConsumptionRatesRelationManager extends RelationManager
             ->headerActions([
                 StockPreviewAction::make('form'),
                 CreateAction::make(),
-                Action::make('downloadTemplate')
-                    ->label('Download Template')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('gray')
-                    ->action(function () {
-                        $writer = new XLSXWriter;
-                        $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
-                        $writer->openToFile($tempFilePath);
-
-                        $writer->addRow(Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
-                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
-                        $writer->addRow(Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
-
-                        $writer->close();
-
-                        return response()->download($tempFilePath, 'consumption_rates_template.xlsx')->deleteFileAfterSend(true);
-                    }),
                 Action::make('importExcel')
                     ->label('Import Excel')
                     ->icon('heroicon-o-arrow-up-tray')
-                    ->color('primary')
+                    ->color('success')
                     ->form([
                         FileUpload::make('file')
                             ->label('Excel File (.xlsx, .xls)')
+                            ->hintAction(
+                                Action::make('downloadTemplate')
+                                    ->label('Download Template')
+                                    ->icon('heroicon-o-arrow-down-tray')
+                                    ->color('success')
+                                    ->action(function () {
+                                        $writer = new \OpenSpout\Writer\XLSX\Writer;
+                                        $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
+                                        $writer->openToFile($tempFilePath);
+
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
+
+                                        $writer->close();
+
+                                        return response()->download($tempFilePath, 'consumption_rates_template.xlsx')->deleteFileAfterSend(true);
+                                    })
+                            )
                             ->disk('local')
                             ->directory('imports')
                             ->acceptedFileTypes([

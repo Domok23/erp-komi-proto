@@ -19,6 +19,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -53,18 +54,18 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->navigationGroups([
-                'Master Data',
-                'R&D & Consumption',
-                'Projects',
-                'Merchandising',
-                'Costing & Pricing',
-                'Sales & Shipping',
-                'Procurement',
-                'Production',
-                'Inventory & Subcon',
-                'Finance & Invoices',
-                'HR',
-                'Settings',
+                NavigationGroup::make('Master Data')->collapsible(true),
+                NavigationGroup::make('R&D & Consumption')->collapsible(true),
+                NavigationGroup::make('Projects')->collapsible(true),
+                NavigationGroup::make('Merchandising')->collapsible(true),
+                NavigationGroup::make('Costing & Pricing')->collapsible(true),
+                NavigationGroup::make('Sales & Shipping')->collapsible(true),
+                NavigationGroup::make('Procurement')->collapsible(true),
+                NavigationGroup::make('Production')->collapsible(true),
+                NavigationGroup::make('Inventory & Subcon')->collapsible(true),
+                NavigationGroup::make('Finance & Invoices')->collapsible(true),
+                NavigationGroup::make('HR')->collapsible(true),
+                NavigationGroup::make('Settings')->collapsible(true),
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

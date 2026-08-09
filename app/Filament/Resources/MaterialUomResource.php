@@ -32,6 +32,11 @@ class MaterialUomResource extends Resource
         return 'Master Data';
     }
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return 'Material';
+    }
+
     public static function getNavigationIcon(): ?string
     {
         return 'heroicon-o-scale';
@@ -39,7 +44,7 @@ class MaterialUomResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 9;
+        return 2;
     }
 
     public static function form(Schema $schema): Schema

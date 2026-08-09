@@ -29,7 +29,12 @@ class ComponentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Master Data';
+        return 'R&D & Consumption';
+    }
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return 'R&D Design';
     }
 
     public static function getNavigationIcon(): ?string
@@ -39,7 +44,7 @@ class ComponentResource extends Resource
 
     public static function getNavigationSort(): ?int
     {
-        return 7;
+        return 4;
     }
 
     public static function form(Schema $schema): Schema

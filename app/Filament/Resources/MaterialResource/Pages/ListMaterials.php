@@ -25,30 +25,33 @@ class ListMaterials extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            Actions\Action::make('downloadTemplate')
-                ->label('Download Template')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->action(function () {
-                    $writer = new XLSXWriter;
-                    $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
-                    $writer->openToFile($tempFilePath);
 
-                    $writer->addRow(Row::fromValues(['Code', 'Name', 'Size', 'Color', 'Category', 'UOM', 'Stock', 'Min Stock', 'Price', 'Is Import', 'Supplier', 'Description']));
-                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'XL', 'Red', 'Fabric', 'kg', '100', '10', '50000', '1', 'SUP-001', 'High quality cotton']));
-                    $writer->addRow(Row::fromValues(['ZIP-001', 'YKK Zipper 20cm', '', '', 'Zipper', 'pcs', '500', '50', '2000', '0', 'SUP-002', 'YKK nylon coil zipper']));
-
-                    $writer->close();
-
-                    return response()->download($tempFilePath, 'materials_template.xlsx')->deleteFileAfterSend(true);
-                }),
             Actions\Action::make('importExcel')
                 ->label('Import Excel')
                 ->icon('heroicon-o-arrow-up-tray')
-                ->color('primary')
+                ->color('success')
                 ->form([
                     FileUpload::make('file')
                         ->label('Excel File (.xlsx, .xls)')
+                        ->hintAction(
+                            Actions\Action::make('downloadTemplate')
+                                ->label('Download Template')
+                                ->icon('heroicon-o-arrow-down-tray')
+                                ->color('success')
+                                ->action(function () {
+                                    $writer = new XLSXWriter;
+                                    $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
+                                    $writer->openToFile($tempFilePath);
+
+                                    $writer->addRow(Row::fromValues(['Code', 'Name', 'Size', 'Color', 'Category', 'UOM', 'Stock', 'Min Stock', 'Price', 'Is Import', 'Supplier', 'Description']));
+                                    $writer->addRow(Row::fromValues(['FAB-001', 'Cotton Fabric Red', 'XL', 'Red', 'Fabric', 'kg', '100', '10', '50000', '1', 'SUP-001', 'High quality cotton']));
+                                    $writer->addRow(Row::fromValues(['ZIP-001', 'YKK Zipper 20cm', '', '', 'Zipper', 'pcs', '500', '50', '2000', '0', 'SUP-002', 'YKK nylon coil zipper']));
+
+                                    $writer->close();
+
+                                    return response()->download($tempFilePath, 'materials_template.xlsx')->deleteFileAfterSend(true);
+                                })
+                        )
                         ->disk('local')
                         ->directory('imports')
                         ->acceptedFileTypes([

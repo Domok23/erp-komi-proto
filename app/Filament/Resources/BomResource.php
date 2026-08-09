@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\BomResource\Pages;
-use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
@@ -206,11 +205,8 @@ class BomResource extends Resource
                             Forms\Components\TextInput::make('notes')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            NullableToggle::make('is_from_rnd')
-                                ->label('from R&D')
-                                ->default(null)
-                                ->reactive()
-                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
+                            Forms\Components\Hidden::make('is_from_rnd')
+                                ->default(null),
                         ])
                         ->columns(3)
                         ->defaultItems(1)

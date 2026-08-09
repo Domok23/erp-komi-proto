@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
-use App\Forms\Components\NullableToggle;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
@@ -223,6 +222,14 @@ class MerchandisePlanningResource extends Resource
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
+                            Forms\Components\TextInput::make('component')
+                                ->label('Component')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('notes')
+                                ->maxLength(255)
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
                             Forms\Components\Toggle::make('is_subcon')
                                 ->default(false)
                                 ->label('Is Subcon Service')
@@ -233,21 +240,10 @@ class MerchandisePlanningResource extends Resource
                                         $set('subcon_id', null);
                                     }
                                 }),
-                            Forms\Components\TextInput::make('component')
-                                ->label('Component')
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            Forms\Components\TextInput::make('notes')
-                                ->maxLength(255)
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            NullableToggle::make('is_from_rnd')
-                                ->label('from R&D')
-                                ->default(null)
-                                ->reactive()
-                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
+                            Forms\Components\Hidden::make('is_from_rnd')
+                                ->default(null),
                         ])
-                        ->columns(3)
+                        ->columns(2)
                         ->columnSpanFull()
                         ->defaultItems(1)
                         ->reactive()
