@@ -129,7 +129,7 @@ class StockTransferForm
                                                     ->where('material_id', $material->id)
                                                     ->first()?->quantity ?? 0;
 
-                                                return [$material->id => "[{$material->code}] {$material->name} (Stock: ".number_format($qty, 2)." {$material->unit})"];
+                                                return [$material->id => "[{$material->code}] {$material->name} (Stock: ".number_format($qty, 2)." {$material->uom})"];
                                             })
                                             ->toArray();
                                     })
@@ -139,7 +139,7 @@ class StockTransferForm
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $material = $state ? Material::find($state, ['*']) : null;
                                         if ($material) {
-                                            $set('unit', $material->unit);
+                                            $set('unit', $material->uom);
                                         } else {
                                             $set('unit', null);
                                         }
@@ -175,6 +175,7 @@ class StockTransferForm
                                         },
                                     ]),
                                 TextInput::make('unit')
+                                    ->label('UOM')
                                     ->disabled()
                                     ->dehydrated()
                                     ->default('pcs'),

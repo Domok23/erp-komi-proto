@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ComponentResource\Pages;
-use App\Models\Component;
+use App\Filament\Resources\MaterialCategoryResource\Pages;
+use App\Models\MaterialCategory;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -15,55 +15,50 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class ComponentResource extends Resource
+class MaterialCategoryResource extends Resource
 {
-    protected static ?string $model = Component::class;
+    protected static ?string $model = MaterialCategory::class;
 
-    protected static ?string $navigationLabel = 'Components';
+    protected static ?string $navigationLabel = 'Material Categories';
 
-    protected static ?string $modelLabel = 'Component';
+    protected static ?string $modelLabel = 'Material Category';
 
-    protected static ?string $pluralModelLabel = 'Components';
+    protected static ?string $pluralModelLabel = 'Material Categories';
 
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getNavigationGroup(): ?string
     {
-        return 'R&D & Consumption';
+        return 'Master Data';
     }
 
     public static function getNavigationParentItem(): ?string
     {
-        return 'R&D Design';
+        return 'Material';
     }
 
     public static function getNavigationIcon(): ?string
     {
-        return 'heroicon-o-puzzle-piece';
+        return 'heroicon-o-tag';
     }
 
     public static function getNavigationSort(): ?int
     {
-        return 4;
+        return 1;
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
             Forms\Components\TextInput::make('name')
-                ->label('Component Name')
+                ->label('Category Name')
                 ->required()
-                ->maxLength(255)
-                ->columnSpan(1),
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
+                ->maxLength(255),
             Forms\Components\TextInput::make('code')
                 ->label('Code (Optional)')
-                ->maxLength(100)
-                ->columnSpan(1),
-            Forms\Components\Textarea::make('description')
-                ->label('Description')
-                ->maxLength(65535)
-                ->rows(3)
-                ->columnSpanFull(),
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
+                ->maxLength(100),
         ])->columns(2);
     }
 
@@ -74,7 +69,6 @@ class ComponentResource extends Resource
                 Tables\Columns\TextColumn::make('id')->sortable(),
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('description')->limit(50),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
@@ -83,17 +77,13 @@ class ComponentResource extends Resource
                     DeleteAction::make(),
                 ]),
             ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListComponents::route('/'),
+            'index' => Pages\ListMaterialCategories::route('/'),
         ];
     }
 }

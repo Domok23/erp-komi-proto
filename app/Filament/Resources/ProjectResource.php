@@ -252,12 +252,12 @@ class ProjectResource extends Resource
                                 ->disabled()
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 4, '.', ',') : $state),
                             Forms\Components\TextInput::make('unit')
-                                ->label('Unit')
+                                ->label('UOM')
                                 ->disabled(),
                             Forms\Components\TextInput::make('wastage_percent')
                                 ->label('Wastage (%)')
                                 ->disabled()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state),
+                                ->formatStateUsing(fn ($state) => number_format(config('costing.wastage_pct', 3), 2, '.', ',')),
                         ])
                         ->columns(5)
                         ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)

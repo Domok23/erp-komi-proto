@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\BomResource\Pages;
-use App\Forms\Components\NullableToggle;
 use App\Models\Bom;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
@@ -68,13 +67,13 @@ class BomResource extends Resource
                             if ($state) {
                                 $rates = ConsumptionRate::where('design_id', $state)->get();
 
-                                $items = $rates->map(function ($rate) {
+                                 $items = $rates->map(function ($rate) {
                                     return [
                                         'material_id' => $rate->material_id,
                                         'component' => $rate->component,
                                         'quantity_per_unit' => $rate->standard_rate,
                                         'unit' => $rate->unit,
-                                        'wastage_percent' => $rate->wastage_rate,
+                                        'wastage_percent' => config('costing.wastage_pct', 3),
                                         'notes' => $rate->notes,
                                         'is_from_rnd' => true,
                                     ];
@@ -137,7 +136,7 @@ class BomResource extends Resource
                                         ->where('company_id', $companyId)
                                         ->sum('quantity');
 
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
                                 })
                                 ->searchable()
                                 ->preload()
@@ -146,7 +145,7 @@ class BomResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $material = Material::find($state, ['*']);
                                     if ($material) {
-                                        $set('unit', $material->unit);
+                                        $set('unit', $material->uom);
                                     }
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
@@ -158,15 +157,15 @@ class BomResource extends Resource
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->default('pcs')
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
-                                ->numeric()
-                                ->step(0.01)
-                                ->default(0)
+                                ->label('Wastage (%)')
+                                ->default(config('costing.wastage_pct', 3))
                                 ->suffix('%')
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->disabled()
                                 ->dehydrated(),
                             Forms\Components\Select::make('component')
                                 ->label('Component')
@@ -206,11 +205,8 @@ class BomResource extends Resource
                             Forms\Components\TextInput::make('notes')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            NullableToggle::make('is_from_rnd')
-                                ->label('from R&D')
-                                ->default(null)
-                                ->reactive()
-                                ->visible(fn (callable $get) => $get('is_from_rnd') !== null),
+                            Forms\Components\Hidden::make('is_from_rnd')
+                                ->default(null),
                         ])
                         ->columns(3)
                         ->defaultItems(1)

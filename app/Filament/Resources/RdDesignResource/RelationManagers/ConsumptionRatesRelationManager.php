@@ -53,21 +53,22 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     $material = $state ? Material::find($state) : null;
-                    $set('unit', $material?->unit);
+                    $set('unit', $material?->uom);
                 }),
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
                 ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
+                ->label('UOM')
                 ->default('pcs')
                 ->disabled()
                 ->dehydrated(),
             Forms\Components\TextInput::make('wastage_rate')
-                ->numeric()
-                ->default(0)
-                ->required()
-                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->default(config('costing.wastage_pct', 3))
+                ->disabled()
+                ->dehydrated()
+                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -116,7 +117,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             TextColumn::make('standard_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
-            TextColumn::make('unit'),
+            TextColumn::make('unit')->label('UOM'),
             TextColumn::make('wastage_rate')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             TextColumn::make('component')->sortable()->searchable(),
@@ -126,30 +127,32 @@ class ConsumptionRatesRelationManager extends RelationManager
             ->headerActions([
                 StockPreviewAction::make('form'),
                 CreateAction::make(),
-                Action::make('downloadTemplate')
-                    ->label('Download Template')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('gray')
-                    ->action(function () {
-                        $writer = new XLSXWriter;
-                        $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
-                        $writer->openToFile($tempFilePath);
-
-                        $writer->addRow(Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
-                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
-                        $writer->addRow(Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
-
-                        $writer->close();
-
-                        return response()->download($tempFilePath, 'consumption_rates_template.xlsx')->deleteFileAfterSend(true);
-                    }),
                 Action::make('importExcel')
                     ->label('Import Excel')
                     ->icon('heroicon-o-arrow-up-tray')
-                    ->color('primary')
+                    ->color('success')
                     ->form([
                         FileUpload::make('file')
                             ->label('Excel File (.xlsx, .xls)')
+                            ->hintAction(
+                                Action::make('downloadTemplate')
+                                    ->label('Download Template')
+                                    ->icon('heroicon-o-arrow-down-tray')
+                                    ->color('success')
+                                    ->action(function () {
+                                        $writer = new \OpenSpout\Writer\XLSX\Writer;
+                                        $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
+                                        $writer->openToFile($tempFilePath);
+
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
+                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
+
+                                        $writer->close();
+
+                                        return response()->download($tempFilePath, 'consumption_rates_template.xlsx')->deleteFileAfterSend(true);
+                                    })
+                            )
                             ->disk('local')
                             ->directory('imports')
                             ->acceptedFileTypes([
@@ -238,8 +241,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     }
 
                                     $consumptionRate->standard_rate = $standardRate;
-                                    $consumptionRate->wastage_rate = $wastageRate;
-                                    $consumptionRate->unit = $material->unit;
+                                    $consumptionRate->wastage_rate = config('costing.wastage_pct', 3);
+                                    $consumptionRate->unit = $material->uom;
                                     $consumptionRate->notes = $notes;
                                     $consumptionRate->save();
 

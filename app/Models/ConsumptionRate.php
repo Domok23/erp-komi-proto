@@ -57,7 +57,7 @@ class ConsumptionRate extends Model
                         'component' => $this->component,
                         'quantity_per_unit' => $this->standard_rate,
                         'unit' => $this->unit,
-                        'wastage_percent' => $this->wastage_rate,
+                        'wastage_percent' => config('costing.wastage_pct', 3),
                         'is_from_rnd' => true,
                     ]);
                 }
@@ -68,7 +68,7 @@ class ConsumptionRate extends Model
                     'component' => $this->component,
                     'quantity_per_unit' => $this->standard_rate,
                     'unit' => $this->unit,
-                    'wastage_percent' => $this->wastage_rate,
+                    'wastage_percent' => config('costing.wastage_pct', 3),
                     'notes' => $this->notes,
                     'is_from_rnd' => true,
                 ]);

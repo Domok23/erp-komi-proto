@@ -187,7 +187,7 @@ class JobOrderResource extends Resource
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\TextInput::make('unit')
-                        ->label('Unit')
+                        ->label('UOM')
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\TextInput::make('unit_price')

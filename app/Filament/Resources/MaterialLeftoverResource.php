@@ -53,6 +53,7 @@ class MaterialLeftoverResource extends Resource
                         ->default(0)
                         ->required(),
                     Forms\Components\TextInput::make('unit')
+                        ->label('UOM')
                         ->default('pcs'),
                     Forms\Components\Select::make('condition')
                         ->options([
@@ -87,7 +88,7 @@ class MaterialLeftoverResource extends Resource
             Tables\Columns\TextColumn::make('leftover_date')->date(),
             Tables\Columns\TextColumn::make('qty')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('unit'),
+            Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\BadgeColumn::make('condition')
                 ->color(fn (string $state): string => match ($state) {
                     'usable' => 'success',

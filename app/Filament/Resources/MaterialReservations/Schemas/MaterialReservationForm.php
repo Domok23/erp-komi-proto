@@ -133,7 +133,7 @@ class MaterialReservationForm
                     ->afterStateUpdated(function ($state, callable $set) {
                         $material = $state ? Material::find($state, ['*']) : null;
                         if ($material) {
-                            $set('unit', $material->unit);
+                            $set('unit', $material->uom);
                         } else {
                             $set('unit', null);
                         }

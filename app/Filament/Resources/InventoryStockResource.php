@@ -65,7 +65,7 @@ class InventoryStockResource extends Resource
                                 ->where('company_id', $companyId)
                                 ->sum('quantity');
 
-                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
+                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
                         })
                         ->searchable()
                         ->preload()
@@ -74,7 +74,7 @@ class InventoryStockResource extends Resource
                         ->afterStateUpdated(function ($state, callable $set) {
                             $material = Material::find($state);
                             if ($material) {
-                                $set('unit', $material->unit);
+                                $set('unit', $material->uom);
                                 $set('min_stock', $material->min_stock);
                             }
                         }),
@@ -94,6 +94,7 @@ class InventoryStockResource extends Resource
                         ->default(0)
                         ->required(),
                     Forms\Components\TextInput::make('unit')
+                        ->label('UOM')
                         ->disabled()
                         ->dehydrated()
                         ->default('pcs'),
@@ -138,7 +139,7 @@ class InventoryStockResource extends Resource
                 ->label('Stock Status')
                 ->color(fn ($record) => $record->quantity < $record->min_stock ? 'danger' : 'success')
                 ->getStateUsing(fn ($record) => $record->quantity < $record->min_stock ? 'Low Stock' : 'Good'),
-            Tables\Columns\TextColumn::make('unit'),
+            Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('location'),
         ])
             ->filters([

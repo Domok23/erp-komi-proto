@@ -82,7 +82,7 @@ class MaterialUsageResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('unit')
-                        ->label('Unit')
+                        ->label('UOM')
                         ->disabled(),
                     Forms\Components\TextInput::make('unit_price')
                         ->label('Unit Price')
@@ -149,7 +149,7 @@ class MaterialUsageResource extends Resource
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
             Tables\Columns\TextColumn::make('waste_qty')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('unit'),
+            Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('unit_price')
                 ->money('IDR')
                 ->sortable(),

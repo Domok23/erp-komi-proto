@@ -13,7 +13,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -29,18 +28,16 @@ class MaterialsRelationManager extends RelationManager
                 ->required()
                 ->unique(ignoreRecord: true),
             TextInput::make('name')->required(),
-            Select::make('category')
-                ->options([
-                    'fabric' => 'Fabric',
-                    'zipper' => 'Zipper',
-                    'button' => 'Button',
-                    'thread' => 'Thread',
-                    'handle' => 'Handle',
-                    'label' => 'Label',
-                    'interlining' => 'Interlining',
-                    'other' => 'Other',
-                ]),
-            TextInput::make('unit')->default('pcs'),
+            Select::make('category_id')
+                ->label('Category')
+                ->relationship('categoryRef', 'name')
+                ->searchable()
+                ->preload(),
+            Select::make('uom_id')
+                ->label('UOM')
+                ->relationship('uomRef', 'name')
+                ->searchable()
+                ->preload(),
             Toggle::make('is_active')
                 ->default(true)
                 ->inline(false),
@@ -53,8 +50,8 @@ class MaterialsRelationManager extends RelationManager
             TextColumn::make('id')->sortable(),
             TextColumn::make('code')->sortable()->searchable(),
             TextColumn::make('name')->sortable()->searchable(),
-            BadgeColumn::make('category'),
-            TextColumn::make('unit'),
+            TextColumn::make('categoryRef.name')->label('Category'),
+            TextColumn::make('uomRef.name')->label('UOM'),
             IconColumn::make('is_active')->boolean(),
         ])
             ->filters([])

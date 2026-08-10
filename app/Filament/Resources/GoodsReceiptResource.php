@@ -160,6 +160,7 @@ class GoodsReceiptResource extends Resource
                                 ->step(0.01)
                                 ->default(0),
                             Forms\Components\TextInput::make('unit')
+                                ->label('UOM')
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('notes'),

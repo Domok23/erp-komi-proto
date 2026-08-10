@@ -50,7 +50,7 @@ class ProjectMaterialReadiness
         $atRiskCount = 0;
 
         foreach ($items as $item) {
-            $wastage = $item->wastage_percent ?? 0;
+            $wastage = config('costing.wastage_pct', 3);
             $qtyNeeded = (float) $item->quantity_per_unit * (1 + ($wastage / 100)) * (float) $project->target_qty;
 
             // Fetch available stock for this material in the project's company
@@ -82,7 +82,8 @@ class ProjectMaterialReadiness
                 'category' => $item->category ?? 'raw',
                 'qty_needed' => round($qtyNeeded, 2),
                 'qty_available' => round($qtyAvailable, 2),
-                'unit' => $item->unit ?? $item->material?->unit ?? 'pcs',
+                // Note: bom_items table retains 'unit' column for UOM snapshots
+                'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
                 'status' => $status,
                 'supplier_name' => $item->material?->supplier?->name ?? 'N/A',
             ];
