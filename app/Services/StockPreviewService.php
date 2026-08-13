@@ -161,6 +161,7 @@ class StockPreviewService
                         'po_number' => CodeGenerator::generatePOSupplierNo(),
                         'supplier_id' => (int) $supplierId,
                         'project_id' => $projectId,
+                        'project_ids' => $projectId ? [$projectId] : null,
                         'po_date' => now(),
                         'ppn_percent' => 11,
                         'status' => 'draft',
