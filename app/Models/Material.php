@@ -53,10 +53,11 @@ class Material extends Model
                         })
                         ->first();
                     if (! $cat) {
-                        $cat = MaterialCategory::create([
+                        $cat = MaterialCategory::firstOrCreate([
                             'company_id' => $companyId,
-                            'name' => ucfirst(str_replace('_', ' ', $material->category)),
                             'code' => $material->category,
+                        ], [
+                            'name' => ucfirst(str_replace('_', ' ', $material->category)),
                         ]);
                     }
                     $material->category_id = $cat->id;

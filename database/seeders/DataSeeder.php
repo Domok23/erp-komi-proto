@@ -176,7 +176,7 @@ class DataSeeder extends Seeder
                 'code' => 'FAB-001',
                 'name' => 'Kain Polyester Hitam',
                 'category' => 'fabric',
-                'unit' => 'yard',
+                'uom' => 'yard',
                 'stock' => 1000,
                 'min_stock' => 100,
                 'price' => 38000,
@@ -190,7 +190,7 @@ class DataSeeder extends Seeder
                 'code' => 'ZIP-001',
                 'name' => 'Metal Zipper',
                 'category' => 'zipper',
-                'unit' => 'pcs',
+                'uom' => 'pcs',
                 'stock' => 5000,
                 'min_stock' => 500,
                 'price' => 7500,
@@ -204,7 +204,7 @@ class DataSeeder extends Seeder
                 'code' => 'ACC-003',
                 'name' => 'Kancing Premium',
                 'category' => 'other',
-                'unit' => 'pcs',
+                'uom' => 'pcs',
                 'stock' => 2000,
                 'min_stock' => 200,
                 'price' => 2500,
@@ -218,7 +218,7 @@ class DataSeeder extends Seeder
                 'code' => 'FAB-001-EMB',
                 'name' => 'Kain Polyester Merah (Embroidered)',
                 'category' => 'semi_finished',
-                'unit' => 'pcs',
+                'uom' => 'pcs',
                 'stock' => 0,
                 'min_stock' => 0,
                 'price' => 45000,
@@ -279,7 +279,7 @@ class DataSeeder extends Seeder
             'is_from_rnd' => true,
         ]);
 
-        // 8. Seed Projects
+        // 8. Seed Projects & SubProjects
         $project = Project::create([
             'company_id' => $kei->id,
             'project_code' => CodeGenerator::generateProjectCode(),
@@ -291,6 +291,61 @@ class DataSeeder extends Seeder
             'design_id' => $designBackpack->id,
             'bom_id' => $bomBackpack->id,
             'target_qty' => 1000,
+        ]);
+
+        $subProject1 = \App\Models\SubProject::create([
+            'company_id' => $kei->id,
+            'project_id' => $project->id,
+            'code' => 'SUB-PRJ-001',
+            'name' => 'Front & Sleeve Panel Assembly',
+            'category' => 'sub_assembly',
+            'bom_id' => $bomBackpack->id,
+            'target_qty' => 1000,
+            'produced_qty' => 750,
+            'review_status' => 'approved',
+            'review_notes' => 'Panel quality approved by QA Lead',
+        ]);
+
+        $subProject2 = \App\Models\SubProject::create([
+            'company_id' => $kei->id,
+            'project_id' => $project->id,
+            'code' => 'SUB-PRJ-002',
+            'name' => 'Main Body Sewing & Finishing',
+            'category' => 'assembly',
+            'bom_id' => $bomBackpack->id,
+            'target_qty' => 1000,
+            'produced_qty' => 500,
+            'review_status' => 'pending',
+            'review_notes' => 'Finishing in progress',
+        ]);
+
+        // Seed Material Reservations
+        \App\Models\MaterialReservation::create([
+            'company_id' => $kei->id,
+            'warehouse_id' => $whMain->id,
+            'material_id' => $matFabric->id,
+            'project_id' => $project->id,
+            'sub_project_id' => $subProject1->id,
+            'document_number' => CodeGenerator::generateReservationNumber(),
+            'reservation_type' => 'project',
+            'reserved_qty' => 500.00,
+            'status' => 'approved',
+            'reservation_date' => now()->subDays(3)->toDateString(),
+            'notes' => 'Reserved 500 yards fabric for Sub-Project 1',
+        ]);
+
+        \App\Models\MaterialReservation::create([
+            'company_id' => $kei->id,
+            'warehouse_id' => $whMain->id,
+            'material_id' => $matZipper->id,
+            'project_id' => $project->id,
+            'sub_project_id' => $subProject2->id,
+            'document_number' => CodeGenerator::generateReservationNumber(),
+            'reservation_type' => 'project',
+            'reserved_qty' => 1000.00,
+            'status' => 'approved',
+            'reservation_date' => now()->subDays(2)->toDateString(),
+            'notes' => 'Reserved 1000 pcs zipper for Sub-Project 2',
         ]);
 
         // 9. Seed Merchandise Plannings

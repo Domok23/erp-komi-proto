@@ -347,7 +347,7 @@ class InventoryService
         ], [
             'name' => $design->name,
             'category' => 'finished',
-            'unit' => 'pcs',
+            'uom' => 'pcs',
             'stock' => 0,
             'min_stock' => 0,
             'price' => $design->estimated_selling_price ?? 0,
@@ -592,7 +592,7 @@ class InventoryService
         ], [
             'name' => $design->name,
             'category' => 'finished',
-            'unit' => 'pcs',
+            'uom' => 'pcs',
             'stock' => 0,
             'min_stock' => 0,
             'price' => $design->estimated_selling_price ?? 0,

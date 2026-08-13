@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('to_company_id')->constrained('companies')->onDelete('cascade');
             $table->foreignId('from_warehouse_id')->constrained('warehouses')->onDelete('cascade');
             $table->foreignId('to_warehouse_id')->constrained('warehouses')->onDelete('cascade');
-            $table->string('transfer_number')->unique();
+            $table->string('transfer_number', 50)->unique();
             $table->date('transfer_date');
             $table->enum('status', ['draft', 'pending', 'shipped', 'received', 'cancelled'])->default('draft');
             $table->text('notes')->nullable();

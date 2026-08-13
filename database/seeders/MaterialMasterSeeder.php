@@ -46,9 +46,9 @@ class MaterialMasterSeeder extends Seeder
             foreach ($defaultCategories as $cat) {
                 MaterialCategory::firstOrCreate([
                     'company_id' => $company->id,
-                    'name' => $cat['name'],
-                ], [
                     'code' => $cat['code'],
+                ], [
+                    'name' => $cat['name'],
                 ]);
             }
 
@@ -85,10 +85,11 @@ class MaterialMasterSeeder extends Seeder
                     ->first();
 
                 if (! $categoryModel && $companyId) {
-                    $categoryModel = MaterialCategory::create([
+                    $categoryModel = MaterialCategory::firstOrCreate([
                         'company_id' => $companyId,
-                        'name' => Str::headline($categoryRaw),
                         'code' => Str::slug($categoryRaw, '_'),
+                    ], [
+                        'name' => Str::headline($categoryRaw),
                     ]);
                 }
 
