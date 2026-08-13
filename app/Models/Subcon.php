@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subcon extends Model
@@ -27,8 +26,8 @@ class Subcon extends Model
         'is_active' => 'boolean',
     ];
 
-    public function purchaseOrders(): HasMany
+    public function poSubcons(): HasMany
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(PoSubcon::class);
     }
 }

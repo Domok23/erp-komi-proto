@@ -4,17 +4,23 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Models\Company;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Tables\Table;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class CompanyResource extends Resource
 {
@@ -33,20 +39,28 @@ class CompanyResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            TextInput::make('code')->required()->maxLength(50),
-            TextInput::make('name')->required()->maxLength(255),
-            Select::make('type')
-                ->required()
-                ->options([
-                    'main' => 'Main Company',
-                    'branch' => 'Branch',
-                ]),
-            Textarea::make('address'),
-            TextInput::make('city')->maxLength(100),
-            TextInput::make('phone')->tel()->maxLength(30),
-            TextInput::make('email')->email()->maxLength(100),
-            TextInput::make('npwp')->maxLength(30),
-            Toggle::make('is_active')->default(true),
+            Section::make('Company Details')
+                ->columnSpanFull()
+                ->schema([
+                    TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    TextInput::make('name')->required()->maxLength(255),
+                    Select::make('type')
+                        ->required()
+                        ->options([
+                            'main' => 'Main Company',
+                            'branch' => 'Branch',
+                        ]),
+                    Textarea::make('address'),
+                    TextInput::make('city')->maxLength(100),
+                    TextInput::make('phone')->tel()->maxLength(30),
+                    TextInput::make('email')->email()->maxLength(100),
+                    TextInput::make('npwp')->maxLength(30),
+                    Toggle::make('is_active')->default(true),
+                ])
+                ->columns(2),
         ]);
     }
 
@@ -83,17 +97,17 @@ class CompanyResource extends Resource
                     ]),
             ])
             ->actions([
-                \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {
@@ -105,7 +119,15 @@ class CompanyResource extends Resource
         return 'Master Data';
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    public static function getRelations(): array
+    {
+        return [];
+    }
 
     public static function getPages(): array
     {

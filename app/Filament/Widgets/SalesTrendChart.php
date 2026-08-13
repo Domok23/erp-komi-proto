@@ -8,8 +8,10 @@ use Filament\Widgets\ChartWidget;
 class SalesTrendChart extends ChartWidget
 {
     protected static ?int $sort = 2;
+
     protected ?string $heading = 'Sales Revenue Trend';
-    protected int | string | array $columnSpan = 2;
+
+    protected int|string|array $columnSpan = 2;
 
     protected function getData(): array
     {
@@ -24,13 +26,13 @@ class SalesTrendChart extends ChartWidget
                 ->whereYear('order_date', $date->year)
                 ->whereMonth('order_date', $date->month)
                 ->where('status', '!=', 'cancelled')
-                ->sum('total_amount');
+                ->sum('grand_total');
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Monthly Sales ($)',
+                    'label' => 'Monthly Sales (IDR)',
                     'data' => $data,
                     'borderColor' => '#fbbf24',
                     'backgroundColor' => 'rgba(251, 191, 36, 0.1)',

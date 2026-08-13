@@ -5,8 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\Company;
 use App\Services\CompanyContext;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Schema;
 use Filament\Pages\Page;
 
 class SelectCompany extends Page
@@ -25,8 +23,10 @@ class SelectCompany extends Page
 
     public function mount(): void
     {
-        if (CompanyContext::hasCompany()) {
-            $this->redirect(Filament::getUrl());
+        if (request()->query('switch') === '1') {
+            CompanyContext::clearCompany();
+        } elseif (CompanyContext::hasCompany()) {
+            $this->redirect(Filament::getUrl(), navigate: true);
         }
     }
 
@@ -60,6 +60,6 @@ class SelectCompany extends Page
 
         CompanyContext::setCompany($company);
 
-        $this->redirect(Filament::getUrl());
+        $this->redirect(Filament::getUrl(), navigate: true);
     }
 }

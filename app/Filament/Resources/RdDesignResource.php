@@ -3,63 +3,115 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RdDesignResource\Pages;
+use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Actions\EditAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class RdDesignResource extends Resource
 {
     protected static ?string $model = RdDesign::class;
 
-
-
     protected static ?string $navigationLabel = 'R&D Design';
+
     protected static ?string $modelLabel = 'R&D Design';
+
     protected static ?string $pluralModelLabel = 'R&D Designs';
+
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'code', 'brand'];
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-                        Forms\Components\TextInput::make('code')
-                ->required()
-                ->maxLength(50),
-            Forms\Components\TextInput::make('name')
-                ->required()
-                ->maxLength(255),
-            Forms\Components\Textarea::make('description')
-                ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\TextInput::make('category')
-                ->maxLength(100),
-            Forms\Components\FileUpload::make('file_path')
-                ->directory('designs'),
-            Forms\Components\Select::make('status')
-                ->options([
-                    'concept' => 'Concept',
-                    'in_progress' => 'In Progress',
-                    'review' => 'Review',
-                    'approved' => 'Approved',
-                    'rejected' => 'Rejected',
+            Section::make('Design Details')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('code')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\Select::make('product_type')
+                        ->options([
+                            'jacket' => 'Jacket',
+                            'shirt' => 'Shirt',
+                            'trousers' => 'Trousers',
+                            'dress' => 'Dress',
+                            'tshirt' => 'T-Shirt',
+                            'other' => 'Other',
+                        ])
+                        ->required(),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'draft' => 'Draft',
+                            'approved' => 'Approved',
+                            'archived' => 'Archived',
+                        ])
+                        ->default('draft')
+                        ->required(),
+                    Forms\Components\TextInput::make('brand')
+                        ->maxLength(255),
+                    Forms\Components\TextInput::make('size_range')
+                        ->maxLength(255),
+                    Forms\Components\FileUpload::make('reference_image')
+                        ->directory('designs')
+                        ->image(),
+                    Forms\Components\FileUpload::make('tech_pack')
+                        ->directory('techpacks'),
+                    Forms\Components\Textarea::make('description')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('notes')
+                        ->maxLength(65535)
+                        ->columnSpanFull(),
                 ])
-                ->default('concept'),
-            Forms\Components\TextInput::make('designer')
-                ->maxLength(255),
-            Forms\Components\DatePicker::make('start_date'),
-            Forms\Components\DatePicker::make('completion_date'),
-            Forms\Components\Textarea::make('notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
-            Forms\Components\Toggle::make('is_active')
-                ->default(true),
+                ->columns(2),
+
+            Section::make('Cost Estimations (Read-Only)')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('estimated_material_cost')
+                        ->numeric()
+                        ->prefix('IDR')
+                        ->disabled(),
+                    Forms\Components\TextInput::make('estimated_mp_cost')
+                        ->label(new HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->numeric()
+                        ->prefix('IDR')
+                        ->disabled(),
+                    Forms\Components\TextInput::make('estimated_overhead_pct')
+                        ->label(new HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->numeric()
+                        ->suffix('%')
+                        ->disabled(),
+                    Forms\Components\TextInput::make('estimated_profit_margin_pct')
+                        ->label(new HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->numeric()
+                        ->suffix('%')
+                        ->disabled(),
+                    Forms\Components\TextInput::make('estimated_selling_price')
+                        ->numeric()
+                        ->prefix('IDR')
+                        ->disabled(),
+                ])->columns(2),
         ]);
     }
 
@@ -69,37 +121,41 @@ class RdDesignResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('category'),
+            Tables\Columns\TextColumn::make('product_type')->sortable(),
             Tables\Columns\BadgeColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
-                    'concept' => 'gray',
-                    'in_progress' => 'info',
-                    'review' => 'warning',
+                    'draft' => 'gray',
                     'approved' => 'success',
-                    'rejected' => 'danger',
+                    'archived' => 'warning',
                     default => 'gray',
                 }),
-            Tables\Columns\TextColumn::make('designer'),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('completion_date')->date(),
-            Tables\Columns\IconColumn::make('is_active')->boolean(),
+            Tables\Columns\TextColumn::make('brand'),
+            Tables\Columns\TextColumn::make('size_range'),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([
                 SelectFilter::make('status')->options([
-                    'concept' => 'Concept',
-                    'in_progress' => 'In Progress',
-                    'review' => 'Review',
+                    'draft' => 'Draft',
                     'approved' => 'Approved',
-                    'rejected' => 'Rejected',
+                    'archived' => 'Archived',
                 ]),
-                SelectFilter::make('is_active')->options(['1' => 'Active', '0' => 'Inactive']),
+                SelectFilter::make('product_type')->options([
+                    'jacket' => 'Jacket',
+                    'shirt' => 'Shirt',
+                    'trousers' => 'Trousers',
+                    'dress' => 'Dress',
+                    'tshirt' => 'T-Shirt',
+                    'other' => 'Other',
+                ]),
             ])
-            ->actions([EditAction::make(), DeleteAction::make()])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
+            ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
-
-
 
     public static function getNavigationIcon(): ?string
     {
@@ -108,10 +164,20 @@ class RdDesignResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Pre-Production';
+        return 'R&D & Consumption';
     }
 
-    public static function getRelations(): array { return []; }
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ConsumptionRatesRelationManager::class,
+        ];
+    }
 
     public static function getPages(): array
     {

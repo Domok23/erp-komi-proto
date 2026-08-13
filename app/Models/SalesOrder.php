@@ -14,44 +14,61 @@ class SalesOrder extends Model
     protected $fillable = [
         'company_id',
         'so_number',
+        'project_id',
+        'costing_id',
         'customer_id',
         'order_date',
         'delivery_date',
+        'quantity',
+        'unit_price',
         'status',
         'currency',
         'exchange_rate',
         'subtotal',
-        'tax_pct',
-        'tax_amount',
-        'total_amount',
+        'ppn_percent',
+        'ppn_amount',
+        'shipping_cost',
+        'grand_total',
         'down_payment_pct',
         'down_payment_amount',
         'payment_terms',
         'notes',
-        'created_by',
+        'customer_signature',
     ];
 
     protected $casts = [
         'order_date' => 'date',
         'delivery_date' => 'date',
+        'quantity' => 'integer',
+        'unit_price' => 'decimal:2',
         'exchange_rate' => 'decimal:4',
         'subtotal' => 'decimal:2',
-        'tax_pct' => 'decimal:2',
-        'tax_amount' => 'decimal:2',
-        'total_amount' => 'decimal:2',
+        'ppn_percent' => 'decimal:2',
+        'ppn_amount' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
+        'grand_total' => 'decimal:2',
         'down_payment_pct' => 'decimal:2',
         'down_payment_amount' => 'decimal:2',
     ];
 
-    
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    public function projects(): HasMany
+    public function project(): BelongsTo
     {
-        return $this->hasMany(Project::class);
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function costing(): BelongsTo
+    {
+        return $this->belongsTo(Costing::class, 'costing_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(SalesOrderItem::class, 'sales_order_id');
     }
 
     public function shipments(): HasMany
@@ -59,8 +76,8 @@ class SalesOrder extends Model
         return $this->hasMany(Shipment::class);
     }
 
-    public function invoices(): HasMany
+    public function invoiceSales(): HasMany
     {
-        return $this->hasMany(Invoice::class);
+        return $this->hasMany(InvoiceSales::class, 'sales_order_id');
     }
 }

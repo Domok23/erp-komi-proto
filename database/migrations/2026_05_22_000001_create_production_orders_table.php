@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('production_number')->unique();
             $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
+            $table->foreignId('merchandising_planning_id')->constrained('merchandise_plannings')->onDelete('cascade')->nullable();
             $table->integer('planned_qty');
             $table->integer('completed_qty')->default(0);
             $table->enum('status', ['planned', 'in_progress', 'qc_passed', 'qc_failed', 'completed', 'cancelled'])->default('planned');

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('qc_inspections', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
-            $table->foreignId('production_order_id')->constrained('production_orders')->onDelete('cascade');
+            $table->foreignId('job_order_id')->constrained('job_orders')->onDelete('cascade');
             $table->string('inspection_number')->unique();
             $table->date('inspection_date');
             $table->integer('sample_size');

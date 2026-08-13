@@ -17,18 +17,21 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->enum('category', [
-                'handbag',
-                'backpack',
-                'duffle',
-                'messenger',
-                'laptop_bag',
-                'trolley',
+            $table->enum('product_type', [
+                'jacket',
+                'shirt',
+                'trousers',
+                'dress',
+                'tshirt',
                 'other',
             ]);
             $table->enum('status', ['draft', 'approved', 'archived'])->default('draft');
             $table->string('sample_photo')->nullable();
             $table->string('tech_drawing')->nullable();
+            $table->string('reference_image')->nullable();
+            $table->string('tech_pack')->nullable();
+            $table->string('brand')->nullable();
+            $table->string('size_range')->nullable();
             $table->text('notes')->nullable();
             $table->decimal('estimated_material_cost', 15, 2)->nullable();
             $table->decimal('estimated_mp_cost', 15, 2)->nullable();
@@ -39,7 +42,7 @@ return new class extends Migration
 
             $table->index(['company_id', 'code']);
             $table->index(['company_id', 'status']);
-            $table->index(['company_id', 'category']);
+            $table->index(['company_id', 'product_type']);
         });
     }
 

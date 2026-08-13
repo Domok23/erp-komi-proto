@@ -6,28 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('goods_receipts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies');
+            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('gr_number')->unique();
-            $table->foreignId('purchase_receipt_id')->nullable()->constrained('purchase_receipts');
-            $table->foreignId('supplier_id')->constrained('suppliers');
+            $table->string('po_type')->nullable(); // supplier, subcon
+            $table->unsignedBigInteger('po_id')->nullable();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->onDelete('cascade');
             $table->date('receipt_date');
-            $table->string('invoice_number')->nullable();
-            $table->text('notes')->nullable();
+            $table->enum('status', ['draft', 'received', 'partial', 'verified'])->default('draft');
             $table->string('received_by')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
+
+            $table->index(['company_id', 'gr_number']);
+            $table->index(['company_id', 'po_type', 'po_id']);
+            $table->index(['company_id', 'warehouse_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('goods_receipts');

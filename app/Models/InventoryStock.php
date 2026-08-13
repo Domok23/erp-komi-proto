@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Models;
+
+use App\Services\InventoryService;
+use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class InventoryStock extends Model
+{
+    use BelongsToCompany;
+
+    protected $table = 'inventory_stocks';
+
+    protected static function booted(): void
+    {
+        static::saved(function (InventoryStock $stock) {
+            InventoryService::syncMaterialTotalStock($stock->material_id);
+        });
+
+        static::deleted(function (InventoryStock $stock) {
+            InventoryService::syncMaterialTotalStock($stock->material_id);
+        });
+    }
+
+    protected $fillable = [
+        'company_id',
+        'warehouse_id',
+        'material_id',
+        'quantity',
+        'reserved_qty',
+        'available_qty',
+        'unit',
+        'min_stock',
+        'location',
+        'notes',
+    ];
+
+    protected $casts = [
+        'quantity' => 'decimal:3',
+        'reserved_qty' => 'decimal:3',
+        'available_qty' => 'decimal:3',
+        'min_stock' => 'decimal:3',
+    ];
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function material(): BelongsTo
+    {
+        return $this->belongsTo(Material::class, 'material_id');
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(MaterialReservation::class, 'material_id', 'material_id')
+            ->where('company_id', $this->company_id)
+            ->where('warehouse_id', $this->warehouse_id);
+    }
+}

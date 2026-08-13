@@ -94,7 +94,7 @@ composer dev
 ## Access
 
 - **Admin Panel**: http://localhost:8000/admin
-- **Default Admin Login**: admin@erp-komi.test / password
+- **Default Admin Login**: admin@komi.com / password
 
 ## Common Commands
 

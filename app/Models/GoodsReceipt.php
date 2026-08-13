@@ -2,37 +2,115 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GoodsReceipt extends Model
 {
     use BelongsToCompany;
 
+    protected $table = 'goods_receipts';
+
     protected $fillable = [
         'company_id',
         'gr_number',
-        'purchase_receipt_id',
-        'supplier_id',
+        'po_type',
+        'po_id',
+        'warehouse_id',
         'receipt_date',
-        'invoice_number',
-        'notes',
+        'status',
         'received_by',
+        'notes',
+        'receiver_signature',
     ];
 
     protected $casts = [
         'receipt_date' => 'date',
     ];
 
-    
-    public function purchaseReceipt(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(PurchaseReceipt::class);
+        static::creating(function (GoodsReceipt $goodsReceipt) {
+            $goodsReceipt->po_type = 'supplier';
+        });
+
+        static::saving(function (GoodsReceipt $goodsReceipt) {
+            $goodsReceipt->po_type = 'supplier';
+        });
+
+        static::updated(function (GoodsReceipt $goodsReceipt) {
+            if ($goodsReceipt->status === 'verified' && $goodsReceipt->getOriginal('status') !== 'verified') {
+                InventoryService::receiveGoods($goodsReceipt);
+                self::updateShipmentOnReceipt($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
+            }
+        });
+
+        static::created(function (GoodsReceipt $goodsReceipt) {
+            if ($goodsReceipt->status === 'verified') {
+                InventoryService::receiveGoods($goodsReceipt);
+                self::updateShipmentOnReceipt($goodsReceipt);
+                self::syncPoItemReceivedQty($goodsReceipt);
+            }
+        });
     }
 
-    public function supplier(): BelongsTo
+    protected static function updateShipmentOnReceipt(GoodsReceipt $goodsReceipt): void
     {
-        return $this->belongsTo(Supplier::class);
+        if ($goodsReceipt->po_type && $goodsReceipt->po_id) {
+            // Update all non-arrived shipments for this PO to arrived
+            PurchaseShipment::where('company_id', $goodsReceipt->company_id)
+                ->where('po_type', $goodsReceipt->po_type)
+                ->where('po_id', $goodsReceipt->po_id)
+                ->where('status', '!=', 'arrived')
+                ->update([
+                    'status' => 'arrived',
+                    'actual_arrival' => $goodsReceipt->receipt_date,
+                ]);
+        }
+    }
+
+    protected static function syncPoItemReceivedQty(GoodsReceipt $goodsReceipt): void
+    {
+        if (! $goodsReceipt->po_id) {
+            return;
+        }
+
+        $po = PoSupplier::with('items')->find($goodsReceipt->po_id);
+        if (! $po) {
+            return;
+        }
+
+        $po->syncReceivedQty();
+        $po->syncStatusFromItems();
+    }
+
+    public function po(): BelongsTo
+    {
+        return $this->belongsTo(PoSupplier::class, 'po_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class, 'goods_receipt_id');
+    }
+
+    public function shipping(): HasOne
+    {
+        return $this->hasOne(GoodsReceiptShipping::class, 'goods_receipt_id');
+    }
+
+    public function returs(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptRetur::class, 'goods_receipt_id');
     }
 }

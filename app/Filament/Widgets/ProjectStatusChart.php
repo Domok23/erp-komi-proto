@@ -8,16 +8,18 @@ use Filament\Widgets\ChartWidget;
 class ProjectStatusChart extends ChartWidget
 {
     protected static ?int $sort = 3;
+
     protected ?string $heading = 'Projects by Status';
-    protected int | string | array $columnSpan = 1;
+
+    protected int|string|array $columnSpan = 1;
 
     protected function getData(): array
     {
-        $planning = Project::where('status', 'planning')->count();
-        $development = Project::where('status', 'development')->count();
-        $sampling = Project::where('status', 'sampling')->count();
-        $production = Project::where('status', 'production')->count();
-        $completed = Project::where('status', 'completed')->count();
+        $planning = Project::active()->where('status', 'planning')->count();
+        $development = Project::active()->where('status', 'development')->count();
+        $sampling = Project::active()->where('status', 'sampling')->count();
+        $production = Project::active()->where('status', 'production')->count();
+        $completed = Project::active()->where('status', 'completed')->count();
 
         return [
             'datasets' => [

@@ -12,7 +12,7 @@ class QcInspection extends Model
 
     protected $fillable = [
         'company_id',
-        'production_order_id',
+        'job_order_id',
         'inspection_number',
         'inspection_date',
         'sample_size',
@@ -30,8 +30,8 @@ class QcInspection extends Model
         'failed_qty' => 'integer',
     ];
 
-    public function productionOrder(): BelongsTo
+    public function jobOrder(): BelongsTo
     {
-        return $this->belongsTo(ProductionOrder::class);
+        return $this->belongsTo(JobOrder::class);
     }
 }
