@@ -58,7 +58,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
-                ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->label('UOM')
                 ->default('pcs')
@@ -68,7 +68,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->default(config('costing.wastage_pct', 3))
                 ->disabled()
                 ->dehydrated()
-                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -115,11 +115,14 @@ class ConsumptionRatesRelationManager extends RelationManager
             TextColumn::make('id')->sortable(),
             TextColumn::make('material.name')->sortable()->searchable(),
             TextColumn::make('standard_rate')
+                ->label('Actual Consumption')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             TextColumn::make('unit')->label('UOM'),
             TextColumn::make('wastage_rate')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                ->label('Yield 3% waste')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->suffix('%'),
             TextColumn::make('component')->sortable()->searchable(),
             TextColumn::make('notes')->limit(50),
         ])
@@ -144,8 +147,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
                                         $writer->openToFile($tempFilePath);
 
-                                        $writer->addRow(Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
-                                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
+                                        $writer->addRow(Row::fromValues(['Material Code', 'Actual Consumption', 'Yield 3% waste', 'Notes']));
+                                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '3', 'Main outer fabric']));
                                         $writer->addRow(Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
 
                                         $writer->close();
@@ -199,8 +202,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     $rowData = array_combine($headers, array_pad($values, count($headers), null));
 
                                     $materialCode = $rowData['material code'] ?? $rowData['material_code'] ?? $rowData['material'] ?? null;
-                                    $standardRateRaw = $rowData['standard rate'] ?? $rowData['standard_rate'] ?? null;
-                                    $wastageRateRaw = $rowData['wastage rate'] ?? $rowData['wastage_rate'] ?? 0;
+                                    $standardRateRaw = $rowData['actual consumption'] ?? $rowData['actual_consumption'] ?? $rowData['standard rate'] ?? $rowData['standard_rate'] ?? null;
+                                    $wastageRateRaw = $rowData['yield 3% waste'] ?? $rowData['yield_3%_waste'] ?? $rowData['yield waste'] ?? $rowData['wastage rate'] ?? $rowData['wastage_rate'] ?? 0;
                                     $notes = $rowData['notes'] ?? null;
 
                                     if (blank($materialCode)) {
@@ -211,7 +214,7 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                                     $standardRate = self::normalizeDecimal($standardRateRaw);
                                     if ($standardRate === null) {
-                                        $errors[] = "Row {$rowCount}: Standard Rate '{$standardRateRaw}' is invalid.";
+                                        $errors[] = "Row {$rowCount}: Actual Consumption '{$standardRateRaw}' is invalid.";
 
                                         continue;
                                     }

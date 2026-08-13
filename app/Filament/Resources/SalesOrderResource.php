@@ -171,6 +171,7 @@ class SalesOrderResource extends Resource
                         ->dehydrated()
                         ->prefix('IDR'),
                     Forms\Components\TextInput::make('ppn_percent')
+                        ->label('PPN (%)')
                         ->numeric()
                         ->default(11)
                         ->suffix('%')
@@ -200,6 +201,7 @@ class SalesOrderResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Forms\Components\TextInput::make('down_payment_pct')
+                        ->label('Down Payment (%)')
                         ->numeric()
                         ->default(0)
                         ->suffix('%')

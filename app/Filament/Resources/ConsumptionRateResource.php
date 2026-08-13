@@ -76,7 +76,7 @@ class ConsumptionRateResource extends Resource
                         ->numeric()
                         ->step(0.01)
                         ->required()
-                        ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                        ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
                         ->label('UOM')
                         ->default('pcs')
@@ -86,7 +86,7 @@ class ConsumptionRateResource extends Resource
                         ->default(config('costing.wastage_pct', 3))
                         ->disabled()
                         ->dehydrated()
-                        ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
                     Forms\Components\Select::make('component')
                         ->label('Component')
@@ -137,10 +137,13 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('standard_rate')
+                ->label('Actual Consumption')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             Tables\Columns\TextColumn::make('wastage_rate')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                ->label('Yield 3% waste')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->suffix('%'),
             Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])

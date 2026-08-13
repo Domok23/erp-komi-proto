@@ -169,7 +169,7 @@ class CostingResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('mp_cost')
-                        ->label(new HtmlString('Manufacturing Cost (MP) <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Labor Cost <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->default((int) CostingCalculatorService::getMpRatePerUnit())
                         ->prefix('IDR')
@@ -179,7 +179,7 @@ class CostingResource extends Resource
                         ->disabled($isLocked)
                         ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('overhead_pct')
-                        ->label(new HtmlString('Overhead % <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Overhead (%) <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
@@ -190,7 +190,7 @@ class CostingResource extends Resource
                         ->disabled($isLocked)
                         ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('overhead_amount')
-                        ->label(new HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + MP Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + Labor Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
                         ->prefix('IDR')
                         ->disabled()
@@ -208,7 +208,7 @@ class CostingResource extends Resource
                         ->disabled($isLocked)
                         ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('profit_margin_pct')
-                        ->label(new HtmlString('Profit Margin % <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Profit Margin (%) <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
@@ -228,7 +228,7 @@ class CostingResource extends Resource
 
                     // --- Result ---
                     Forms\Components\TextInput::make('landed_cost')
-                        ->label(new HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + MP + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + Labor + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
                         ->prefix('IDR')
                         ->disabled()

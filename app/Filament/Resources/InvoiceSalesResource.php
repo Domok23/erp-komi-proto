@@ -86,6 +86,7 @@ class InvoiceSalesResource extends Resource
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_percent')
+                        ->label('PPN (%)')
                         ->numeric()
                         ->step(0.01)
                         ->default(11)

@@ -150,6 +150,7 @@ class BomResource extends Resource
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
+                                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->numeric()
                                 ->step(0.0001)
                                 ->required()
@@ -161,7 +162,7 @@ class BomResource extends Resource
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
-                                ->label('Wastage (%)')
+                                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->default(config('costing.wastage_pct', 3))
                                 ->suffix('%')
                                 ->disabled()

@@ -118,6 +118,7 @@ class PoSupplierResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('ppn_percent')
+                        ->label('PPN (%)')
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
