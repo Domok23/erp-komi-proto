@@ -226,6 +226,41 @@ class MerchandisePlanningResource extends Resource
                                 ->label('Component')
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
+                            Forms\Components\Select::make('supplier_id')
+                                ->relationship('supplier', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->visible(fn (callable $get) => ! $get('is_subcon')),
+                            Forms\Components\Select::make('subcon_id')
+                                ->relationship('subcon', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->visible(fn (callable $get) => $get('is_subcon')),
+                            Forms\Components\TextInput::make('planned_qty')
+                                ->required()
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', '') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                            Forms\Components\TextInput::make('unit')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('unit_price')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
+                            Forms\Components\TextInput::make('total_price')
+                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
+                                ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                             Forms\Components\TextInput::make('notes')
                                 ->maxLength(255)
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
@@ -238,6 +273,8 @@ class MerchandisePlanningResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     if (! $state) {
                                         $set('subcon_id', null);
+                                    } else {
+                                        $set('supplier_id', null);
                                     }
                                 }),
                             Forms\Components\Hidden::make('is_from_rnd')
