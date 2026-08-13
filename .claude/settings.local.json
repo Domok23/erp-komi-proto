@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk read *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk ls *)",
+      "Bash(php artisan *)",
+      "Bash(grep -v \"\\\\.php:$\")",
+      "Bash(php -v)",
+      "Bash(rtk find *)"
+    ]
+  }
+}
