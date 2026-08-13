@@ -147,9 +147,10 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
                                         $writer->openToFile($tempFilePath);
 
-                                        $writer->addRow(Row::fromValues(['Material Code', 'Actual Consumption', 'Yield 3% waste', 'Notes']));
-                                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '3', 'Main outer fabric']));
-                                        $writer->addRow(Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
+                                        $writer->addRow(Row::fromValues(['Material Code', 'Component Name', 'Actual Consumption', 'Notes']));
+                                        $writer->addRow(Row::fromValues(['FAB-001', 'Body', '1.5', 'Main outer fabric']));
+                                        $writer->addRow(Row::fromValues(['ZIP-001', 'Front Pocket', '1', 'Pocket zipper']));
+                                        $writer->addRow(Row::fromValues(['ACC-001', 'Handle', '2', 'Handle buckle']));
 
                                         $writer->close();
 
@@ -173,11 +174,12 @@ class ConsumptionRatesRelationManager extends RelationManager
                             $reader->open($filePath);
 
                             $designId = $this->getOwnerRecord()->id;
-                            $companyId = CompanyContext::getCompanyId();
+                            $companyId = CompanyContext::getCompanyId() ?? $this->getOwnerRecord()->company_id;
 
                             $headers = [];
                             $rowCount = 0;
                             $successCount = 0;
+                            $newComponentsCreated = [];
                             $errors = [];
 
                             foreach ($reader->getSheetIterator() as $sheet) {
@@ -202,8 +204,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     $rowData = array_combine($headers, array_pad($values, count($headers), null));
 
                                     $materialCode = $rowData['material code'] ?? $rowData['material_code'] ?? $rowData['material'] ?? null;
+                                    $componentRaw = $rowData['component name'] ?? $rowData['component_name'] ?? $rowData['component'] ?? $rowData['komponen'] ?? null;
                                     $standardRateRaw = $rowData['actual consumption'] ?? $rowData['actual_consumption'] ?? $rowData['standard rate'] ?? $rowData['standard_rate'] ?? null;
-                                    $wastageRateRaw = $rowData['yield 3% waste'] ?? $rowData['yield_3%_waste'] ?? $rowData['yield waste'] ?? $rowData['wastage rate'] ?? $rowData['wastage_rate'] ?? 0;
                                     $notes = $rowData['notes'] ?? null;
 
                                     if (blank($materialCode)) {
@@ -219,8 +221,6 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         continue;
                                     }
 
-                                    $wastageRate = self::normalizeDecimal($wastageRateRaw) ?? 0.0;
-
                                     // Find material
                                     $material = Material::where('code', $materialCode)->first();
                                     if (! $material) {
@@ -229,11 +229,42 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         continue;
                                     }
 
-                                    // Upsert record
+                                    // Component normalization & auto-registration
+                                    $componentName = null;
+                                    if (! blank($componentRaw)) {
+                                        $trimmedComponent = trim(preg_replace('/\s+/', ' ', strval($componentRaw)));
+                                        if ($trimmedComponent !== '') {
+                                            $existingComponent = Component::where('company_id', $companyId)
+                                                ->whereRaw('LOWER(name) = ?', [strtolower($trimmedComponent)])
+                                                ->first();
+
+                                            if ($existingComponent) {
+                                                $componentName = $existingComponent->name;
+                                            } else {
+                                                $newComp = Component::create([
+                                                    'company_id' => $companyId,
+                                                    'name' => $trimmedComponent,
+                                                ]);
+                                                $componentName = $newComp->name;
+                                                if (! in_array($componentName, $newComponentsCreated, true)) {
+                                                    $newComponentsCreated[] = $componentName;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Upsert record by (company_id, design_id, material_id, component)
                                     $consumptionRate = ConsumptionRate::withoutCompanyScope()
                                         ->where('company_id', $companyId)
                                         ->where('design_id', $designId)
                                         ->where('material_id', $material->id)
+                                        ->where(function ($q) use ($componentName) {
+                                            if ($componentName !== null && $componentName !== '') {
+                                                $q->where('component', $componentName);
+                                            } else {
+                                                $q->whereNull('component')->orWhere('component', '');
+                                            }
+                                        })
                                         ->first();
 
                                     if (! $consumptionRate) {
@@ -243,6 +274,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         $consumptionRate->material_id = $material->id;
                                     }
 
+                                    $consumptionRate->component = $componentName;
                                     $consumptionRate->standard_rate = $standardRate;
                                     $consumptionRate->wastage_rate = config('costing.wastage_pct', 3);
                                     $consumptionRate->unit = $material->uom;
@@ -257,10 +289,15 @@ class ConsumptionRatesRelationManager extends RelationManager
                             $reader->close();
                             Storage::disk('local')->delete($file);
 
+                            $newComponentsCount = count($newComponentsCreated);
+                            $compNote = $newComponentsCount > 0
+                                ? "\nInfo: {$newComponentsCount} component baru otomatis didaftarkan: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', dll.' : '.')
+                                : '';
+
                             if (empty($errors)) {
                                 Notification::make()
                                     ->title('Import Excel Berhasil')
-                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.")
+                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.{$compNote}")
                                     ->success()
                                     ->send();
                             } else {
@@ -271,7 +308,7 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                                 Notification::make()
                                     ->title('Import Selesai dengan '.count($errors).' Error')
-                                    ->body("{$successCount} baris berhasil diimpor.\nError:\n{$errorText}")
+                                    ->body("{$successCount} baris berhasil diimpor.{$compNote}\nError:\n{$errorText}")
                                     ->warning()
                                     ->persistent()
                                     ->send();

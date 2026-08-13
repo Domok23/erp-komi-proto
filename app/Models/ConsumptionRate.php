@@ -49,6 +49,13 @@ class ConsumptionRate extends Model
         foreach ($boms as $bom) {
             $bomItem = BomItem::where('bom_id', $bom->id)
                 ->where('material_id', $this->material_id)
+                ->where(function ($q) {
+                    if ($this->component) {
+                        $q->where('component', $this->component);
+                    } else {
+                        $q->whereNull('component')->orWhere('component', '');
+                    }
+                })
                 ->first();
 
             if ($bomItem) {
@@ -85,6 +92,13 @@ class ConsumptionRate extends Model
         $bomIds = Bom::where('design_id', $this->design_id)->pluck('id');
         BomItem::whereIn('bom_id', $bomIds)
             ->where('material_id', $this->material_id)
+            ->where(function ($q) {
+                if ($this->component) {
+                    $q->where('component', $this->component);
+                } else {
+                    $q->whereNull('component')->orWhere('component', '');
+                }
+            })
             ->where(function ($q) {
                 $q->where('is_from_rnd', true)->orWhereNull('is_from_rnd');
             })
