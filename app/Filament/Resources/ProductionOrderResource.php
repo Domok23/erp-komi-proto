@@ -189,7 +189,8 @@ class ProductionOrderResource extends Resource
                     Forms\Components\DatePicker::make('start_date')
                         ->native(false),
                     Forms\Components\DatePicker::make('end_date')
-                        ->native(false),
+                        ->native(false)
+                        ->afterOrEqual('start_date'),
                     Forms\Components\Textarea::make('notes')
                         ->maxLength(65535)
                         ->columnSpanFull(),

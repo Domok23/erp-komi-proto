@@ -124,7 +124,8 @@ class SalesOrderResource extends Resource
                     Forms\Components\DatePicker::make('order_date')
                         ->default(now()->toDateString())
                         ->required(),
-                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\DatePicker::make('delivery_date')
+                        ->afterOrEqual('order_date'),
                     Forms\Components\Select::make('status')
                         ->options([
                             'draft' => 'Draft',

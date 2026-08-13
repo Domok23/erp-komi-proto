@@ -102,6 +102,7 @@ class SubconMaterialOutResource extends Resource
                         ->nullable(),
                     Forms\Components\DatePicker::make('estimated_arrival')
                         ->label('Estimated Arrival')
+                        ->afterOrEqual('departure_date')
                         ->nullable(),
                 ])
                 ->columns(2),

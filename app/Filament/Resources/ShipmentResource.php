@@ -91,7 +91,8 @@ class ShipmentResource extends Resource
                     Forms\Components\DatePicker::make('etd')
                         ->label('ETD'),
                     Forms\Components\DatePicker::make('eta')
-                        ->label('ETA'),
+                        ->label('ETA')
+                        ->afterOrEqual('etd'),
                     Forms\Components\TextInput::make('total_packages')
                         ->label(new HtmlString('Total Packages <span title="Jumlah total dus karton atau koli kemasan barang dikirim" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()

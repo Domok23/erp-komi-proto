@@ -103,7 +103,8 @@ class InvoicePurchaseResource extends Resource
                     Forms\Components\DatePicker::make('invoice_date')
                         ->default(now()->toDateString())
                         ->required(),
-                    Forms\Components\DatePicker::make('due_date'),
+                    Forms\Components\DatePicker::make('due_date')
+                        ->afterOrEqual('invoice_date'),
                     Forms\Components\TextInput::make('subtotal')
                         ->numeric()
                         ->step(0.01)

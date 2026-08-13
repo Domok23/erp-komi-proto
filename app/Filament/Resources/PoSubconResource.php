@@ -75,7 +75,8 @@ class PoSubconResource extends Resource
                     Forms\Components\DatePicker::make('po_date')
                         ->default(now()->toDateString())
                         ->required(),
-                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\DatePicker::make('delivery_date')
+                        ->afterOrEqual('po_date'),
                     Forms\Components\Select::make('status')
                         ->options([
                             'draft' => 'Draft',

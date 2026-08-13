@@ -326,7 +326,8 @@ class ManageCandidatesModal extends Component implements HasActions, HasForms, H
                             DatePicker::make('contract_start_date')
                                 ->label('Contract Start Date'),
                             DatePicker::make('contract_end_date')
-                                ->label('Contract End Date'),
+                                ->label('Contract End Date')
+                                ->afterOrEqual('contract_start_date'),
                         ])
                         ->action(function (HrCandidate $record, array $data) {
                             try {

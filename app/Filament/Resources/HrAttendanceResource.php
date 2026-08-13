@@ -112,7 +112,8 @@ class HrAttendanceResource extends Resource
                 Filter::make('date_range')
                     ->form([
                         Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('to'),
+                        Forms\Components\DatePicker::make('to')
+                            ->afterOrEqual('from'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
