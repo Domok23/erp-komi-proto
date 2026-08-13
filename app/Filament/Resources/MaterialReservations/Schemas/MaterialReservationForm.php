@@ -130,9 +130,9 @@ class MaterialReservationForm
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
-                        $material = $state ? Material::find($state, ['*']) : null;
+                        $material = $state ? Material::with('uomRef')->find($state) : null;
                         if ($material) {
-                            $set('unit', $material->uom);
+                            $set('unit', $material->uom ?? $material->uomRef?->name ?? $material->unit);
                         } else {
                             $set('unit', null);
                         }

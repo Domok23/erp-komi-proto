@@ -211,8 +211,8 @@ class MerchandisePlanningResource extends Resource
                                 ->nullable()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = $state ? Material::find($state, ['*']) : null;
-                                    $set('unit', $material?->unit);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $set('unit', $material?->uom ?? $material?->uomRef?->name ?? $material?->unit);
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', number_format($price, 2, '.', ','));
                                     $set('supplier_id', $material?->supplier_id);

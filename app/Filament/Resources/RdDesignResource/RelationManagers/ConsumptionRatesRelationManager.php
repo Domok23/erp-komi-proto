@@ -277,7 +277,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     $consumptionRate->component = $componentName;
                                     $consumptionRate->standard_rate = $standardRate;
                                     $consumptionRate->wastage_rate = config('costing.wastage_pct', 3);
-                                    $consumptionRate->unit = $material->uom;
+                                    $consumptionRate->unit = $material->uom ?? $material->uomRef?->name ?? $material->unit;
                                     $consumptionRate->notes = $notes;
                                     $consumptionRate->save();
 

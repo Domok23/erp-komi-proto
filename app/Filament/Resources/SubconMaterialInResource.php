@@ -163,7 +163,7 @@ class SubconMaterialInResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $set('material_id', null);
                                     $set('description', null);
-                                    $set('unit', 'pcs');
+                                    $set('unit', null);
                                 }),
                             Forms\Components\TextInput::make('description')
                                 ->label('Material / Service Description')
@@ -196,9 +196,10 @@ class SubconMaterialInResource extends Resource
                                 ->disabled(fn (callable $get) => $get('item_type') === 'raw_return' && $get('material_id') !== null)
                                 ->dehydrated()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
                                     if ($material) {
-                                        $set('unit', $material->uom);
+                                        $uom = $material->uom ?? $material->uomRef?->name ?? $material->unit;
+                                        $set('unit', $uom);
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')

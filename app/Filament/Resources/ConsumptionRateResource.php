@@ -67,9 +67,9 @@ class ConsumptionRateResource extends Resource
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {
-                            $material = Material::find($state);
+                            $material = $state ? Material::with('uomRef')->find($state) : null;
                             if ($material) {
-                                $set('unit', $material->uom);
+                                $set('unit', $material->uom ?? $material->uomRef?->name ?? $material->unit);
                             }
                         }),
                     Forms\Components\TextInput::make('standard_rate')
@@ -79,7 +79,6 @@ class ConsumptionRateResource extends Resource
                         ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
                         ->label('UOM')
-                        ->default('pcs')
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\TextInput::make('wastage_rate')

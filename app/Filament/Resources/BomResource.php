@@ -142,9 +142,9 @@ class BomResource extends Resource
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
                                     if ($material) {
-                                        $set('unit', $material->uom);
+                                        $set('unit', $material->uom ?? $material->uomRef?->name ?? $material->unit);
                                     }
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))

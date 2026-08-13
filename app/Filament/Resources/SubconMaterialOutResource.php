@@ -139,8 +139,9 @@ class SubconMaterialOutResource extends Resource
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = $state ? Material::find($state, ['*']) : null;
-                                    $set('unit', $material?->unit);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $uom = $material?->uom ?? $material?->uomRef?->name ?? $material?->unit;
+                                    $set('unit', $uom);
                                 }),
                             Forms\Components\TextInput::make('qty_sent')
                                 ->numeric()
@@ -166,8 +167,7 @@ class SubconMaterialOutResource extends Resource
                             Forms\Components\TextInput::make('unit')
                                 ->label('UOM')
                                 ->disabled()
-                                ->dehydrated()
-                                ->default('pcs'),
+                                ->dehydrated(),
                         ])
                         ->columns(3)
                         ->columnSpanFull(),
