@@ -21,6 +21,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class MaterialResource extends Resource
 {
@@ -47,7 +48,10 @@ class MaterialResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('code')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\TextInput::make('name')
                         ->required()

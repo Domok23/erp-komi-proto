@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\ChartOfAccounts\Schemas;
 
+use App\Services\CompanyContext;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Unique;
 
 class ChartOfAccountForm
 {
@@ -19,7 +21,10 @@ class ChartOfAccountForm
                             ->label('Account Code')
                             ->required()
                             ->maxLength(50)
-                            ->unique(ignoreRecord: true)
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                            )
                             ->columnSpan(1),
                         Forms\Components\TextInput::make('account_name')
                             ->label('Account Name')

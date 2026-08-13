@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SupplierResource\Pages;
 use App\Filament\Resources\SupplierResource\RelationManagers;
 use App\Models\Supplier;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -18,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class SupplierResource extends Resource
 {
@@ -47,7 +49,10 @@ class SupplierResource extends Resource
                         ->schema([
                             Forms\Components\TextInput::make('code')
                                 ->required()
-                                ->unique(ignoreRecord: true)
+                                ->unique(
+                                    ignoreRecord: true,
+                                    modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                                )
                                 ->maxLength(50),
                             Forms\Components\TextInput::make('name')
                                 ->required()
