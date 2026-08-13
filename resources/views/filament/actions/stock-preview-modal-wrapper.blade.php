@@ -4,5 +4,6 @@
         'productionQty' => $productionQty,
         'companyId' => $companyId,
         'projectId' => $projectId,
+        'allowReserve' => $allowReserve ?? true,
     ])
 </div>

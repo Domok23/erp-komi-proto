@@ -128,7 +128,7 @@ class ConsumptionRatesRelationManager extends RelationManager
         ])
             ->filters([])
             ->headerActions([
-                StockPreviewAction::make('form'),
+                StockPreviewAction::make('form', allowReserve: false),
                 CreateAction::make(),
                 Action::make('importExcel')
                     ->label('Import Excel')
@@ -325,7 +325,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

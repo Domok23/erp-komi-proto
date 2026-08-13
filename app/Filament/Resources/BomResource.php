@@ -121,7 +121,7 @@ class BomResource extends Resource
             Section::make('BOM Items')
                 ->columnSpanFull()
                 ->headerActions([
-                    StockPreviewAction::make('form'),
+                    StockPreviewAction::make('form', allowReserve: false),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
@@ -247,7 +247,7 @@ class BomResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

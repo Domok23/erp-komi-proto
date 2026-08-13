@@ -44,7 +44,7 @@ class ConsumptionRateResource extends Resource
             Section::make('Consumption Rate Details')
                 ->columnSpanFull()
                 ->headerActions([
-                    StockPreviewAction::make('form'),
+                    StockPreviewAction::make('form', allowReserve: false),
                 ])
                 ->schema([
                     Forms\Components\Select::make('design_id')
@@ -153,7 +153,7 @@ class ConsumptionRateResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

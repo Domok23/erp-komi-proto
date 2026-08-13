@@ -40,8 +40,14 @@ class StockPreviewService
         $poOrders = PoSupplierItem::whereHas('poSupplier', function ($q) use ($companyId, $projectId) {
             $q->where('company_id', $companyId)
                 ->whereIn('status', ['draft', 'ordered', 'approved', 'sent', 'partial']);
+
             if ($projectId !== null) {
-                $q->where('project_id', $projectId);
+                $q->where(function ($query) use ($projectId) {
+                    $query->where('project_id', $projectId)
+                        ->orWhereNull('project_id');
+                });
+            } else {
+                $q->whereNull('project_id');
             }
         })
             ->whereIn('material_id', $materialIds)
