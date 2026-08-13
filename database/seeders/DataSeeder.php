@@ -304,8 +304,6 @@ class DataSeeder extends Seeder
             'bom_id' => $bomBackpack->id,
             'target_qty' => 1000,
             'produced_qty' => 750,
-            'review_status' => 'approved',
-            'review_notes' => 'Panel quality approved by QA Lead',
         ]);
 
         $subProject2 = SubProject::create([
@@ -317,8 +315,6 @@ class DataSeeder extends Seeder
             'bom_id' => $bomBackpack->id,
             'target_qty' => 1000,
             'produced_qty' => 500,
-            'review_status' => 'pending',
-            'review_notes' => 'Finishing in progress',
         ]);
 
         // Seed Material Reservations

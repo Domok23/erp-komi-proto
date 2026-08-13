@@ -33,16 +33,11 @@ class SubProject extends Model
         'bom_id',
         'target_qty',
         'produced_qty',
-        'review_status',
-        'review_notes',
-        'reviewed_at',
-        'reviewed_by',
     ];
 
     protected $casts = [
         'target_qty' => 'integer',
         'produced_qty' => 'integer',
-        'reviewed_at' => 'datetime',
     ];
 
     public function project(): BelongsTo
@@ -55,9 +50,9 @@ class SubProject extends Model
         return $this->belongsTo(Bom::class);
     }
 
-    public function reviewedByUser(): BelongsTo
+    public function getStatusAttribute(): ?string
     {
-        return $this->belongsTo(User::class, 'reviewed_by');
+        return $this->project?->status;
     }
 
     public function poSupplierItems(): HasMany

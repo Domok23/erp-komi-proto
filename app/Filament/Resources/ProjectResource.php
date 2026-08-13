@@ -290,9 +290,11 @@ class ProjectResource extends Resource
                         ->default(0)
                         ->minValue(0),
                     Forms\Components\TextInput::make('produced_qty')
+                        ->label(new HtmlString('Produced Qty <span title="Jumlah total aktual yang telah selesai diproduksi (dihitung otomatis dari Production Order)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->integer()
                         ->default(0)
-                        ->minValue(0),
+                        ->disabled()
+                        ->dehydrated(false),
                     Forms\Components\Textarea::make('description')
                         ->maxLength(65535)
                         ->columnSpanFull(),

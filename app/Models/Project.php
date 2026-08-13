@@ -105,11 +105,6 @@ class Project extends Model
         return $this->subProjects()->exists();
     }
 
-    public function hasPendingSubProjectReviews(): bool
-    {
-        return $this->subProjects()->where('review_status', 'pending')->exists();
-    }
-
     public function approvedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
