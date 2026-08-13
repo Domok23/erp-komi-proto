@@ -19,7 +19,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -63,11 +62,11 @@ class BomResource extends Resource
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                        ->afterStateUpdated(function ($state, callable $set, $get) {
                             if ($state) {
                                 $rates = ConsumptionRate::where('design_id', $state)->get();
 
-                                 $items = $rates->map(function ($rate) {
+                                $items = $rates->map(function ($rate) {
                                     return [
                                         'material_id' => $rate->material_id,
                                         'component' => $rate->component,
@@ -95,7 +94,7 @@ class BomResource extends Resource
                         ->required()
                         ->maxLength(20)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                        ->afterStateUpdated(function ($state, callable $set, $get) {
                             $designId = $get('design_id');
                             $set('bom_number', $designId ? CodeGenerator::generateBOMNumber((int) $designId, $state) : '');
                         })
@@ -103,7 +102,7 @@ class BomResource extends Resource
                             table: 'boms',
                             column: 'version',
                             ignoreRecord: true,
-                            modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
+                            modifyRuleUsing: fn (Unique $rule, $get) => $rule->where('design_id', $get('design_id'))
                         ),
                     Forms\Components\Select::make('status')
                         ->options([

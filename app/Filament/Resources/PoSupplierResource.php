@@ -25,8 +25,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -125,7 +123,7 @@ class PoSupplierResource extends Resource
                         ->default(11)
                         ->suffix('%')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->default(0)
                         ->disabled()
@@ -348,7 +346,7 @@ class PoSupplierResource extends Resource
         ]);
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected static function recalculateTotals(callable $get, callable $set): void
     {
         $subtotal = floatval(str_replace(',', '', $get('subtotal') ?? 0));
         $ppnPct = floatval(str_replace(',', '', $get('ppn_percent') ?? 11));

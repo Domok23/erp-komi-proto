@@ -18,7 +18,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -92,7 +91,7 @@ class ProductionOrderResource extends Resource
                         }),
                     Forms\Components\Select::make('sub_project_id')
                         ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                        ->relationship('subProject', 'name', function ($query, $get) {
                             $projectId = $get('project_id');
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
@@ -104,7 +103,7 @@ class ProductionOrderResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->visible(function (Get $get) {
+                        ->visible(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;
@@ -113,7 +112,7 @@ class ProductionOrderResource extends Resource
 
                             return $project && $project->hasSubProjects();
                         })
-                        ->required(function (Get $get) {
+                        ->required(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;

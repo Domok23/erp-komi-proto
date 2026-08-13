@@ -19,8 +19,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -70,7 +68,7 @@ class SalesOrderResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        ->afterStateUpdated(function ($state, $get, $set) {
                             if (! $state) {
                                 $set('customer_id', null);
                                 $set('quantity', 0);
@@ -91,7 +89,7 @@ class SalesOrderResource extends Resource
                         ->relationship(
                             'costing',
                             'version',
-                            fn ($query, Get $get) => $query->when(
+                            fn ($query, $get) => $query->when(
                                 $get('project_id'),
                                 fn ($q) => $q->where('project_id', $get('project_id'))->where('status', 'approved'),
                                 fn ($q) => $q->where('status', 'approved')
@@ -103,7 +101,7 @@ class SalesOrderResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        ->afterStateUpdated(function ($state, $get, $set) {
                             if (! $state) {
                                 $set('unit_price', 0);
                                 self::recalculateTotals($get, $set);
@@ -152,14 +150,14 @@ class SalesOrderResource extends Resource
                         ->default(0)
                         ->required()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('unit_price')
                         ->numeric()
                         ->default(0)
                         ->prefix('IDR')
                         ->required()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                 ])->columns(2),
 
             Section::make('Financial Details')
@@ -176,7 +174,7 @@ class SalesOrderResource extends Resource
                         ->default(11)
                         ->suffix('%')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->numeric()
                         ->default(0)
@@ -188,7 +186,7 @@ class SalesOrderResource extends Resource
                         ->default(0)
                         ->prefix('IDR')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('grand_total')
                         ->numeric()
                         ->default(0)
@@ -205,7 +203,7 @@ class SalesOrderResource extends Resource
                         ->default(0)
                         ->suffix('%')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('down_payment_amount')
                         ->numeric()
                         ->default(0)
@@ -305,7 +303,7 @@ class SalesOrderResource extends Resource
         ]);
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected static function recalculateTotals(callable $get, callable $set): void
     {
         $qty = floatval($get('quantity') ?? 0);
         $unitPrice = floatval($get('unit_price') ?? 0);

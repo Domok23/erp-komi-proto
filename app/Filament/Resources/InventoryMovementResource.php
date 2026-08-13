@@ -20,8 +20,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -60,7 +58,7 @@ class InventoryMovementResource extends Resource
                         ])
                         ->required()
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\Select::make('direction')
                         ->options([
@@ -68,10 +66,10 @@ class InventoryMovementResource extends Resource
                             'subtraction' => 'Subtraction (-)',
                         ])
                         ->default('addition')
-                        ->required(fn (Get $get) => $get('type') === 'adjustment')
-                        ->visible(fn (Get $get) => $get('type') === 'adjustment')
+                        ->required(fn ($get) => $get('type') === 'adjustment')
+                        ->visible(fn ($get) => $get('type') === 'adjustment')
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\Select::make('inventory_stock_id')
                         ->label(new HtmlString('Inventory Stock ID <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
@@ -93,7 +91,7 @@ class InventoryMovementResource extends Resource
                         ->preload()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\TextInput::make('quantity')
                         ->numeric()
@@ -101,11 +99,11 @@ class InventoryMovementResource extends Resource
                         ->minValue(0.01)
                         ->default(0)
                         ->required()
-                        ->helperText(fn (Get $get) => $get('type') === 'adjustment'
+                        ->helperText(fn ($get) => $get('type') === 'adjustment'
                             ? 'Adjusts inventory stock up (addition) or down (subtraction) based on Direction.'
                             : null)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::updateStockDetails($get, $set))
+                        ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\TextInput::make('before_qty')
                         ->label(new HtmlString('Before Qty <span title="Jumlah stok fisik barang di gudang sesaat sebelum transaksi ini diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
@@ -138,7 +136,7 @@ class InventoryMovementResource extends Resource
         ]);
     }
 
-    public static function updateStockDetails(Get $get, Set $set): void
+    public static function updateStockDetails(callable $get, callable $set): void
     {
         $materialId = $get('material_id');
         $type = $get('type');

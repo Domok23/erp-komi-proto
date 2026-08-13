@@ -20,8 +20,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -111,7 +109,7 @@ class PoSubconResource extends Resource
                         ->default(0)
                         ->prefix('IDR')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('shipping_return_cost')
                         ->numeric()
                         ->step(0.01)
@@ -119,7 +117,7 @@ class PoSubconResource extends Resource
                         ->default(0)
                         ->prefix('IDR')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('total_cost')
                         ->default(0)
                         ->disabled()
@@ -289,7 +287,7 @@ class PoSubconResource extends Resource
         ]);
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected static function recalculateTotals(callable $get, callable $set): void
     {
         $service = floatval(str_replace(',', '', $get('service_cost') ?? 0));
         $shipping = floatval(str_replace(',', '', $get('shipping_cost') ?? 0));

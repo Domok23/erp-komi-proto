@@ -8,7 +8,6 @@ use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
 use Filament\Forms;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class MaterialReservationForm
@@ -56,7 +55,7 @@ class MaterialReservationForm
                     ->required(fn (callable $get) => $get('reservation_type') === 'project'),
                 Forms\Components\Select::make('sub_project_id')
                     ->label('Sub-Project')
-                    ->relationship('subProject', 'name', function ($query, Get $get) {
+                    ->relationship('subProject', 'name', function ($query, $get) {
                         $projectId = $get('project_id');
                         if ($projectId) {
                             return $query->where('project_id', $projectId);
@@ -68,7 +67,7 @@ class MaterialReservationForm
                     ->preload()
                     ->nullable()
                     ->reactive()
-                    ->visible(function (Get $get) {
+                    ->visible(function ($get) {
                         if ($get('reservation_type') !== 'project') {
                             return false;
                         }
@@ -80,7 +79,7 @@ class MaterialReservationForm
 
                         return $project && $project->hasSubProjects();
                     })
-                    ->required(function (Get $get) {
+                    ->required(function ($get) {
                         if ($get('reservation_type') !== 'project') {
                             return false;
                         }
@@ -144,7 +143,7 @@ class MaterialReservationForm
                     ->required()
                     ->minValue(0.001)
                     ->rules([
-                        fn (Get $get) => function (string $attribute, $value, $fail) use ($get) {
+                        fn ($get) => function (string $attribute, $value, $fail) use ($get) {
                             $materialId = $get('material_id');
                             $warehouseId = $get('warehouse_id');
                             if (! $materialId || ! $warehouseId) {

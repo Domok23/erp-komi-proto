@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialUomResource\Pages;
 use App\Models\MaterialUom;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class MaterialUomResource extends Resource
 {
@@ -54,7 +56,7 @@ class MaterialUomResource extends Resource
                 ->label('UOM Name')
                 ->validationAttribute('UOM Name')
                 ->required()
-                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId()))
                 ->maxLength(100),
             Forms\Components\TextInput::make('description')
                 ->label('Description (Optional)')

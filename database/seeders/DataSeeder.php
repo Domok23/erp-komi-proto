@@ -17,6 +17,7 @@ use App\Models\InvoiceSales;
 use App\Models\JobOrder;
 use App\Models\JobOrderMaterial;
 use App\Models\Material;
+use App\Models\MaterialReservation;
 use App\Models\MaterialUsage;
 use App\Models\MerchandisePlanning;
 use App\Models\MerchandisePlanningItem;
@@ -41,6 +42,7 @@ use App\Models\SubconMaterialIn;
 use App\Models\SubconMaterialInItem;
 use App\Models\SubconMaterialOut;
 use App\Models\SubconMaterialOutItem;
+use App\Models\SubProject;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -293,7 +295,7 @@ class DataSeeder extends Seeder
             'target_qty' => 1000,
         ]);
 
-        $subProject1 = \App\Models\SubProject::create([
+        $subProject1 = SubProject::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
             'code' => 'SUB-PRJ-001',
@@ -306,7 +308,7 @@ class DataSeeder extends Seeder
             'review_notes' => 'Panel quality approved by QA Lead',
         ]);
 
-        $subProject2 = \App\Models\SubProject::create([
+        $subProject2 = SubProject::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
             'code' => 'SUB-PRJ-002',
@@ -320,7 +322,7 @@ class DataSeeder extends Seeder
         ]);
 
         // Seed Material Reservations
-        \App\Models\MaterialReservation::create([
+        MaterialReservation::create([
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matFabric->id,
@@ -334,7 +336,7 @@ class DataSeeder extends Seeder
             'notes' => 'Reserved 500 yards fabric for Sub-Project 1',
         ]);
 
-        \App\Models\MaterialReservation::create([
+        MaterialReservation::create([
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matZipper->id,

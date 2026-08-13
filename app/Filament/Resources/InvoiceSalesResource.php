@@ -14,8 +14,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -85,7 +83,7 @@ class InvoiceSalesResource extends Resource
                         ->prefix('IDR')
                         ->required()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_percent')
                         ->numeric()
                         ->step(0.01)
@@ -93,7 +91,7 @@ class InvoiceSalesResource extends Resource
                         ->suffix('%')
                         ->required()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->default(0)
                         ->prefix('IDR')
@@ -109,7 +107,7 @@ class InvoiceSalesResource extends Resource
                         ->prefix('IDR')
                         ->required()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('grand_total')
                         ->default(0)
                         ->prefix('IDR')
@@ -144,7 +142,7 @@ class InvoiceSalesResource extends Resource
         ]);
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected static function recalculateTotals(callable $get, callable $set): void
     {
         $subtotal = floatval($get('subtotal') ?? 0);
         $ppnPercent = floatval($get('ppn_percent') ?? 0);

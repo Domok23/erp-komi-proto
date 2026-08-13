@@ -6,7 +6,6 @@ use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
@@ -18,7 +17,7 @@ class EditProfile extends BaseEditProfile
             ->label('Current Password')
             ->placeholder('Required if changing password')
             ->visible(true)
-            ->required(fn (Get $get): bool => filled($get('password')));
+            ->required(fn ($get): bool => filled($get('password')));
     }
 
     protected function getPasswordConfirmationFormComponent(): Component
@@ -26,7 +25,7 @@ class EditProfile extends BaseEditProfile
         return parent::getPasswordConfirmationFormComponent()
             ->label('Confirm Password')
             ->visible(true)
-            ->required(fn (Get $get): bool => filled($get('password')));
+            ->required(fn ($get): bool => filled($get('password')));
     }
 
     public function form(Schema $schema): Schema

@@ -19,6 +19,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class MaterialResource extends Resource
@@ -70,6 +71,7 @@ class MaterialResource extends Resource
                                 ['company_id' => $companyId, 'name' => trim($data['name'])],
                                 ['code' => $data['code'] ?? null]
                             );
+
                             return $cat->id;
                         })
                         ->createOptionModalHeading('Add New Category')
@@ -89,6 +91,7 @@ class MaterialResource extends Resource
                                 ['company_id' => $companyId, 'name' => trim($data['name'])],
                                 ['description' => $data['description'] ?? null]
                             );
+
                             return $uomModel->id;
                         })
                         ->createOptionModalHeading('Add New UOM')
@@ -154,12 +157,12 @@ class MaterialResource extends Resource
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->relationship('categoryRef', 'name'),
-                \Filament\Tables\Filters\TernaryFilter::make('is_import')
+                TernaryFilter::make('is_import')
                     ->label('Import Status')
                     ->placeholder('All')
                     ->trueLabel('Import Only')
                     ->falseLabel('Local Only'),
-                \Filament\Tables\Filters\TernaryFilter::make('is_active')
+                TernaryFilter::make('is_active')
                     ->label('Status')
                     ->placeholder('All')
                     ->trueLabel('Active Only')

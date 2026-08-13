@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\XLSX\Reader as XLSXReader;
-use OpenSpout\Writer\XLSX\Writer as XLSXWriter;
+use OpenSpout\Writer\XLSX\Writer;
 
 class ConsumptionRatesRelationManager extends RelationManager
 {
@@ -140,13 +140,13 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     ->icon('heroicon-o-arrow-down-tray')
                                     ->color('success')
                                     ->action(function () {
-                                        $writer = new \OpenSpout\Writer\XLSX\Writer;
+                                        $writer = new Writer;
                                         $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
                                         $writer->openToFile($tempFilePath);
 
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
+                                        $writer->addRow(Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
+                                        $writer->addRow(Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
+                                        $writer->addRow(Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
 
                                         $writer->close();
 
