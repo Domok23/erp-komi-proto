@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MerchandisePlanningSyncService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,6 +25,24 @@ class BomItem extends Model
         'wastage_percent' => 'decimal:2',
         'is_from_rnd' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (BomItem $bomItem) {
+            if (empty($bomItem->category) && $bomItem->material_id) {
+                $material = $bomItem->material ?? Material::with('categoryRef')->find($bomItem->material_id);
+                $bomItem->category = $material?->categoryRef?->name ?? $material?->category;
+            }
+        });
+
+        static::saved(function (BomItem $bomItem) {
+            MerchandisePlanningSyncService::syncBomItem($bomItem);
+        });
+
+        static::deleted(function (BomItem $bomItem) {
+            MerchandisePlanningSyncService::deleteBomItem($bomItem);
+        });
+    }
 
     public function bom(): BelongsTo
     {

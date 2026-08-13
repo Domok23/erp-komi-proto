@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Models\Component;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
@@ -221,8 +222,37 @@ class MerchandisePlanningResource extends Resource
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            Forms\Components\TextInput::make('component')
+                            Forms\Components\Select::make('component')
                                 ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
+
+                                    $options = Component::where('company_id', $companyId)
+                                        ->pluck('name', 'name')
+                                        ->toArray();
+
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $comp = Component::firstOrCreate([
+                                        'company_id' => $companyId,
+                                        'name' => trim($data['name']),
+                                    ]);
+
+                                    return $comp->name;
+                                })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\Select::make('supplier_id')

@@ -10,7 +10,9 @@ return new class extends Migration
     public function up(): void
     {
         // Change enum category -> varchar (preserve old data)
-        DB::statement('ALTER TABLE materials MODIFY COLUMN category VARCHAR(100) NULL');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE materials MODIFY COLUMN category VARCHAR(100) NULL');
+        }
 
         Schema::table('materials', function (Blueprint $table) {
             $table->renameColumn('unit', 'uom');

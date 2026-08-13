@@ -50,4 +50,15 @@ class MerchandisePlanning extends Model
     {
         return $this->hasMany(MerchandisePlanningItem::class, 'merchandise_planning_id');
     }
+
+    public function recalculateTotals(): void
+    {
+        $totalMaterial = (float) $this->items()->where('is_subcon', false)->sum('total_price');
+        $totalSubcon = (float) $this->items()->where('is_subcon', true)->sum('total_price');
+
+        $this->update([
+            'total_material_cost' => $totalMaterial,
+            'total_subcon_cost' => $totalSubcon,
+        ]);
+    }
 }

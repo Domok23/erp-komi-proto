@@ -567,15 +567,20 @@ class ProjectResource extends Resource
     public static function loadBomItems($state, callable $set): void
     {
         if ($state) {
-            $bom = Bom::with('items.material')->find($state);
+            $bom = Bom::with('items.material.categoryRef')->find($state);
             if ($bom) {
                 $items = [];
                 foreach ($bom->items as $item) {
+                    $categoryName = $item->category
+                        ?: $item->material?->categoryRef?->name
+                        ?: $item->material?->category
+                        ?: '-';
+
                     $items[] = [
                         'material_name' => $item->material?->name ?? 'N/A',
-                        'category' => $item->category,
+                        'category' => $categoryName,
                         'quantity_per_unit' => $item->quantity_per_unit,
-                        'unit' => $item->unit,
+                        'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
                         'wastage_percent' => $item->wastage_percent,
                     ];
                 }

@@ -161,9 +161,11 @@ class ConsumptionRatesTest extends TestCase
         ]);
 
         $design->refresh();
-        $this->assertEquals(27500, $design->estimated_material_cost);
+        // 2.5 * 1.03 * 10000 = 25750
+        // (25750 + 33000) * 1.15 * 1.20 = 58750 * 1.15 * 1.20 = 81075
+        $this->assertEquals(25750, $design->estimated_material_cost);
         $this->assertEquals(33000, $design->estimated_mp_cost);
-        $this->assertEquals(83490, $design->estimated_selling_price);
+        $this->assertEquals(81075, $design->estimated_selling_price);
 
         // 2. Test update trigger
         $rate->update([
@@ -171,10 +173,10 @@ class ConsumptionRatesTest extends TestCase
         ]);
 
         $design->refresh();
-        // 3.5 * 1.10 * 10000 = 38500
-        // (38500 + 33000) * 1.15 * 1.20 = 71500 * 1.15 * 1.20 = 98670
-        $this->assertEquals(38500, $design->estimated_material_cost);
-        $this->assertEquals(98670, $design->estimated_selling_price);
+        // 3.5 * 1.03 * 10000 = 36050
+        // (36050 + 33000) * 1.15 * 1.20 = 69050 * 1.15 * 1.20 = 95289
+        $this->assertEquals(36050, $design->estimated_material_cost);
+        $this->assertEquals(95289, $design->estimated_selling_price);
 
         // 3. Test deletion trigger
         $rate->delete();
