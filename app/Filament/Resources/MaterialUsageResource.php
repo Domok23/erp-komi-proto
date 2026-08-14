@@ -173,7 +173,10 @@ class MaterialUsageResource extends Resource
                     'completed' => 'Completed',
                 ]),
                 SelectFilter::make('job_order_id')->relationship('jobOrder', 'job_order_number'),
-                SelectFilter::make('material_id')->relationship('material', 'name'),
+                SelectFilter::make('material_id')
+                    ->relationship('material', 'name')
+                    ->searchable(['code', 'name', 'color', 'size'])
+                    ->preload(),
             ])
             ->actions([
                 ActionGroup::make([

@@ -123,14 +123,7 @@ class StockTransferForm
                                         return $stocks->pluck('material')
                                             ->unique('id')
                                             ->filter()
-                                            ->mapWithKeys(function ($material) use ($fromWarehouseId) {
-                                                $qty = InventoryStock::withoutGlobalScope('company')
-                                                    ->where('warehouse_id', $fromWarehouseId)
-                                                    ->where('material_id', $material->id)
-                                                    ->first()?->quantity ?? 0;
-
-                                                return [$material->id => "[{$material->code}] {$material->name} (Stock: ".number_format($qty, 2)." {$material->uom})"];
-                                            })
+                                            ->mapWithKeys(fn ($material) => [$material->id => $material->formatted_select_label])
                                             ->toArray();
                                     })
                                     ->searchable()

@@ -140,6 +140,8 @@ class MaterialResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('color')->label('Color')->placeholder('-')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('size')->label('Size')->placeholder('-')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('categoryRef.name')->label('Category')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('uomRef.name')->label('UOM'),
             Tables\Columns\TextColumn::make('stock')

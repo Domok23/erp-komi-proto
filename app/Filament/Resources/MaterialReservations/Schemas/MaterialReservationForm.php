@@ -125,7 +125,7 @@ class MaterialReservationForm
 
                         return "[{$record->code}] {$record->name} (Available: ".number_format($available, 3)." {$record->unit})";
                     })
-                    ->searchable()
+                    ->searchable(['code', 'name', 'color', 'size'])
                     ->preload()
                     ->required()
                     ->reactive()

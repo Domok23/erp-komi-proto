@@ -7,7 +7,6 @@ use App\Filament\Resources\BomResource\Pages;
 use App\Models\Bom;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
@@ -129,15 +128,8 @@ class BomResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
-                                })
-                                ->searchable()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->required()
                                 ->reactive()

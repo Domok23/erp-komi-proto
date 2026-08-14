@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
 use App\Models\Component;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSupplier;
 use App\Models\Project;
@@ -228,16 +227,10 @@ class PoSupplierResource extends Resource
                                     }
 
                                     return Material::where('supplier_id', $supplierId)
-                                        ->pluck('name', 'id');
+                                        ->get()
+                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label]);
                                 })
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                                })
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable()
                                 ->preload()
                                 ->required()

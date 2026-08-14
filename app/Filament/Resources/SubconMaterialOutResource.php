@@ -126,15 +126,8 @@ class SubconMaterialOutResource extends Resource
                                             ->where('quantity', '>', 0);
                                     })
                                 )
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                                })
-                                ->searchable()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->required()
                                 ->reactive()

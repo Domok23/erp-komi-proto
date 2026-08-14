@@ -25,7 +25,21 @@ class ComponentSeeder extends Seeder
                 ->where('bom_items.component', '!=', '')
                 ->pluck('bom_items.component');
 
-            $allComponents = $ratesComponents->concat($bomComponents)->unique();
+            $excelComponents = collect([
+                'Front Upper',
+                'Back Body',
+                'Front Lower',
+                'Strap Loop',
+                'Strap',
+                'Front Pocket',
+                'Body',
+                'Binding',
+                'In Seam',
+                'Binding Body',
+                'Side Body',
+            ]);
+
+            $allComponents = $ratesComponents->concat($bomComponents)->concat($excelComponents)->unique();
 
             foreach ($allComponents as $name) {
                 Component::firstOrCreate([

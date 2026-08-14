@@ -6,7 +6,6 @@ use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
@@ -54,15 +53,8 @@ class ConsumptionRateResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('material_id')
                         ->relationship('material', 'name')
-                        ->getOptionLabelFromRecordUsing(function ($record) {
-                            $companyId = CompanyContext::getCompanyId();
-                            $stock = InventoryStock::where('material_id', $record->id)
-                                ->where('company_id', $companyId)
-                                ->sum('quantity');
-
-                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
-                        })
-                        ->searchable()
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                        ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
                         ->required()
                         ->reactive()
@@ -148,7 +140,10 @@ class ConsumptionRateResource extends Resource
         ])
             ->filters([
                 SelectFilter::make('design_id')->relationship('design', 'name'),
-                SelectFilter::make('material_id')->relationship('material', 'name'),
+                SelectFilter::make('material_id')
+                    ->relationship('material', 'name')
+                    ->searchable(['code', 'name', 'color', 'size'])
+                    ->preload(),
             ])
             ->actions([
                 ActionGroup::make([

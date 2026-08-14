@@ -5,7 +5,6 @@ namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Filament\Actions\StockPreviewAction;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
 use Filament\Actions\Action;
@@ -39,15 +38,8 @@ class ConsumptionRatesRelationManager extends RelationManager
         return $schema->schema([
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
-
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
+                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                ->searchable(['code', 'name', 'color', 'size'])
                 ->preload()
                 ->required()
                 ->reactive()

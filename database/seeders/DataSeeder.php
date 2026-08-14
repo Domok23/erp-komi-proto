@@ -102,21 +102,27 @@ class DataSeeder extends Seeder
             ]);
         }
 
-        $whMainKtk = Warehouse::create([
-            'company_id' => $ktk->id,
-            'code' => 'WH-MAIN-KTK',
-            'name' => 'Main Warehouse KTK',
-            'address' => 'Jakarta Main Office',
-            'is_active' => true,
-        ]);
+        $whMainKtk = Warehouse::where('code', 'WH-MAIN-KTK')->where('company_id', $ktk->id)->first();
+        if (! $whMainKtk) {
+            $whMainKtk = Warehouse::create([
+                'company_id' => $ktk->id,
+                'code' => 'WH-MAIN-KTK',
+                'name' => 'Main Warehouse KTK',
+                'address' => 'Jakarta Main Office',
+                'is_active' => true,
+            ]);
+        }
 
-        $whBranchKtk = Warehouse::create([
-            'company_id' => $ktk->id,
-            'code' => 'WH-BRANCH-KTK',
-            'name' => 'Branch Warehouse KTK',
-            'address' => 'Jakarta Branch Office',
-            'is_active' => true,
-        ]);
+        $whBranchKtk = Warehouse::where('code', 'WH-BRANCH-KTK')->where('company_id', $ktk->id)->first();
+        if (! $whBranchKtk) {
+            $whBranchKtk = Warehouse::create([
+                'company_id' => $ktk->id,
+                'code' => 'WH-BRANCH-KTK',
+                'name' => 'Branch Warehouse KTK',
+                'address' => 'Jakarta Branch Office',
+                'is_active' => true,
+            ]);
+        }
 
         // 2. Seed Suppliers
         $supplierYKK = Supplier::where('code', 'SUP-001')->where('company_id', $kei->id)->first();
@@ -137,6 +143,30 @@ class DataSeeder extends Seeder
                 'company_id' => $kei->id,
                 'code' => 'SUP-002',
                 'name' => 'PT Supplier Inc',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
+
+        $supplierTextile = Supplier::where('code', 'SUP-003')->where('company_id', $kei->id)->first();
+        if (! $supplierTextile) {
+            $supplierTextile = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-003',
+                'name' => 'PT Tekstil Prima Abadi',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
+
+        $supplierThread = Supplier::where('code', 'SUP-004')->where('company_id', $kei->id)->first();
+        if (! $supplierThread) {
+            $supplierThread = Supplier::create([
+                'company_id' => $kei->id,
+                'code' => 'SUP-004',
+                'name' => 'CV Benang Jaya Sentosa',
                 'contact_person' => fake()->name(),
                 'address' => fake()->address(),
                 'is_active' => true,
@@ -164,6 +194,19 @@ class DataSeeder extends Seeder
                 'company_id' => $kei->id,
                 'code' => 'CUS-001',
                 'name' => 'PT Nike inc',
+                'contact_person' => fake()->name(),
+                'address' => fake()->address(),
+                'payment_terms' => 'net_60',
+                'is_active' => true,
+            ]);
+        }
+
+        $customerYonex = Customer::where('code', 'CUS-002')->where('company_id', $kei->id)->first();
+        if (! $customerYonex) {
+            $customerYonex = Customer::create([
+                'company_id' => $kei->id,
+                'code' => 'CUS-002',
+                'name' => 'Yonex',
                 'contact_person' => fake()->name(),
                 'address' => fake()->address(),
                 'payment_terms' => 'net_60',
@@ -226,6 +269,147 @@ class DataSeeder extends Seeder
                 'price' => 45000,
                 'description' => 'Fabric after embroidery processing at subcontractor',
             ]);
+        }
+
+        // Demo Materials from seeder_for_demo.xlsx
+        $demoMaterials = [
+            [
+                'code' => 'FAB00103',
+                'name' => 'N DOBBY 1335R',
+                'category' => 'fabric',
+                'uom' => 'yard',
+                'size' => '56"',
+                'color' => 'SURF THE WEB BLUE',
+                'is_import' => true,
+                'stock' => 1200,
+                'min_stock' => 150,
+                'price' => 42000,
+                'supplier_id' => $supplierTextile->id,
+            ],
+            [
+                'code' => 'FAB00104',
+                'name' => 'N DOBBY 1335R',
+                'category' => 'fabric',
+                'uom' => 'yard',
+                'size' => '56"',
+                'color' => 'LAVA SMOKE GRAY',
+                'is_import' => true,
+                'stock' => 850,
+                'min_stock' => 100,
+                'price' => 42000,
+                'supplier_id' => $supplierTextile->id,
+            ],
+            [
+                'code' => 'HWB0125',
+                'name' => 'PLASTIC CORD LOCK gs124',
+                'category' => 'hardware',
+                'uom' => 'pcs',
+                'size' => null,
+                'color' => 'BLACK',
+                'is_import' => false,
+                'stock' => 3500,
+                'min_stock' => 300,
+                'price' => 1800,
+                'supplier_id' => $supplierDuraflex->id,
+            ],
+            [
+                'code' => 'HWB01259',
+                'name' => 'PLASTIC CORD LOCK gs124 v2',
+                'category' => 'hardware',
+                'uom' => 'pcs',
+                'size' => null,
+                'color' => 'BLACK',
+                'is_import' => false,
+                'stock' => 2000,
+                'min_stock' => 200,
+                'price' => 1900,
+                'supplier_id' => $supplierDuraflex->id,
+            ],
+            [
+                'code' => 'THB00002-BLU',
+                'name' => '100% POLYESTER FILAMENT PF 250/3 2000M',
+                'category' => 'thread',
+                'uom' => 'cone',
+                'size' => 'TEX 80',
+                'color' => 'SURF THE WEB BLUE',
+                'is_import' => false,
+                'stock' => 450,
+                'min_stock' => 50,
+                'price' => 28000,
+                'supplier_id' => $supplierThread->id,
+            ],
+            [
+                'code' => 'THB00002-BLK',
+                'name' => '100% POLYESTER FILAMENT PF 250/3 2000M',
+                'category' => 'thread',
+                'uom' => 'cone',
+                'size' => 'TEX 80',
+                'color' => 'BLACK C9760 - A SGY 0279',
+                'is_import' => false,
+                'stock' => 600,
+                'min_stock' => 60,
+                'price' => 28000,
+                'supplier_id' => $supplierThread->id,
+            ],
+            [
+                'code' => 'THB00002-GRY',
+                'name' => '100% POLYESTER FILAMENT PF 250/3 2000M',
+                'category' => 'thread',
+                'uom' => 'cone',
+                'size' => 'TEX 80',
+                'color' => 'LAVA SMOKE GRAY',
+                'is_import' => false,
+                'stock' => 350,
+                'min_stock' => 40,
+                'price' => 28000,
+                'supplier_id' => $supplierThread->id,
+            ],
+            [
+                'code' => 'THB00004',
+                'name' => '100% POLYESTER FILAMENT PF 210/2 2500M',
+                'category' => 'thread',
+                'uom' => 'cone',
+                'size' => 'TEX 40',
+                'color' => 'ANY',
+                'is_import' => false,
+                'stock' => 500,
+                'min_stock' => 50,
+                'price' => 24000,
+                'supplier_id' => $supplierThread->id,
+            ],
+            [
+                'code' => 'WBB00367',
+                'name' => 'CORDING 4.5MM',
+                'category' => 'webbing',
+                'uom' => 'yard',
+                'size' => '4.5MM',
+                'color' => 'BLACK',
+                'is_import' => false,
+                'stock' => 1500,
+                'min_stock' => 150,
+                'price' => 6500,
+                'supplier_id' => $supplierYKK->id,
+            ],
+            [
+                'code' => 'WBB00398',
+                'name' => 'FO0380 - PP WEBBING THINPLAIN 22MM',
+                'category' => 'webbing',
+                'uom' => 'yard',
+                'size' => '22MM',
+                'color' => 'BLACK',
+                'is_import' => false,
+                'stock' => 2200,
+                'min_stock' => 200,
+                'price' => 8500,
+                'supplier_id' => $supplierYKK->id,
+            ],
+        ];
+
+        foreach ($demoMaterials as $item) {
+            $mat = Material::where('code', $item['code'])->first();
+            if (! $mat) {
+                Material::create($item);
+            }
         }
 
         // 6. Seed RdDesigns
