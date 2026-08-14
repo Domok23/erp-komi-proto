@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialCategoryResource\Pages;
 use App\Models\MaterialCategory;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class MaterialCategoryResource extends Resource
 {
@@ -53,11 +55,11 @@ class MaterialCategoryResource extends Resource
             Forms\Components\TextInput::make('name')
                 ->label('Category Name')
                 ->required()
-                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId()))
                 ->maxLength(255),
             Forms\Components\TextInput::make('code')
                 ->label('Code (Optional)')
-                ->unique(ignoreRecord: true, modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->where('company_id', \App\Services\CompanyContext::getCompanyId()))
+                ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId()))
                 ->maxLength(100),
         ])->columns(2);
     }

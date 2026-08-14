@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialInResource\Pages;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSubcon;
 use App\Models\SubconMaterialIn;
@@ -163,7 +162,7 @@ class SubconMaterialInResource extends Resource
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $set('material_id', null);
                                     $set('description', null);
-                                    $set('unit', 'pcs');
+                                    $set('unit', null);
                                 }),
                             Forms\Components\TextInput::make('description')
                                 ->label('Material / Service Description')
@@ -180,15 +179,8 @@ class SubconMaterialInResource extends Resource
                                             ->where('quantity', '>', 0);
                                     })
                                 )
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
-                                })
-                                ->searchable()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->required(fn (callable $get) => $get('item_type') === 'raw_return')
                                 ->visible(fn (callable $get) => $get('item_type') === 'raw_return')
@@ -196,9 +188,10 @@ class SubconMaterialInResource extends Resource
                                 ->disabled(fn (callable $get) => $get('item_type') === 'raw_return' && $get('material_id') !== null)
                                 ->dehydrated()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
                                     if ($material) {
-                                        $set('unit', $material->uom);
+                                        $uom = $material->uom ?? $material->uomRef?->name ?? $material->unit;
+                                        $set('unit', $uom);
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')

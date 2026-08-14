@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\HrEmployee;
 use App\Models\HrEmployeePlacement;
+use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\DatePicker;
@@ -11,7 +12,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -77,7 +77,7 @@ class ManageProjectTeamModal extends Component implements HasActions, HasForms, 
 
         if (! $this->isReadOnly) {
             $table->headerActions([
-                Tables\Actions\Action::make('add_member')
+                Action::make('add_member')
                     ->label('Add Team Member')
                     ->icon('heroicon-o-user-plus')
                     ->color('primary')
@@ -110,7 +110,7 @@ class ManageProjectTeamModal extends Component implements HasActions, HasForms, 
                         }
                     }),
             ])->actions([
-                Tables\Actions\Action::make('end_placement')
+                Action::make('end_placement')
                     ->label('End Placement')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')

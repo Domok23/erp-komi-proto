@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\GeneralLedgers\Schemas;
 
+use App\Services\CompanyContext;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Unique;
 
 class GeneralLedgerForm
 {
@@ -19,7 +21,10 @@ class GeneralLedgerForm
                             ->label('Entry Number')
                             ->required()
                             ->maxLength(50)
-                            ->unique(ignoreRecord: true)
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                            )
                             ->default(fn () => 'GL-'.date('Ymd').'-'.str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT))
                             ->columnSpan(1),
                         Forms\Components\DatePicker::make('entry_date')

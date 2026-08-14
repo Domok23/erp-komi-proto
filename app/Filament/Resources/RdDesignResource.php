@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RdDesignResource\Pages;
 use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -18,6 +19,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class RdDesignResource extends Resource
 {
@@ -44,7 +46,10 @@ class RdDesignResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('code')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\TextInput::make('name')
                         ->required()
@@ -93,17 +98,17 @@ class RdDesignResource extends Resource
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_mp_cost')
-                        ->label(new HtmlString('Estimated MP Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Labor Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_overhead_pct')
-                        ->label(new HtmlString('Estimated Overhead Pct <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Overhead (%) <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_profit_margin_pct')
-                        ->label(new HtmlString('Estimated Profit Margin Pct <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Profit Margin (%) <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),

@@ -7,7 +7,6 @@ use App\Filament\Resources\BomResource\Pages;
 use App\Models\Bom;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
@@ -19,7 +18,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -63,11 +61,11 @@ class BomResource extends Resource
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                        ->afterStateUpdated(function ($state, callable $set, $get) {
                             if ($state) {
                                 $rates = ConsumptionRate::where('design_id', $state)->get();
 
-                                 $items = $rates->map(function ($rate) {
+                                $items = $rates->map(function ($rate) {
                                     return [
                                         'material_id' => $rate->material_id,
                                         'component' => $rate->component,
@@ -95,7 +93,7 @@ class BomResource extends Resource
                         ->required()
                         ->maxLength(20)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                        ->afterStateUpdated(function ($state, callable $set, $get) {
                             $designId = $get('design_id');
                             $set('bom_number', $designId ? CodeGenerator::generateBOMNumber((int) $designId, $state) : '');
                         })
@@ -103,7 +101,7 @@ class BomResource extends Resource
                             table: 'boms',
                             column: 'version',
                             ignoreRecord: true,
-                            modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('design_id', $get('design_id'))
+                            modifyRuleUsing: fn (Unique $rule, $get) => $rule->where('design_id', $get('design_id'))
                         ),
                     Forms\Components\Select::make('status')
                         ->options([
@@ -122,7 +120,7 @@ class BomResource extends Resource
             Section::make('BOM Items')
                 ->columnSpanFull()
                 ->headerActions([
-                    StockPreviewAction::make('form'),
+                    StockPreviewAction::make('form', allowReserve: false),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
@@ -130,27 +128,21 @@ class BomResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
-                                })
-                                ->searchable()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
-                                    $material = Material::find($state, ['*']);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
                                     if ($material) {
-                                        $set('unit', $material->uom);
+                                        $set('unit', $material->uom ?? $material->uomRef?->name ?? $material->unit);
                                     }
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
+                                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->numeric()
                                 ->step(0.0001)
                                 ->required()
@@ -162,7 +154,7 @@ class BomResource extends Resource
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
-                                ->label('Wastage (%)')
+                                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->default(config('costing.wastage_pct', 3))
                                 ->suffix('%')
                                 ->disabled()
@@ -247,7 +239,7 @@ class BomResource extends Resource
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

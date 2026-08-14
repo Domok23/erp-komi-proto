@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Models\Component;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
@@ -24,7 +25,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -115,7 +115,7 @@ class MerchandisePlanningResource extends Resource
                         }),
                     Forms\Components\Select::make('sub_project_id')
                         ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                        ->relationship('subProject', 'name', function ($query, $get) {
                             $projectId = $get('project_id');
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
@@ -127,7 +127,7 @@ class MerchandisePlanningResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->visible(function (Get $get) {
+                        ->visible(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;
@@ -136,7 +136,7 @@ class MerchandisePlanningResource extends Resource
 
                             return $project && $project->hasSubProjects();
                         })
-                        ->required(function (Get $get) {
+                        ->required(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;
@@ -198,32 +198,61 @@ class MerchandisePlanningResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                                })
-                                ->searchable()
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->nullable()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = $state ? Material::find($state, ['*']) : null;
-                                    $set('unit', $material?->unit);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $set('unit', $material?->uom ?? $material?->uomRef?->name ?? $material?->unit);
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', number_format($price, 2, '.', ','));
                                     $set('supplier_id', $material?->supplier_id);
 
-                                    $qty = floatval($get('planned_qty') ?? 1);
+                                    $qty = floatval(str_replace(',', '', $get('planned_qty') ?? '1'));
                                     $set('total_price', number_format($qty * floatval($price), 2, '.', ','));
+
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = $state ? (float) InventoryStock::where('material_id', $state)->where('company_id', $companyId)->sum('quantity') : 0;
+                                    if (($stock < $qty || $qty <= 0) && $get('is_subcon')) {
+                                        $set('is_subcon', false);
+                                        $set('subcon_id', null);
+                                    }
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
-                            Forms\Components\TextInput::make('component')
+                            Forms\Components\Select::make('component')
                                 ->label('Component')
+                                ->options(function ($state) {
+                                    $companyId = CompanyContext::getCompanyId();
+
+                                    $options = Component::where('company_id', $companyId)
+                                        ->pluck('name', 'name')
+                                        ->toArray();
+
+                                    if ($state && ! isset($options[$state])) {
+                                        $options[$state] = $state;
+                                    }
+
+                                    return $options;
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Component Name')
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data): string {
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $comp = Component::firstOrCreate([
+                                        'company_id' => $companyId,
+                                        'name' => trim($data['name']),
+                                    ]);
+
+                                    return $comp->name;
+                                })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\Select::make('supplier_id')
@@ -231,19 +260,26 @@ class MerchandisePlanningResource extends Resource
                                 ->searchable()
                                 ->preload()
                                 ->nullable()
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated()
-                                ->visible(fn (callable $get) => ! $get('is_subcon')),
-                            Forms\Components\Select::make('subcon_id')
-                                ->relationship('subcon', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated()
-                                ->visible(fn (callable $get) => $get('is_subcon')),
+                                ->disabled()
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->required()
+                                ->numeric()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $qty = floatval(str_replace(',', '', $state ?? '0'));
+                                    $unitPrice = floatval(str_replace(',', '', $get('unit_price') ?? '0'));
+                                    $set('total_price', number_format($qty * $unitPrice, 2, '.', ','));
+
+                                    $materialId = $get('material_id');
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = $materialId ? (float) InventoryStock::where('material_id', $materialId)->where('company_id', $companyId)->sum('quantity') : 0;
+
+                                    if (($qty <= 0 || $stock < $qty) && $get('is_subcon')) {
+                                        $set('is_subcon', false);
+                                        $set('subcon_id', null);
+                                    }
+                                })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated()
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', '') : $state)
@@ -252,6 +288,12 @@ class MerchandisePlanningResource extends Resource
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('unit_price')
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $unitPrice = floatval(str_replace(',', '', $state ?? '0'));
+                                    $qty = floatval(str_replace(',', '', $get('planned_qty') ?? '0'));
+                                    $set('total_price', number_format($qty * $unitPrice, 2, '.', ','));
+                                })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated()
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
@@ -270,13 +312,42 @@ class MerchandisePlanningResource extends Resource
                                 ->label('Is Subcon Service')
                                 ->inline(false)
                                 ->reactive()
+                                ->disabled(function (callable $get) {
+                                    if ($get('is_from_rnd')) {
+                                        return true;
+                                    }
+
+                                    $plannedQty = (float) str_replace(',', '', $get('planned_qty') ?? '0');
+                                    if ($plannedQty <= 0) {
+                                        return true;
+                                    }
+
+                                    $materialId = $get('material_id');
+                                    if (! $materialId) {
+                                        return true;
+                                    }
+
+                                    $companyId = CompanyContext::getCompanyId();
+                                    $stock = (float) InventoryStock::where('material_id', $materialId)
+                                        ->where('company_id', $companyId)
+                                        ->sum('quantity');
+
+                                    return $stock < $plannedQty;
+                                })
+                                ->dehydrated()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     if (! $state) {
                                         $set('subcon_id', null);
-                                    } else {
-                                        $set('supplier_id', null);
                                     }
                                 }),
+                            Forms\Components\Select::make('subcon_id')
+                                ->relationship('subcon', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd'))
+                                ->dehydrated()
+                                ->visible(fn (callable $get) => (bool) $get('is_subcon')),
                             Forms\Components\Hidden::make('is_from_rnd')
                                 ->default(null),
                         ])
@@ -422,6 +493,7 @@ class MerchandisePlanningResource extends Resource
                                         'company_id' => $record->company_id,
                                         'po_number' => CodeGenerator::generatePOSupplierNo(),
                                         'project_id' => $record->project_id,
+                                        'project_ids' => $record->project_id ? [$record->project_id] : null,
                                         'supplier_id' => $supplierId,
                                         'po_date' => now()->toDateString(),
                                         'ppn_percent' => 11,
@@ -459,6 +531,7 @@ class MerchandisePlanningResource extends Resource
                                         'company_id' => $record->company_id,
                                         'po_number' => CodeGenerator::generatePOSubconNo(),
                                         'project_id' => $record->project_id,
+                                        'project_ids' => $record->project_id ? [$record->project_id] : null,
                                         'subcon_id' => $subconId,
                                         'po_date' => now()->toDateString(),
                                         'status' => 'draft',

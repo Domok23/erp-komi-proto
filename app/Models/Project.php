@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MerchandisePlanningSyncService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,15 @@ class Project extends Model
         'target_qty' => 'integer',
         'produced_qty' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (Project $project) {
+            if ($project->wasChanged(['target_qty', 'bom_id'])) {
+                MerchandisePlanningSyncService::syncProject($project);
+            }
+        });
+    }
 
     public function archivedByUser(): BelongsTo
     {
@@ -103,11 +113,6 @@ class Project extends Model
     public function hasSubProjects(): bool
     {
         return $this->subProjects()->exists();
-    }
-
-    public function hasPendingSubProjectReviews(): bool
-    {
-        return $this->subProjects()->where('review_status', 'pending')->exists();
     }
 
     public function approvedByUser(): BelongsTo

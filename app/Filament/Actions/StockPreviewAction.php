@@ -11,7 +11,7 @@ use Filament\Support\Enums\IconSize;
 
 class StockPreviewAction
 {
-    public static function make(string $context = 'form'): Action
+    public static function make(string $context = 'form', bool $allowReserve = true): Action
     {
         $action = Action::make('stock_preview')
             ->label('Preview Stock')
@@ -21,7 +21,7 @@ class StockPreviewAction
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
             ->color('info')
-            ->modalContent(function ($record = null, $livewire = null) {
+            ->modalContent(function ($record = null, $livewire = null) use ($allowReserve) {
                 $companyId = CompanyContext::getCompanyId() ?? 1;
                 $materials = [];
                 $productionQty = 1.0;
@@ -115,6 +115,7 @@ class StockPreviewAction
                     'productionQty' => $productionQty,
                     'companyId' => $companyId,
                     'projectId' => $projectId,
+                    'allowReserve' => $allowReserve,
                 ]);
             });
 

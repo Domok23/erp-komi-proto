@@ -48,7 +48,6 @@ class SubProjectTransactionRulesTest extends TestCase
             'company_id' => $company->id,
             'project_id' => $project->id,
             'name' => 'Varian Hitam',
-            'review_status' => 'approved',
             'target_qty' => 5,
             'produced_qty' => 0,
         ]);
@@ -74,7 +73,6 @@ class SubProjectTransactionRulesTest extends TestCase
             'company_id' => $company->id,
             'project_id' => $project->id,
             'name' => 'Varian Hitam',
-            'review_status' => 'approved',
             'target_qty' => 5,
             'produced_qty' => 0,
         ]);
@@ -109,7 +107,6 @@ class SubProjectTransactionRulesTest extends TestCase
             'company_id' => $company->id,
             'project_id' => $project2->id,
             'name' => 'Varian Merah',
-            'review_status' => 'approved',
             'target_qty' => 5,
             'produced_qty' => 0,
         ]);

@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
 use App\Models\Component;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSupplier;
 use App\Models\Project;
@@ -25,8 +24,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -91,7 +88,8 @@ class PoSupplierResource extends Resource
                     Forms\Components\DatePicker::make('po_date')
                         ->default(now()->toDateString())
                         ->required(),
-                    Forms\Components\DatePicker::make('delivery_date'),
+                    Forms\Components\DatePicker::make('delivery_date')
+                        ->afterOrEqual('po_date'),
                     Forms\Components\Select::make('status')
                         ->options([
                             'draft' => 'Draft',
@@ -119,13 +117,14 @@ class PoSupplierResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('ppn_percent')
+                        ->label('PPN (%)')
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
                         ->default(11)
                         ->suffix('%')
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotals($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculateTotals($get, $set)),
                     Forms\Components\TextInput::make('ppn_amount')
                         ->default(0)
                         ->disabled()
@@ -228,23 +227,17 @@ class PoSupplierResource extends Resource
                                     }
 
                                     return Material::where('supplier_id', $supplierId)
-                                        ->pluck('name', 'id');
+                                        ->get()
+                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label]);
                                 })
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                                })
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = $state ? Material::find($state, ['*']) : null;
-                                    $set('unit', $material?->unit);
+                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $set('unit', $material?->uom ?? $material?->uomRef?->name ?? $material?->unit);
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', $price);
                                     $qty = floatval($get('qty') ?? 1);
@@ -348,7 +341,7 @@ class PoSupplierResource extends Resource
         ]);
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected static function recalculateTotals(callable $get, callable $set): void
     {
         $subtotal = floatval(str_replace(',', '', $get('subtotal') ?? 0));
         $ppnPct = floatval(str_replace(',', '', $get('ppn_percent') ?? 11));

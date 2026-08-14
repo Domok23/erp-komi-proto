@@ -36,15 +36,18 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
     public array $sessionOrderedQtys = [];
 
+    public bool $allowReserve = true;
+
     /** Cached preview results — keyed by material_id. Refreshed on every qty change. */
     public array $cachedPreview = [];
 
-    public function mount(array $materials = [], float $productionQty = 1.0, int $companyId = 1, ?int $projectId = null)
+    public function mount(array $materials = [], float $productionQty = 1.0, int $companyId = 1, ?int $projectId = null, bool $allowReserve = true)
     {
         $this->materials = $materials;
         $this->productionQty = max(0, $productionQty);
         $this->companyId = $companyId;
         $this->projectId = $projectId;
+        $this->allowReserve = $allowReserve;
         $this->refreshPreview();
     }
 
@@ -153,6 +156,7 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
             ])
             ->bulkActions([
                 BulkAction::make('reserve_selected')
+                    ->visible(fn () => $this->allowReserve)
                     ->label('Reserve Selected')
                     ->icon('heroicon-o-lock-closed')
                     ->color('info')
@@ -211,79 +215,6 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                             ->send();
 
                         $this->dispatch('reserved', count($items));
-                        $this->refreshPreview();
-                    }),
-                BulkAction::make('create_po_selected')
-                    ->label('Create PO for Selected')
-                    ->icon('heroicon-o-shopping-bag')
-                    ->color('warning')
-                    ->deselectRecordsAfterCompletion()
-                    ->action(function (Collection $records) {
-                        $previewData = $this->getPreviewData();
-                        $items = $records->map(function ($record) use ($previewData) {
-                            $data = $previewData->get($record->id);
-                            if (! $data) {
-                                return null;
-                            }
-
-                            return $data->toBuy > 0
-                                ? ['material_id' => $record->id, 'qty' => $data->toBuy]
-                                : null;
-                        })->filter()->values()->all();
-
-                        if (empty($items)) {
-                            Notification::make()
-                                ->title('Stok Sudah Cukup')
-                                ->body('Seluruh material yang dipilih sudah memiliki stok yang mencukupi. PO tidak perlu dibuat.')
-                                ->info()
-                                ->send();
-
-                            return;
-                        }
-
-                        $materialsWithoutSupplier = $records->filter(function ($record) use ($items) {
-                            $isItemToBuy = collect($items)->contains('material_id', $record->id);
-
-                            return $isItemToBuy && empty($record->supplier_id);
-                        });
-
-                        if ($materialsWithoutSupplier->isNotEmpty()) {
-                            $names = $materialsWithoutSupplier->pluck('name')->implode(', ');
-                            Notification::make()
-                                ->title('Material Belum Memiliki Supplier')
-                                ->body("Material berikut belum diset Supplier-nya di master data: {$names}. Harap set Supplier terlebih dahulu.")
-                                ->warning()
-                                ->send();
-                        }
-
-                        $items = collect($items)->reject(function ($item) use ($materialsWithoutSupplier) {
-                            return $materialsWithoutSupplier->contains('id', $item['material_id']);
-                        })->values()->all();
-
-                        if (empty($items)) {
-                            return;
-                        }
-
-                        $pos = app(StockPreviewService::class)->createPurchaseOrder(materials: $items, companyId: $this->companyId, projectId: $this->projectId);
-
-                        foreach ($items as $item) {
-                            $matId = $item['material_id'];
-                            $this->sessionOrderedQtys[$matId] = ($this->sessionOrderedQtys[$matId] ?? 0) + $item['qty'];
-                        }
-
-                        $skippedCount = count($records) - count($items);
-                        $body = count($pos).' draft PO berhasil dibuat.';
-                        if ($skippedCount > 0) {
-                            $body .= " ({$skippedCount} material dilewati karena stok sudah cukup / tanpa supplier)";
-                        }
-
-                        Notification::make()
-                            ->title('Purchase Orders Created')
-                            ->body($body)
-                            ->success()
-                            ->send();
-
-                        $this->dispatch('po-created', count($pos));
                         $this->refreshPreview();
                     }),
             ]);

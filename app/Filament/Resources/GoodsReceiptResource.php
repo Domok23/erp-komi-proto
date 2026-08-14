@@ -4,12 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GoodsReceiptResource\Pages;
 use App\Models\GoodsReceipt;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSupplier;
 use App\Models\PurchaseShipment;
 use App\Services\CodeGenerator;
-use App\Services\CompanyContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -134,14 +132,7 @@ class GoodsReceiptResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                    $companyId = CompanyContext::getCompanyId();
-                                    $stock = InventoryStock::where('material_id', $record->id)
-                                        ->where('company_id', $companyId)
-                                        ->sum('quantity');
-
-                                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                                })
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->disabled()
                                 ->dehydrated()
                                 ->required(),
@@ -235,7 +226,7 @@ class GoodsReceiptResource extends Resource
                                             return Material::whereIn('id', $materialIds)
                                                 ->get()
                                                 ->mapWithKeys(fn ($material) => [
-                                                    $material->id => "[{$material->code}] {$material->name}",
+                                                    $material->id => $material->formatted_select_label,
                                                 ]);
                                         })
                                         ->searchable()

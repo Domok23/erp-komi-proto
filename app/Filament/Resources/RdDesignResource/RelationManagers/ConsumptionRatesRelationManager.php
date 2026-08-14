@@ -5,7 +5,6 @@ namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Filament\Actions\StockPreviewAction;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
 use Filament\Actions\Action;
@@ -26,7 +25,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\XLSX\Reader as XLSXReader;
-use OpenSpout\Writer\XLSX\Writer as XLSXWriter;
+use OpenSpout\Writer\XLSX\Writer;
 
 class ConsumptionRatesRelationManager extends RelationManager
 {
@@ -39,15 +38,8 @@ class ConsumptionRatesRelationManager extends RelationManager
         return $schema->schema([
             Forms\Components\Select::make('material_id')
                 ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    $companyId = CompanyContext::getCompanyId();
-                    $stock = InventoryStock::where('material_id', $record->id)
-                        ->where('company_id', $companyId)
-                        ->sum('quantity');
-
-                    return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->unit})";
-                })
-                ->searchable()
+                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                ->searchable(['code', 'name', 'color', 'size'])
                 ->preload()
                 ->required()
                 ->reactive()
@@ -58,7 +50,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
-                ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->label('UOM')
                 ->default('pcs')
@@ -68,7 +60,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->default(config('costing.wastage_pct', 3))
                 ->disabled()
                 ->dehydrated()
-                ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -115,17 +107,20 @@ class ConsumptionRatesRelationManager extends RelationManager
             TextColumn::make('id')->sortable(),
             TextColumn::make('material.name')->sortable()->searchable(),
             TextColumn::make('standard_rate')
+                ->label('Actual Consumption')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             TextColumn::make('unit')->label('UOM'),
             TextColumn::make('wastage_rate')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                ->label('Yield 3% waste')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->suffix('%'),
             TextColumn::make('component')->sortable()->searchable(),
             TextColumn::make('notes')->limit(50),
         ])
             ->filters([])
             ->headerActions([
-                StockPreviewAction::make('form'),
+                StockPreviewAction::make('form', allowReserve: false),
                 CreateAction::make(),
                 Action::make('importExcel')
                     ->label('Import Excel')
@@ -140,13 +135,14 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     ->icon('heroicon-o-arrow-down-tray')
                                     ->color('success')
                                     ->action(function () {
-                                        $writer = new \OpenSpout\Writer\XLSX\Writer;
+                                        $writer = new Writer;
                                         $tempFilePath = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
                                         $writer->openToFile($tempFilePath);
 
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['Material Code', 'Standard Rate', 'Wastage Rate', 'Notes']));
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['FAB-001', '1.5', '10', 'Main outer fabric']));
-                                        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(['ZIP-001', '1', '0', 'Pocket zipper']));
+                                        $writer->addRow(Row::fromValues(['Material Code', 'Component Name', 'Actual Consumption', 'Notes']));
+                                        $writer->addRow(Row::fromValues(['FAB-001', 'Body', '1.5', 'Main outer fabric']));
+                                        $writer->addRow(Row::fromValues(['ZIP-001', 'Front Pocket', '1', 'Pocket zipper']));
+                                        $writer->addRow(Row::fromValues(['ACC-001', 'Handle', '2', 'Handle buckle']));
 
                                         $writer->close();
 
@@ -170,11 +166,12 @@ class ConsumptionRatesRelationManager extends RelationManager
                             $reader->open($filePath);
 
                             $designId = $this->getOwnerRecord()->id;
-                            $companyId = CompanyContext::getCompanyId();
+                            $companyId = CompanyContext::getCompanyId() ?? $this->getOwnerRecord()->company_id;
 
                             $headers = [];
                             $rowCount = 0;
                             $successCount = 0;
+                            $newComponentsCreated = [];
                             $errors = [];
 
                             foreach ($reader->getSheetIterator() as $sheet) {
@@ -199,8 +196,8 @@ class ConsumptionRatesRelationManager extends RelationManager
                                     $rowData = array_combine($headers, array_pad($values, count($headers), null));
 
                                     $materialCode = $rowData['material code'] ?? $rowData['material_code'] ?? $rowData['material'] ?? null;
-                                    $standardRateRaw = $rowData['standard rate'] ?? $rowData['standard_rate'] ?? null;
-                                    $wastageRateRaw = $rowData['wastage rate'] ?? $rowData['wastage_rate'] ?? 0;
+                                    $componentRaw = $rowData['component name'] ?? $rowData['component_name'] ?? $rowData['component'] ?? $rowData['komponen'] ?? null;
+                                    $standardRateRaw = $rowData['actual consumption'] ?? $rowData['actual_consumption'] ?? $rowData['standard rate'] ?? $rowData['standard_rate'] ?? null;
                                     $notes = $rowData['notes'] ?? null;
 
                                     if (blank($materialCode)) {
@@ -211,12 +208,10 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                                     $standardRate = self::normalizeDecimal($standardRateRaw);
                                     if ($standardRate === null) {
-                                        $errors[] = "Row {$rowCount}: Standard Rate '{$standardRateRaw}' is invalid.";
+                                        $errors[] = "Row {$rowCount}: Actual Consumption '{$standardRateRaw}' is invalid.";
 
                                         continue;
                                     }
-
-                                    $wastageRate = self::normalizeDecimal($wastageRateRaw) ?? 0.0;
 
                                     // Find material
                                     $material = Material::where('code', $materialCode)->first();
@@ -226,11 +221,42 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         continue;
                                     }
 
-                                    // Upsert record
+                                    // Component normalization & auto-registration
+                                    $componentName = null;
+                                    if (! blank($componentRaw)) {
+                                        $trimmedComponent = trim(preg_replace('/\s+/', ' ', strval($componentRaw)));
+                                        if ($trimmedComponent !== '') {
+                                            $existingComponent = Component::where('company_id', $companyId)
+                                                ->whereRaw('LOWER(name) = ?', [strtolower($trimmedComponent)])
+                                                ->first();
+
+                                            if ($existingComponent) {
+                                                $componentName = $existingComponent->name;
+                                            } else {
+                                                $newComp = Component::create([
+                                                    'company_id' => $companyId,
+                                                    'name' => $trimmedComponent,
+                                                ]);
+                                                $componentName = $newComp->name;
+                                                if (! in_array($componentName, $newComponentsCreated, true)) {
+                                                    $newComponentsCreated[] = $componentName;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Upsert record by (company_id, design_id, material_id, component)
                                     $consumptionRate = ConsumptionRate::withoutCompanyScope()
                                         ->where('company_id', $companyId)
                                         ->where('design_id', $designId)
                                         ->where('material_id', $material->id)
+                                        ->where(function ($q) use ($componentName) {
+                                            if ($componentName !== null && $componentName !== '') {
+                                                $q->where('component', $componentName);
+                                            } else {
+                                                $q->whereNull('component')->orWhere('component', '');
+                                            }
+                                        })
                                         ->first();
 
                                     if (! $consumptionRate) {
@@ -240,9 +266,10 @@ class ConsumptionRatesRelationManager extends RelationManager
                                         $consumptionRate->material_id = $material->id;
                                     }
 
+                                    $consumptionRate->component = $componentName;
                                     $consumptionRate->standard_rate = $standardRate;
                                     $consumptionRate->wastage_rate = config('costing.wastage_pct', 3);
-                                    $consumptionRate->unit = $material->uom;
+                                    $consumptionRate->unit = $material->uom ?? $material->uomRef?->name ?? $material->unit;
                                     $consumptionRate->notes = $notes;
                                     $consumptionRate->save();
 
@@ -254,10 +281,15 @@ class ConsumptionRatesRelationManager extends RelationManager
                             $reader->close();
                             Storage::disk('local')->delete($file);
 
+                            $newComponentsCount = count($newComponentsCreated);
+                            $compNote = $newComponentsCount > 0
+                                ? "\nInfo: {$newComponentsCount} component baru otomatis didaftarkan: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', dll.' : '.')
+                                : '';
+
                             if (empty($errors)) {
                                 Notification::make()
                                     ->title('Import Excel Berhasil')
-                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.")
+                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.{$compNote}")
                                     ->success()
                                     ->send();
                             } else {
@@ -268,7 +300,7 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                                 Notification::make()
                                     ->title('Import Selesai dengan '.count($errors).' Error')
-                                    ->body("{$successCount} baris berhasil diimpor.\nError:\n{$errorText}")
+                                    ->body("{$successCount} baris berhasil diimpor.{$compNote}\nError:\n{$errorText}")
                                     ->warning()
                                     ->persistent()
                                     ->send();
@@ -285,7 +317,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

@@ -14,10 +14,12 @@ class MaterialMasterSeeder extends Seeder
     public function run(): void
     {
         $defaultCategories = [
-            ['name' => 'Fabric', 'code' => 'fabric'],
+            ['name' => 'Fabrics', 'code' => 'fabric'],
             ['name' => 'Zipper', 'code' => 'zipper'],
             ['name' => 'Button', 'code' => 'button'],
-            ['name' => 'Thread', 'code' => 'thread'],
+            ['name' => 'Threads', 'code' => 'thread'],
+            ['name' => 'Hardwares', 'code' => 'hardware'],
+            ['name' => 'Webbings', 'code' => 'webbing'],
             ['name' => 'Handle', 'code' => 'handle'],
             ['name' => 'Label', 'code' => 'label'],
             ['name' => 'Interlining', 'code' => 'interlining'],
@@ -38,27 +40,41 @@ class MaterialMasterSeeder extends Seeder
             ['name' => 'box', 'description' => 'Boxes'],
             ['name' => 'set', 'description' => 'Sets'],
             ['name' => 'pack', 'description' => 'Packs'],
+            ['name' => 'cone', 'description' => 'Cones'],
         ];
 
         $companies = Company::all();
 
         foreach ($companies as $company) {
             foreach ($defaultCategories as $cat) {
-                MaterialCategory::firstOrCreate([
-                    'company_id' => $company->id,
-                    'code' => $cat['code'],
-                ], [
-                    'name' => $cat['name'],
-                ]);
+                $existingCat = MaterialCategory::where('company_id', $company->id)
+                    ->where(function ($q) use ($cat) {
+                        $q->where('code', $cat['code'])
+                            ->orWhere('name', $cat['name']);
+                    })
+                    ->first();
+
+                if (! $existingCat) {
+                    MaterialCategory::create([
+                        'company_id' => $company->id,
+                        'code' => $cat['code'],
+                        'name' => $cat['name'],
+                    ]);
+                }
             }
 
             foreach ($defaultUoms as $uom) {
-                MaterialUom::firstOrCreate([
-                    'company_id' => $company->id,
-                    'name' => $uom['name'],
-                ], [
-                    'description' => $uom['description'],
-                ]);
+                $existingUom = MaterialUom::where('company_id', $company->id)
+                    ->where('name', $uom['name'])
+                    ->first();
+
+                if (! $existingUom) {
+                    MaterialUom::create([
+                        'company_id' => $company->id,
+                        'name' => $uom['name'],
+                        'description' => $uom['description'],
+                    ]);
+                }
             }
         }
 

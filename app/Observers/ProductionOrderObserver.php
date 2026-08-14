@@ -35,5 +35,13 @@ class ProductionOrderObserver
                 'produced_qty' => $totalProduced,
             ]);
         }
+
+        $subProject = $productionOrder->subProject;
+        if ($subProject) {
+            $totalSubProduced = $subProject->productionOrders()->sum('completed_qty');
+            $subProject->update([
+                'produced_qty' => $totalSubProduced,
+            ]);
+        }
     }
 }

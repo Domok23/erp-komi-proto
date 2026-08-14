@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Exceptions\SubProjectException;
 use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -11,9 +10,7 @@ class ProjectTransitionService
 {
     public static function approveProject(Project $project, int $userId): Project
     {
-        if ($project->type === 'sample' && $project->hasPendingSubProjectReviews()) {
-            throw SubProjectException::pendingReviews($project);
-        }
+        // SubProjects no longer have independent reviews.
 
         return DB::transaction(function () use ($project, $userId) {
             $project->update([
@@ -40,7 +37,7 @@ class ProjectTransitionService
                     'target_qty' => 1,
                 ]);
 
-                SubProjectService::copyForTransition($project, $next, onlyApproved: false);
+                SubProjectService::copyForTransition($project, $next);
             } elseif ($project->type === 'sample') {
                 // Auto-create Mass Production project
                 $nameWithoutSample = str_replace(' - Sample', '', $project->name);
@@ -59,7 +56,7 @@ class ProjectTransitionService
                     'target_qty' => $project->target_qty > 1 ? $project->target_qty : 100,
                 ]);
 
-                SubProjectService::copyForTransition($project, $next, onlyApproved: true);
+                SubProjectService::copyForTransition($project, $next);
             }
 
             return $next ?? $project;

@@ -248,14 +248,14 @@ class ProjectResource extends Resource
                                 ->label('Category')
                                 ->disabled(),
                             Forms\Components\TextInput::make('quantity_per_unit')
-                                ->label('Quantity Per Unit')
+                                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->disabled()
                                 ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 4, '.', ',') : $state),
                             Forms\Components\TextInput::make('unit')
                                 ->label('UOM')
                                 ->disabled(),
                             Forms\Components\TextInput::make('wastage_percent')
-                                ->label('Wastage (%)')
+                                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->disabled()
                                 ->formatStateUsing(fn ($state) => number_format(config('costing.wastage_pct', 3), 2, '.', ',')),
                         ])
@@ -290,9 +290,11 @@ class ProjectResource extends Resource
                         ->default(0)
                         ->minValue(0),
                     Forms\Components\TextInput::make('produced_qty')
+                        ->label(new HtmlString('Produced Qty <span title="Jumlah total aktual yang telah selesai diproduksi (dihitung otomatis dari Production Order)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->integer()
                         ->default(0)
-                        ->minValue(0),
+                        ->disabled()
+                        ->dehydrated(false),
                     Forms\Components\Textarea::make('description')
                         ->maxLength(65535)
                         ->columnSpanFull(),
@@ -565,15 +567,20 @@ class ProjectResource extends Resource
     public static function loadBomItems($state, callable $set): void
     {
         if ($state) {
-            $bom = Bom::with('items.material')->find($state);
+            $bom = Bom::with('items.material.categoryRef')->find($state);
             if ($bom) {
                 $items = [];
                 foreach ($bom->items as $item) {
+                    $categoryName = $item->category
+                        ?: $item->material?->categoryRef?->name
+                        ?: $item->material?->category
+                        ?: '-';
+
                     $items[] = [
                         'material_name' => $item->material?->name ?? 'N/A',
-                        'category' => $item->category,
+                        'category' => $categoryName,
                         'quantity_per_unit' => $item->quantity_per_unit,
-                        'unit' => $item->unit,
+                        'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
                         'wastage_percent' => $item->wastage_percent,
                     ];
                 }

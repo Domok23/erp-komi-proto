@@ -19,7 +19,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class MaterialResource extends Resource
 {
@@ -46,7 +48,10 @@ class MaterialResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('code')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\TextInput::make('name')
                         ->required()
@@ -70,6 +75,7 @@ class MaterialResource extends Resource
                                 ['company_id' => $companyId, 'name' => trim($data['name'])],
                                 ['code' => $data['code'] ?? null]
                             );
+
                             return $cat->id;
                         })
                         ->createOptionModalHeading('Add New Category')
@@ -89,6 +95,7 @@ class MaterialResource extends Resource
                                 ['company_id' => $companyId, 'name' => trim($data['name'])],
                                 ['description' => $data['description'] ?? null]
                             );
+
                             return $uomModel->id;
                         })
                         ->createOptionModalHeading('Add New UOM')
@@ -133,6 +140,8 @@ class MaterialResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('color')->label('Color')->placeholder('-')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('size')->label('Size')->placeholder('-')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('categoryRef.name')->label('Category')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('uomRef.name')->label('UOM'),
             Tables\Columns\TextColumn::make('stock')
@@ -154,12 +163,12 @@ class MaterialResource extends Resource
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->relationship('categoryRef', 'name'),
-                \Filament\Tables\Filters\TernaryFilter::make('is_import')
+                TernaryFilter::make('is_import')
                     ->label('Import Status')
                     ->placeholder('All')
                     ->trueLabel('Import Only')
                     ->falseLabel('Local Only'),
-                \Filament\Tables\Filters\TernaryFilter::make('is_active')
+                TernaryFilter::make('is_active')
                     ->label('Status')
                     ->placeholder('All')
                     ->trueLabel('Active Only')

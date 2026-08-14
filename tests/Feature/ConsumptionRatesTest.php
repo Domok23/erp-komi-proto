@@ -161,9 +161,11 @@ class ConsumptionRatesTest extends TestCase
         ]);
 
         $design->refresh();
-        $this->assertEquals(27500, $design->estimated_material_cost);
+        // 2.5 * 1.03 * 10000 = 25750
+        // (25750 + 33000) * 1.15 * 1.20 = 58750 * 1.15 * 1.20 = 81075
+        $this->assertEquals(25750, $design->estimated_material_cost);
         $this->assertEquals(33000, $design->estimated_mp_cost);
-        $this->assertEquals(83490, $design->estimated_selling_price);
+        $this->assertEquals(81075, $design->estimated_selling_price);
 
         // 2. Test update trigger
         $rate->update([
@@ -171,10 +173,10 @@ class ConsumptionRatesTest extends TestCase
         ]);
 
         $design->refresh();
-        // 3.5 * 1.10 * 10000 = 38500
-        // (38500 + 33000) * 1.15 * 1.20 = 71500 * 1.15 * 1.20 = 98670
-        $this->assertEquals(38500, $design->estimated_material_cost);
-        $this->assertEquals(98670, $design->estimated_selling_price);
+        // 3.5 * 1.03 * 10000 = 36050
+        // (36050 + 33000) * 1.15 * 1.20 = 69050 * 1.15 * 1.20 = 95289
+        $this->assertEquals(36050, $design->estimated_material_cost);
+        $this->assertEquals(95289, $design->estimated_selling_price);
 
         // 3. Test deletion trigger
         $rate->delete();
@@ -258,5 +260,74 @@ class ConsumptionRatesTest extends TestCase
         // Assert BOM item component was automatically updated
         $bomItem->refresh();
         $this->assertEquals('Back Pocket & Flap', $bomItem->component);
+    }
+
+    public function test_multi_component_rates_create_distinct_bom_items_and_delete_cleanly(): void
+    {
+        $company = Company::create([
+            'name' => 'Multi Comp Co',
+            'code' => 'MCC',
+            'address' => 'Test Address',
+        ]);
+
+        $design = RdDesign::create([
+            'company_id' => $company->id,
+            'code' => 'DES-MC-01',
+            'name' => 'Multi Component Design',
+            'product_type' => 'jacket',
+            'status' => 'approved',
+        ]);
+
+        $material = Material::create([
+            'company_id' => $company->id,
+            'code' => 'MAT-MC-01',
+            'name' => 'Leather Fabric',
+            'category' => 'fabric',
+            'unit' => 'sqft',
+            'price' => 50000,
+            'stock' => 100,
+        ]);
+
+        $bom = Bom::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'bom_number' => 'BOM-MC-01',
+            'name' => 'BOM Multi Test',
+            'version' => '1.0',
+            'status' => 'draft',
+        ]);
+
+        // Create 2 rates for the same material with different components
+        $rate1 = ConsumptionRate::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'material_id' => $material->id,
+            'component' => 'Body',
+            'standard_rate' => 3.0,
+            'unit' => 'sqft',
+            'wastage_rate' => 3,
+        ]);
+
+        $rate2 = ConsumptionRate::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'material_id' => $material->id,
+            'component' => 'Front Pocket',
+            'standard_rate' => 0.5,
+            'unit' => 'sqft',
+            'wastage_rate' => 3,
+        ]);
+
+        $bomItems = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->get();
+        $this->assertCount(2, $bomItems);
+        $this->assertTrue($bomItems->contains('component', 'Body'));
+        $this->assertTrue($bomItems->contains('component', 'Front Pocket'));
+
+        // Deleting rate1 should only delete the 'Body' bom item
+        $rate1->delete();
+
+        $bomItemsRemaining = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->get();
+        $this->assertCount(1, $bomItemsRemaining);
+        $this->assertEquals('Front Pocket', $bomItemsRemaining->first()->component);
     }
 }

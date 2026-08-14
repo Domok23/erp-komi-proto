@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
-use App\Services\SubProjectService;
-use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -13,7 +11,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class SubProjectsRelationManager extends RelationManager
 {
@@ -52,22 +50,11 @@ class SubProjectsRelationManager extends RelationManager
                 ->default(0)
                 ->minValue(0),
             Forms\Components\TextInput::make('produced_qty')
+                ->label(new HtmlString('Produced Qty <span title="Jumlah total aktual yang telah selesai diproduksi (dihitung otomatis dari Production Order)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->integer()
                 ->default(0)
-                ->minValue(0),
-            Forms\Components\Select::make('review_status')
-                ->options([
-                    'pending' => 'Pending',
-                    'approved' => 'Approved',
-                    'rejected' => 'Rejected',
-                ])
-                ->default(fn () => $this->getOwnerRecord()?->type === 'mass' ? 'approved' : 'pending')
-                ->disabled(fn () => $this->getOwnerRecord()?->type === 'mass')
-                ->dehydrated()
-                ->required(),
-            Forms\Components\Textarea::make('review_notes')
-                ->maxLength(65535)
-                ->columnSpanFull(),
+                ->disabled()
+                ->dehydrated(false),
         ]);
     }
 
@@ -87,15 +74,25 @@ class SubProjectsRelationManager extends RelationManager
                     ]),
                 Tables\Columns\TextColumn::make('target_qty')->numeric(),
                 Tables\Columns\TextColumn::make('produced_qty')->numeric(),
-                Tables\Columns\BadgeColumn::make('review_status')
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->headerTooltip('Inherited from Master Project')
+                    ->tooltip('Inherited from Master Project')
+                    ->extraAttributes([
+                        'title' => 'Inherited from Master Project',
+                    ])
+                    ->extraCellAttributes([
+                        'title' => 'Inherited from Master Project',
+                    ])
+                    ->color(fn (?string $state): string => match ($state) {
+                        'planning' => 'warning',
                         'approved' => 'success',
+                        'in_progress' => 'info',
+                        'completed' => 'success',
                         'rejected' => 'danger',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('reviewed_at')->dateTime()->sortable(),
-                Tables\Columns\TextColumn::make('reviewedByUser.name')->label('Reviewed By'),
             ])
             ->headerActions([
                 CreateAction::make()
@@ -103,22 +100,6 @@ class SubProjectsRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('approve_review')
-                        ->label('Approve Review')
-                        ->icon('heroicon-o-check')
-                        ->color('success')
-                        ->visible(fn ($record) => $record->project?->type !== 'mass' && $record->review_status !== 'approved')
-                        ->action(function ($record) {
-                            SubProjectService::setReviewStatus($record, 'approved', Auth::id() ?? 1);
-                        }),
-                    Action::make('reject_review')
-                        ->label('Reject Review')
-                        ->icon('heroicon-o-x-mark')
-                        ->color('danger')
-                        ->visible(fn ($record) => $record->project?->type !== 'mass' && $record->review_status !== 'rejected')
-                        ->action(function ($record) {
-                            SubProjectService::setReviewStatus($record, 'rejected', Auth::id() ?? 1);
-                        }),
                     EditAction::make(),
                     DeleteAction::make()
                         ->hidden(fn ($record) => $record->project?->type === 'mass'),

@@ -45,11 +45,31 @@ class ConsumptionRate extends Model
             return;
         }
 
-        $boms = Bom::where('design_id', $this->design_id)->get();
+        $origComponent = $this->getOriginal('component');
+        $boms = Bom::where('design_id', $this->design_id)
+            ->where('status', '!=', 'discontinued')
+            ->get();
         foreach ($boms as $bom) {
-            $bomItem = BomItem::where('bom_id', $bom->id)
-                ->where('material_id', $this->material_id)
-                ->first();
+            $bomItem = null;
+            if ($this->wasChanged('component') && $origComponent !== null) {
+                $bomItem = BomItem::where('bom_id', $bom->id)
+                    ->where('material_id', $this->material_id)
+                    ->where('component', $origComponent)
+                    ->first();
+            }
+
+            if (! $bomItem) {
+                $bomItem = BomItem::where('bom_id', $bom->id)
+                    ->where('material_id', $this->material_id)
+                    ->where(function ($q) {
+                        if ($this->component) {
+                            $q->where('component', $this->component);
+                        } else {
+                            $q->whereNull('component')->orWhere('component', '');
+                        }
+                    })
+                    ->first();
+            }
 
             if ($bomItem) {
                 if ($bomItem->is_from_rnd ?? true) {
@@ -82,9 +102,18 @@ class ConsumptionRate extends Model
             return;
         }
 
-        $bomIds = Bom::where('design_id', $this->design_id)->pluck('id');
+        $bomIds = Bom::where('design_id', $this->design_id)
+            ->where('status', '!=', 'discontinued')
+            ->pluck('id');
         BomItem::whereIn('bom_id', $bomIds)
             ->where('material_id', $this->material_id)
+            ->where(function ($q) {
+                if ($this->component) {
+                    $q->where('component', $this->component);
+                } else {
+                    $q->whereNull('component')->orWhere('component', '');
+                }
+            })
             ->where(function ($q) {
                 $q->where('is_from_rnd', true)->orWhereNull('is_from_rnd');
             })

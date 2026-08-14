@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ShipmentResource\Pages;
 use App\Models\Shipment;
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class ShipmentResource extends Resource
 {
@@ -43,7 +45,10 @@ class ShipmentResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('shipment_number')
                         ->required()
-                        ->unique(ignoreRecord: true)
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                        )
                         ->maxLength(50),
                     Forms\Components\Select::make('sales_order_id')
                         ->relationship('salesOrder', 'so_number')
@@ -91,7 +96,8 @@ class ShipmentResource extends Resource
                     Forms\Components\DatePicker::make('etd')
                         ->label('ETD'),
                     Forms\Components\DatePicker::make('eta')
-                        ->label('ETA'),
+                        ->label('ETA')
+                        ->afterOrEqual('etd'),
                     Forms\Components\TextInput::make('total_packages')
                         ->label(new HtmlString('Total Packages <span title="Jumlah total dus karton atau koli kemasan barang dikirim" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()

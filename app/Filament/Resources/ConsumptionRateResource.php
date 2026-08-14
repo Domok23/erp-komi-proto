@@ -6,7 +6,6 @@ use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
-use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
@@ -44,7 +43,7 @@ class ConsumptionRateResource extends Resource
             Section::make('Consumption Rate Details')
                 ->columnSpanFull()
                 ->headerActions([
-                    StockPreviewAction::make('form'),
+                    StockPreviewAction::make('form', allowReserve: false),
                 ])
                 ->schema([
                     Forms\Components\Select::make('design_id')
@@ -54,39 +53,31 @@ class ConsumptionRateResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('material_id')
                         ->relationship('material', 'name')
-                        ->getOptionLabelFromRecordUsing(function ($record) {
-                            $companyId = CompanyContext::getCompanyId();
-                            $stock = InventoryStock::where('material_id', $record->id)
-                                ->where('company_id', $companyId)
-                                ->sum('quantity');
-
-                            return "[{$record->code}] {$record->name} (Stock: ".number_format($stock, 2)." {$record->uom})";
-                        })
-                        ->searchable()
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                        ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {
-                            $material = Material::find($state);
+                            $material = $state ? Material::with('uomRef')->find($state) : null;
                             if ($material) {
-                                $set('unit', $material->uom);
+                                $set('unit', $material->uom ?? $material->uomRef?->name ?? $material->unit);
                             }
                         }),
                     Forms\Components\TextInput::make('standard_rate')
                         ->numeric()
                         ->step(0.01)
                         ->required()
-                        ->label(new HtmlString('Standard Rate <span title="Jumlah bersih kebutuhan bahan per unit barang (tanpa wastage)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                        ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
                         ->label('UOM')
-                        ->default('pcs')
                         ->disabled()
                         ->dehydrated(),
                     Forms\Components\TextInput::make('wastage_rate')
                         ->default(config('costing.wastage_pct', 3))
                         ->disabled()
                         ->dehydrated()
-                        ->label(new HtmlString('Wastage Rate <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
                     Forms\Components\Select::make('component')
                         ->label('Component')
@@ -137,20 +128,26 @@ class ConsumptionRateResource extends Resource
             Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('standard_rate')
+                ->label('Actual Consumption')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             Tables\Columns\TextColumn::make('wastage_rate')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                ->label('Yield 3% waste')
+                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                ->suffix('%'),
             Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])
             ->filters([
                 SelectFilter::make('design_id')->relationship('design', 'name'),
-                SelectFilter::make('material_id')->relationship('material', 'name'),
+                SelectFilter::make('material_id')
+                    ->relationship('material', 'name')
+                    ->searchable(['code', 'name', 'color', 'size'])
+                    ->preload(),
             ])
             ->actions([
                 ActionGroup::make([
-                    StockPreviewAction::make('table'),
+                    StockPreviewAction::make('table', allowReserve: false),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),

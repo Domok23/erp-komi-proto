@@ -17,8 +17,6 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -64,7 +62,7 @@ class CostingResource extends Resource
                         ->required()
                         ->reactive()
                         ->disabled($isLocked)
-                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                        ->afterStateUpdated(function ($state, callable $set, $get) {
                             $project = Project::find($state, ['*']);
                             if ($project) {
                                 $set('design_id', $project->design_id);
@@ -97,7 +95,7 @@ class CostingResource extends Resource
                         }),
                     Forms\Components\Select::make('sub_project_id')
                         ->label('Sub-Project')
-                        ->relationship('subProject', 'name', function ($query, Get $get) {
+                        ->relationship('subProject', 'name', function ($query, $get) {
                             $projectId = $get('project_id');
                             if ($projectId) {
                                 return $query->where('project_id', $projectId);
@@ -109,7 +107,7 @@ class CostingResource extends Resource
                         ->preload()
                         ->nullable()
                         ->reactive()
-                        ->visible(function (Get $get) {
+                        ->visible(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;
@@ -118,7 +116,7 @@ class CostingResource extends Resource
 
                             return $project && $project->hasSubProjects();
                         })
-                        ->required(function (Get $get) {
+                        ->required(function ($get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
                                 return false;
@@ -171,7 +169,7 @@ class CostingResource extends Resource
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => str_replace(',', '', $state)),
                     Forms\Components\TextInput::make('mp_cost')
-                        ->label(new HtmlString('Manufacturing Cost (MP) <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Labor Cost <span title="Total biaya tenaga kerja langsung per unit produk (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->default((int) CostingCalculatorService::getMpRatePerUnit())
                         ->prefix('IDR')
@@ -179,9 +177,9 @@ class CostingResource extends Resource
                         ->hint('Default: IDR '.number_format(CostingCalculatorService::getMpRatePerUnit(), 0, '.', ',').'/unit')
                         ->live(onBlur: true)
                         ->disabled($isLocked)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('overhead_pct')
-                        ->label(new HtmlString('Overhead % <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Overhead (%) <span title="Persentase alokasi biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
@@ -190,9 +188,9 @@ class CostingResource extends Resource
                         ->hint('Default: '.CostingCalculatorService::getDefaultOverheadPct().'%')
                         ->live(onBlur: true)
                         ->disabled($isLocked)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('overhead_amount')
-                        ->label(new HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + MP Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Overhead Amount <span title="Nilai nominal biaya overhead per unit: (Material Cost + Labor Cost) x Overhead %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
                         ->prefix('IDR')
                         ->disabled()
@@ -208,9 +206,9 @@ class CostingResource extends Resource
                         ->prefix('IDR')
                         ->live(onBlur: true)
                         ->disabled($isLocked)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('profit_margin_pct')
-                        ->label(new HtmlString('Profit Margin % <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Profit Margin (%) <span title="Persentase target keuntungan bersih per unit produk (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0)
@@ -218,7 +216,7 @@ class CostingResource extends Resource
                         ->suffix('%')
                         ->live(onBlur: true)
                         ->disabled($isLocked)
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                        ->afterStateUpdated(fn ($get, $set) => self::recalculate($get, $set)),
                     Forms\Components\TextInput::make('profit_margin_amount')
                         ->label(new HtmlString('Profit Margin Amount <span title="Nilai nominal target keuntungan per unit: Landed Cost x Profit Margin %" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
@@ -230,7 +228,7 @@ class CostingResource extends Resource
 
                     // --- Result ---
                     Forms\Components\TextInput::make('landed_cost')
-                        ->label(new HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + MP + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Landed Cost <span title="Total biaya modal pokok (HPP) per unit produk: Material + Labor + Overhead + Shipping" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->default(0)
                         ->prefix('IDR')
                         ->disabled()
@@ -275,7 +273,7 @@ class CostingResource extends Resource
         ]);
     }
 
-    protected static function recalculate(Get $get, Set $set): void
+    protected static function recalculate($get, $set): void
     {
         $materialCost = (float) str_replace(',', '', $get('material_cost') ?: 0);
         $mpCost = (float) str_replace(',', '', $get('mp_cost') ?: 0);

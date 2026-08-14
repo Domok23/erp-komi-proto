@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierResource\RelationManagers;
 
+use App\Services\CompanyContext;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -16,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Unique;
 
 class MaterialsRelationManager extends RelationManager
 {
@@ -26,7 +28,10 @@ class MaterialsRelationManager extends RelationManager
         return $schema->schema([
             TextInput::make('code')
                 ->required()
-                ->unique(ignoreRecord: true),
+                ->unique(
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
+                ),
             TextInput::make('name')->required(),
             Select::make('category_id')
                 ->label('Category')

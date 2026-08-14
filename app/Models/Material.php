@@ -85,6 +85,40 @@ class Material extends Model
         });
     }
 
+    public function getUnitAttribute(): ?string
+    {
+        return $this->attributes['uom'] ?? $this->uomRef?->name ?? null;
+    }
+
+    public function setUnitAttribute($value): void
+    {
+        $this->attributes['uom'] = $value;
+    }
+
+    public function getUomAttribute(): ?string
+    {
+        return $this->attributes['uom'] ?? $this->uomRef?->name ?? null;
+    }
+
+    public function setUomAttribute($value): void
+    {
+        $this->attributes['uom'] = $value;
+    }
+
+    public function getFormattedSelectLabelAttribute(): string
+    {
+        $details = array_filter([$this->color, $this->size], fn ($val) => filled($val));
+
+        return ! empty($details)
+            ? "[{$this->code}] {$this->name} (".implode(' - ', $details).')'
+            : "[{$this->code}] {$this->name}";
+    }
+
+    public function getCategoryAttribute(): ?string
+    {
+        return $this->attributes['category'] ?? $this->categoryRef?->name ?? null;
+    }
+
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
