@@ -95,16 +95,16 @@ class PurchaseShipmentResource extends Resource
                             'courier' => 'Courier',
                         ]),
                     Forms\Components\TextInput::make('carrier')
-                        ->label(new HtmlString('Carrier <span title="Nama perusahaan ekspedisi atau maskapai pelayaran pengangkut barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Carrier <span title="Freight forwarder or cargo carrier name" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('tracking_number')
-                        ->label(new HtmlString('Tracking Number <span title="Nomor resi pelacakan pengiriman barang dari ekspedisi/kurir" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Tracking Number <span title="Shipment waybill or tracking number" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('container_number')
-                        ->label(new HtmlString('Container Number <span title="Nomor kode identifikasi kontainer kargo penyewaan barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Container Number <span title="Container identification number" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\TextInput::make('bl_number')
-                        ->label(new HtmlString('BL Number <span title="Nomor Bill of Lading (bukti kontrak pengangkutan kargo laut/udara)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('BL Number <span title="Bill of Lading / Airway Bill tracking number" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\Textarea::make('notes')
                         ->columnSpanFull(),

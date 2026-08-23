@@ -49,7 +49,7 @@ class Project extends Model
     protected static function booted(): void
     {
         static::updated(function (Project $project) {
-            if ($project->wasChanged(['target_qty', 'bom_id'])) {
+            if ($project->wasChanged(['target_qty', 'design_id'])) {
                 MerchandisePlanningSyncService::syncProject($project);
             }
         });

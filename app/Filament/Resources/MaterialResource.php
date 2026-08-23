@@ -228,6 +228,32 @@ class MaterialResource extends Resource
         return is_numeric($state) ? (float) $state : null;
     }
 
+    public static function normalizeCategory(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $cleaned = strtolower(trim($value));
+        $cleaned = str_replace(['-', '_'], ' ', $cleaned);
+
+        $allowed = [
+            'fabric' => 'fabric',
+            'zipper' => 'zipper',
+            'thread' => 'thread',
+            'accessories' => 'accessories',
+            'webbing' => 'webbing',
+            'hardware' => 'hardware',
+            'packaging' => 'packaging',
+            'finished' => 'finished',
+            'finished product' => 'finished',
+            'semi finished' => 'semi_finished',
+            'semi finished product' => 'semi_finished',
+        ];
+
+        return $allowed[$cleaned] ?? null;
+    }
+
     public static function getRelations(): array
     {
         return [

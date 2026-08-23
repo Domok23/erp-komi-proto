@@ -68,7 +68,7 @@ class ConsumptionRateResource extends Resource
                         ->numeric()
                         ->step(0.01)
                         ->required()
-                        ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                        ->label(new HtmlString('Actual Consumption <span title="Actual net material requirement per unit (without waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
                         ->label('UOM')
                         ->disabled()
@@ -77,7 +77,7 @@ class ConsumptionRateResource extends Resource
                         ->default(config('costing.wastage_pct', 3))
                         ->disabled()
                         ->dehydrated()
-                        ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Yield 3% waste <span title="Production waste tolerance percentage (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
                     Forms\Components\Select::make('component')
                         ->label('Component')

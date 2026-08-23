@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
+use App\Models\ConsumptionRate;
 use App\Models\Costing;
 use App\Models\Customer;
 use App\Models\GoodsReceipt;
@@ -413,63 +414,106 @@ class DataSeeder extends Seeder
         }
 
         // 6. Seed RdDesigns
-        $designBackpack = RdDesign::create([
-            'company_id' => $kei->id,
-            'code' => 'DSN-EBP-001',
-            'name' => 'Safari Jacket Pro',
-            'description' => 'High-performance safari jacket design',
-            'product_type' => 'jacket',
-            'status' => 'approved',
-            'brand' => 'Safari',
-            'size_range' => 'M-XXL',
-            'notes' => 'Initial approved R&D model',
-        ]);
+        $designBackpack = RdDesign::firstOrCreate(
+            ['code' => 'DSN-EBP-001'],
+            [
+                'company_id' => $kei->id,
+                'name' => 'Explorer Backpack Pro',
+                'description' => 'High-performance tactical explorer backpack design',
+                'product_type' => 'backpack',
+                'version' => '1.0',
+                'status' => 'approved',
+                'brand' => 'Safari',
+                'size_range' => '35L',
+                'notes' => 'Approved R&D bag model',
+            ]
+        );
 
-        // 7. Seed BOMs and BOM Items
-        $bomBackpack = Bom::create([
-            'company_id' => $kei->id,
-            'bom_number' => CodeGenerator::generateBOMNumber($designBackpack->id, '1.0'),
-            'design_id' => $designBackpack->id,
-            'name' => 'Main BOM Safari Jacket',
-            'version' => '1.0',
-            'status' => 'active',
-        ]);
+        // 6.1 Seed Consumption Rates (Direct R&D formula)
+        if ($designBackpack->consumptionRates()->count() === 0) {
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designBackpack->id,
+                'material_id' => $matFabric->id,
+                'component' => 'Main Body Panel',
+                'standard_rate' => 1.5,
+                'unit' => 'kg',
+                'wastage_rate' => 5,
+                'notes' => 'Cordura fabric main body',
+            ]);
 
-        BomItem::create([
-            'bom_id' => $bomBackpack->id,
-            'material_id' => $matFabric->id,
-            'category' => 'main_material',
-            'quantity_per_unit' => 1.5,
-            'unit' => 'kg',
-            'wastage_percent' => 5,
-            'is_from_rnd' => true,
-        ]);
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designBackpack->id,
+                'material_id' => $matZipper->id,
+                'component' => 'Zipper Main Compartment',
+                'standard_rate' => 3,
+                'unit' => 'pcs',
+                'wastage_rate' => 2,
+                'notes' => 'YKK Heavy duty zipper',
+            ]);
 
-        BomItem::create([
-            'bom_id' => $bomBackpack->id,
-            'material_id' => $matZipper->id,
-            'category' => 'components',
-            'quantity_per_unit' => 3,
-            'unit' => 'pcs',
-            'wastage_percent' => 2,
-            'is_from_rnd' => true,
-        ]);
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designBackpack->id,
+                'material_id' => $matWebbing->id,
+                'component' => 'Shoulder & Chest Harness Webbing',
+                'standard_rate' => 6,
+                'unit' => 'pcs',
+                'wastage_rate' => 0,
+                'notes' => 'Reinforced webbing harness',
+            ]);
+        }
 
-        BomItem::create([
-            'bom_id' => $bomBackpack->id,
-            'material_id' => $matWebbing->id,
-            'category' => 'trim',
-            'quantity_per_unit' => 6,
-            'unit' => 'pcs',
-            'wastage_percent' => 0,
-            'is_from_rnd' => true,
-        ]);
+        // 7. Seed BOMs and BOM Items (Historical DB Retention)
+        $bomBackpack = Bom::firstOrCreate(
+            ['design_id' => $designBackpack->id],
+            [
+                'company_id' => $kei->id,
+                'bom_number' => CodeGenerator::generateBOMNumber($designBackpack->id, '1.0'),
+                'name' => 'Main BOM Explorer Backpack',
+                'version' => '1.0',
+                'status' => 'active',
+            ]
+        );
+
+        if ($bomBackpack->items()->count() === 0) {
+            BomItem::create([
+                'bom_id' => $bomBackpack->id,
+                'material_id' => $matFabric->id,
+                'category' => 'main_material',
+                'quantity_per_unit' => 1.5,
+                'unit' => 'kg',
+                'wastage_percent' => 5,
+                'is_from_rnd' => true,
+            ]);
+
+            BomItem::create([
+                'bom_id' => $bomBackpack->id,
+                'material_id' => $matZipper->id,
+                'category' => 'components',
+                'quantity_per_unit' => 3,
+                'unit' => 'pcs',
+                'wastage_percent' => 2,
+                'is_from_rnd' => true,
+            ]);
+
+            BomItem::create([
+                'bom_id' => $bomBackpack->id,
+                'material_id' => $matWebbing->id,
+                'category' => 'trim',
+                'quantity_per_unit' => 6,
+                'unit' => 'pcs',
+                'wastage_percent' => 0,
+                'is_from_rnd' => true,
+            ]);
+        }
 
         // 8. Seed Projects & SubProjects
         $project = Project::create([
             'company_id' => $kei->id,
             'project_code' => CodeGenerator::generateProjectCode(),
-            'name' => 'Nike Jacket',
+            'name' => 'Nike Backpack Elite',
             'description' => 'Mass production order for 1,000 units',
             'type' => 'mass',
             'status' => 'production',

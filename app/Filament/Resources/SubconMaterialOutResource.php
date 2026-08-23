@@ -153,7 +153,7 @@ class SubconMaterialOutResource extends Resource
                                             ->where('company_id', $companyId)
                                             ->sum('quantity');
                                         if (floatval($value) > $stock) {
-                                            $fail("Stok gudang tidak mencukupi. Stok saat ini: {$stock}.");
+                                            $fail("Insufficient warehouse stock. Current available stock: {$stock}.");
                                         }
                                     },
                                 ]),

@@ -15,6 +15,7 @@ use App\Models\PoSupplierItem;
 use App\Models\Project;
 use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
+use App\Services\MerchandisePlanningSyncService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -82,25 +83,26 @@ class MerchandisePlanningResource extends Resource
                                 $set('total_material_cost', number_format(0, 2, '.', ','));
                                 $set('total_subcon_cost', number_format(0, 2, '.', ','));
 
-                                // Auto-fill planning items from Project's BOM if available
-                                if ($project->bom) {
-                                    $items = $project->bom->items->map(function ($bomItem) use ($project) {
-                                        $unitPrice = $bomItem->material?->price ?? 0;
+                                // Auto-fill planning items from Project's R&D Design if available
+                                if ($project->design) {
+                                    $items = $project->design->consumptionRates->map(function ($rate) use ($project) {
+                                        $unitPrice = (float) ($rate->material?->price ?? 0);
                                         $targetQty = max(1, (int) ($project->target_qty ?? 1));
-                                        $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
-                                        $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
+                                        $wastageRate = (float) ($rate->wastage_rate ?? config('costing.wastage_pct', 3));
+                                        $wastageMultiplier = 1 + ($wastageRate / 100);
+                                        $plannedQty = floatval($rate->standard_rate) * $targetQty * $wastageMultiplier;
 
                                         return [
-                                            'material_id' => $bomItem->material_id,
-                                            'component' => $bomItem->component,
-                                            'supplier_id' => $bomItem->material?->supplier_id,
+                                            'material_id' => $rate->material_id,
+                                            'component' => $rate->component,
+                                            'supplier_id' => $rate->material?->supplier_id,
                                             'planned_qty' => $plannedQty,
-                                            'unit' => $bomItem->unit,
+                                            'unit' => $rate->unit ?? $rate->material?->uom ?? 'pcs',
                                             'unit_price' => number_format($unitPrice, 2, '.', ','),
                                             'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
                                             'is_subcon' => false,
-                                            'notes' => $bomItem->notes,
-                                            'is_from_rnd' => $bomItem->is_from_rnd ?? true,
+                                            'notes' => $rate->notes,
+                                            'is_from_rnd' => true,
                                         ];
                                     })->toArray();
 
@@ -575,6 +577,22 @@ class MerchandisePlanningResource extends Resource
                                     ->success()
                                     ->send();
                             }
+                        }),
+                    Action::make('resyncFromDesign')
+                        ->label('Re-sync from R&D')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->visible(fn (MerchandisePlanning $record) => in_array($record->status, ['preliminary', 'tech_pack', 'draft']))
+                        ->requiresConfirmation()
+                        ->modalHeading('Re-sync Materials from R&D Design')
+                        ->modalDescription('This will refresh planned quantities and default prices from the current R&D Consumption Rates while preserving any assigned suppliers, subcons, and custom edits.')
+                        ->action(function (MerchandisePlanning $record) {
+                            $count = MerchandisePlanningSyncService::syncFromDesign($record);
+                            Notification::make()
+                                ->title('Synchronized from R&D')
+                                ->body("{$count} material items refreshed from R&D Consumption Rates.")
+                                ->success()
+                                ->send();
                         }),
                     StockPreviewAction::make('table'),
                     EditAction::make(),

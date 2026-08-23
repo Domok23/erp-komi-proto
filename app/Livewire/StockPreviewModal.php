@@ -177,8 +177,8 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
 
                         if (empty($items)) {
                             Notification::make()
-                                ->title('Tidak Ada Stok Gudang')
-                                ->body('Stok gudang kosong untuk material terpilih. Silakan buat PO untuk membeli kekurangan material.')
+                                ->title('No Warehouse Stock Available')
+                                ->body('Warehouse stock is empty for selected materials. Please create a Purchase Order to procure shortages.')
                                 ->warning()
                                 ->send();
 
@@ -189,8 +189,8 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                             app(StockPreviewService::class)->reserve(reservations: $items, companyId: $this->companyId, projectId: $this->projectId);
                         } catch (\Throwable $e) {
                             Notification::make()
-                                ->title('Gagal Reserve')
-                                ->body('Stok di gudang telah berubah atau diambil oleh transaksi lain.')
+                                ->title('Reservation Failed')
+                                ->body('Warehouse stock has changed or was allocated by another transaction.')
                                 ->danger()
                                 ->send();
 
@@ -203,9 +203,9 @@ class StockPreviewModal extends Component implements HasActions, HasForms, HasTa
                         }
 
                         $skippedCount = count($records) - count($items);
-                        $body = count($items).' material berhasil direservasi.';
+                        $body = count($items).' material(s) successfully reserved.';
                         if ($skippedCount > 0) {
-                            $body .= " ({$skippedCount} material dilewati karena stok 0)";
+                            $body .= " ({$skippedCount} material(s) skipped due to zero stock)";
                         }
 
                         Notification::make()

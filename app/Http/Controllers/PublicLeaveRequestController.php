@@ -205,13 +205,13 @@ class PublicLeaveRequestController extends Controller
                 'companyCode' => $companyCode,
                 'employee_number' => $employee->employee_number,
             ])
-            ->with('status', 'Pengajuan cuti berhasil dikirim.');
+            ->with('status', 'Leave request submitted successfully.');
     }
 
     public function attachment(HrLeaveRequest $leaveRequest)
     {
         if (! $leaveRequest->file_path || ! Storage::disk('public')->exists($leaveRequest->file_path)) {
-            abort(404, 'File lampiran tidak ditemukan.');
+            abort(404, 'Attachment file not found.');
         }
 
         return Storage::disk('public')->response($leaveRequest->file_path);

@@ -79,19 +79,19 @@ class ShipmentResource extends Resource
                         ->required()
                         ->default('sea'),
                     Forms\Components\TextInput::make('container_number')
-                        ->label(new HtmlString('Container Number <span title="Nomor kode identifikasi kontainer kargo penyewaan barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Container Number <span title="Container identification number" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\TextInput::make('bl_number')
-                        ->label(new HtmlString('BL Number <span title="Nomor Bill of Lading (bukti kontrak pengangkutan kargo laut/udara)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('BL Number <span title="Bill of Lading / Airway Bill tracking number" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100),
                     Forms\Components\TextInput::make('carrier')
-                        ->label(new HtmlString('Carrier <span title="Nama perusahaan ekspedisi atau maskapai pelayaran pengangkut barang" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Carrier <span title="Freight forwarder or cargo carrier name" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('port_of_loading')
-                        ->label(new HtmlString('Port of Loading <span title="Nama pelabuhan asal tempat kargo dimuat ke kapal/pesawat" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Port of Loading <span title="Origin port where cargo is loaded" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('port_of_discharge')
-                        ->label(new HtmlString('Port of Discharge <span title="Nama pelabuhan tujuan tempat pembongkaran kargo kiriman" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Port of Discharge <span title="Destination port where cargo is discharged" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(255),
                     Forms\Components\DatePicker::make('etd')
                         ->label('ETD'),
@@ -99,21 +99,21 @@ class ShipmentResource extends Resource
                         ->label('ETA')
                         ->afterOrEqual('etd'),
                     Forms\Components\TextInput::make('total_packages')
-                        ->label(new HtmlString('Total Packages <span title="Jumlah total dus karton atau koli kemasan barang dikirim" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Total Packages <span title="Total package cartons or crates count" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->default(0),
                     Forms\Components\TextInput::make('total_gross_weight_kg')
-                        ->label(new HtmlString('Total Gross Weight (Kg) <span title="Berat kotor total kiriman termasuk dus dan palet dalam kilogram" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Total Gross Weight (Kg) <span title="Total gross weight including pallets (kg)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->default(0),
                     Forms\Components\TextInput::make('total_volume_m3')
-                        ->label(new HtmlString('Total Volume (m³) <span title="Volume total ruang kargo paket kiriman dalam meter kubik" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Total Volume (m³) <span title="Total cargo cubic measurement (CBM)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->step(0.01)
                         ->default(0),
                     Forms\Components\TextInput::make('shipping_cost_usd')
-                        ->label(new HtmlString('Shipping Cost (USD) <span title="Biaya logistik kargo internasional yang dibayarkan dalam USD" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Shipping Cost (USD) <span title="International freight logistics cost in USD" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->prefix('$')
                         ->default(0),

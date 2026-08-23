@@ -247,7 +247,7 @@ class GoodsReceiptResource extends Resource
                                                 $maxAllowed = $matchedItem ? floatval($matchedItem['qty_received'] ?? 0) : 0;
 
                                                 if (floatval($value) > $maxAllowed) {
-                                                    $fail("Kuantitas yang diretur ({$value}) tidak boleh melebihi kuantitas yang diterima ({$maxAllowed}).");
+                                                    $fail("Return quantity ({$value}) cannot exceed received quantity ({$maxAllowed}).");
                                                 }
                                             },
                                         ]),

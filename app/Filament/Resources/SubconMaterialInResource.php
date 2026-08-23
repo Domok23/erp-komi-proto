@@ -153,8 +153,8 @@ class SubconMaterialInResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('item_type')
                                 ->options([
-                                    'processed' => 'Barang Hasil Olahan',
-                                    'raw_return' => 'Sisa Bahan Baku/Reject',
+                                    'processed' => 'Processed Output',
+                                    'raw_return' => 'Raw Material Return / Scrap',
                                 ])
                                 ->default('processed')
                                 ->required()
@@ -195,7 +195,7 @@ class SubconMaterialInResource extends Resource
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')
-                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Sisa Bahan Baku Kembali' : 'Qty Barang Hasil Diterima')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Returned Raw Material Qty' : 'Accepted Processed Qty')
                                 ->numeric()
                                 ->step(0.01)
                                 ->default(1)
@@ -225,12 +225,12 @@ class SubconMaterialInResource extends Resource
                                         $qtyRejected = floatval($get('qty_rejected') ?? 0);
 
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
-                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                            $fail("Total return quantity ({$qtyReceived}) and reject ({$qtyRejected}) cannot exceed sent quantity ({$maxSent}).");
                                         }
                                     },
                                 ]),
                             Forms\Components\TextInput::make('qty_rejected')
-                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Bahan Baku Rusak/Reject' : 'Qty Barang Hasil Reject')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Rejected Raw Material Qty' : 'Rejected Processed Qty')
                                 ->numeric()
                                 ->step(0.01)
                                 ->default(0)
@@ -260,7 +260,7 @@ class SubconMaterialInResource extends Resource
                                         $qtyRejected = floatval($value);
 
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
-                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                            $fail("Total return quantity ({$qtyReceived}) and reject ({$qtyRejected}) cannot exceed sent quantity ({$maxSent}).");
                                         }
                                     },
                                 ]),

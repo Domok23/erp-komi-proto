@@ -6,12 +6,14 @@ use App\Filament\Resources\RdDesignResource\Pages;
 use App\Filament\Resources\RdDesignResource\RelationManagers;
 use App\Models\RdDesign;
 use App\Services\CompanyContext;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -54,20 +56,28 @@ class RdDesignResource extends Resource
                     Forms\Components\TextInput::make('name')
                         ->required()
                         ->maxLength(255),
+                    Forms\Components\TextInput::make('version')
+                        ->default('1.0')
+                        ->required()
+                        ->maxLength(20),
+                    Forms\Components\Select::make('parent_design_id')
+                        ->label('Parent Design Revision')
+                        ->relationship('parentDesign', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name} (v{$record->version})")
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
                     Forms\Components\Select::make('product_type')
-                        ->options([
-                            'jacket' => 'Jacket',
-                            'shirt' => 'Shirt',
-                            'trousers' => 'Trousers',
-                            'dress' => 'Dress',
-                            'tshirt' => 'T-Shirt',
-                            'other' => 'Other',
-                        ])
+                        ->label('Bag Type')
+                        ->options(self::getProductTypeOptions())
+                        ->default('backpack')
                         ->required(),
                     Forms\Components\Select::make('status')
                         ->options([
                             'draft' => 'Draft',
+                            'under_review' => 'Under Review',
                             'approved' => 'Approved',
+                            'obsolete' => 'Obsolete',
                             'archived' => 'Archived',
                         ])
                         ->default('draft')
@@ -98,17 +108,17 @@ class RdDesignResource extends Resource
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_mp_cost')
-                        ->label(new HtmlString('Estimated Labor Cost <span title="Estimasi biaya tenaga kerja langsung per unit barang (default Rp 33.000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Labor Cost <span title="Estimated direct labor cost per unit (default IDR 33,000)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->prefix('IDR')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_overhead_pct')
-                        ->label(new HtmlString('Estimated Overhead (%) <span title="Estimasi persentase biaya operasional tidak langsung pabrik (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Overhead (%) <span title="Estimated indirect factory overhead allocation (default 15%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
                     Forms\Components\TextInput::make('estimated_profit_margin_pct')
-                        ->label(new HtmlString('Estimated Profit Margin (%) <span title="Estimasi target persentase keuntungan penjualan per unit barang (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Estimated Profit Margin (%) <span title="Estimated target profit margin percentage per unit (default 20%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->suffix('%')
                         ->disabled(),
@@ -126,12 +136,22 @@ class RdDesignResource extends Resource
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
             Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('product_type')->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
+            Tables\Columns\TextColumn::make('version')
+                ->badge()
+                ->color('info')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('product_type')
+                ->label('Bag Type')
+                ->formatStateUsing(fn (?string $state): string => self::getProductTypeOptions()[$state] ?? ucfirst(str_replace('_', ' ', $state ?? '-')))
+                ->badge()
+                ->color('gray')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('status')
+                ->badge()
                 ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
                     'approved' => 'success',
-                    'archived' => 'warning',
+                    'under_review' => 'warning',
+                    'obsolete', 'archived' => 'danger',
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('brand'),
@@ -141,20 +161,49 @@ class RdDesignResource extends Resource
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
+                    'under_review' => 'Under Review',
                     'approved' => 'Approved',
+                    'obsolete' => 'Obsolete',
                     'archived' => 'Archived',
                 ]),
-                SelectFilter::make('product_type')->options([
-                    'jacket' => 'Jacket',
-                    'shirt' => 'Shirt',
-                    'trousers' => 'Trousers',
-                    'dress' => 'Dress',
-                    'tshirt' => 'T-Shirt',
-                    'other' => 'Other',
-                ]),
+                SelectFilter::make('product_type')
+                    ->label('Bag Type')
+                    ->options(self::getProductTypeOptions()),
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('createRevision')
+                        ->label('New Revision')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('warning')
+                        ->form([
+                            Forms\Components\TextInput::make('new_version')
+                                ->label('New Version Number')
+                                ->default(fn (RdDesign $record) => sprintf('%.1f', ((float) ($record->version ?: '1.0')) + 0.1))
+                                ->required(),
+                        ])
+                        ->action(function (RdDesign $record, array $data) {
+                            $revision = $record->createRevision($data['new_version']);
+                            Notification::make()
+                                ->title('Revision Created')
+                                ->body("Created revision v{$revision->version} for {$record->name}")
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('approveDesign')
+                        ->label('Approve')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn (RdDesign $record) => $record->status !== 'approved')
+                        ->requiresConfirmation()
+                        ->action(function (RdDesign $record) {
+                            $record->update(['status' => 'approved']);
+                            Notification::make()
+                                ->title('Design Approved')
+                                ->body("{$record->name} (v{$record->version}) has been approved.")
+                                ->success()
+                                ->send();
+                        }),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
@@ -190,6 +239,21 @@ class RdDesignResource extends Resource
             'index' => Pages\ListRdDesigns::route('/'),
             'create' => Pages\CreateRdDesign::route('/create'),
             'edit' => Pages\EditRdDesign::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getProductTypeOptions(): array
+    {
+        return [
+            'backpack' => 'Backpack',
+            'handbag' => 'Handbag',
+            'tote_bag' => 'Tote Bag',
+            'messenger_bag' => 'Messenger Bag',
+            'sports_bag' => 'Sports Bag',
+            'duffel_bag' => 'Duffel Bag',
+            'waist_bag' => 'Waist Bag',
+            'clutch' => 'Clutch Bag',
+            'other' => 'Other',
         ];
     }
 }

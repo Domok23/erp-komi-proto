@@ -2,20 +2,22 @@
 
 namespace Tests\Feature;
 
-use App\Models\Bom;
-use App\Models\BomItem;
 use App\Models\Company;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
+use App\Models\MaterialCategory;
+use App\Models\MaterialUom;
 use App\Models\MerchandisePlanning;
 use App\Models\MerchandisePlanningItem;
 use App\Models\Project;
 use App\Models\RdDesign;
+use App\Models\Supplier;
 use App\Services\CodeGenerator;
+use App\Services\MerchandisePlanningSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class MerchandisePlanningBomSyncTest extends TestCase
+class MerchandisePlanningSyncTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -24,8 +26,6 @@ class MerchandisePlanningBomSyncTest extends TestCase
     private RdDesign $design;
 
     private Material $material;
-
-    private Bom $bom;
 
     private Project $project;
 
@@ -40,12 +40,14 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'code' => 'STC',
             'address' => 'Test Address',
         ]);
+        session(['active_company_id' => $this->company->id]);
 
         $this->design = RdDesign::create([
             'company_id' => $this->company->id,
             'code' => 'DES-SYNC-01',
             'name' => 'Sync Test Design',
-            'product_type' => 'jacket',
+            'product_type' => 'backpack',
+            'version' => '1.0',
             'status' => 'approved',
         ]);
 
@@ -59,15 +61,6 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'stock' => 50,
         ]);
 
-        $this->bom = Bom::create([
-            'company_id' => $this->company->id,
-            'design_id' => $this->design->id,
-            'bom_number' => 'BOM-SYNC-001',
-            'name' => 'Backpack BOM',
-            'version' => '1.0',
-            'status' => 'active',
-        ]);
-
         $this->project = Project::create([
             'company_id' => $this->company->id,
             'project_code' => CodeGenerator::generateProjectCode(),
@@ -75,7 +68,6 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'type' => 'mass',
             'status' => 'planning',
             'design_id' => $this->design->id,
-            'bom_id' => $this->bom->id,
             'target_qty' => 10,
         ]);
 
@@ -90,6 +82,70 @@ class MerchandisePlanningBomSyncTest extends TestCase
         ]);
     }
 
+    public function test_sync_from_design_populates_items_correctly(): void
+    {
+        $uom = MaterialUom::firstOrCreate(['company_id' => $this->company->id, 'code' => 'MTR'], ['name' => 'Meter']);
+        $cat = MaterialCategory::firstOrCreate(['company_id' => $this->company->id, 'code' => 'FAB'], ['name' => 'Fabric Category']);
+        $supplier = Supplier::firstOrCreate(['company_id' => $this->company->id, 'code' => 'SUPA'], ['name' => 'Supplier A']);
+
+        $mat = Material::create([
+            'company_id' => $this->company->id,
+            'code' => 'MAT01',
+            'name' => 'Nylon Fabric',
+            'category' => 'Fabric Category',
+            'category_id' => $cat->id,
+            'uom_id' => $uom->id,
+            'supplier_id' => $supplier->id,
+            'price' => 20000,
+        ]);
+
+        $design = RdDesign::create([
+            'company_id' => $this->company->id,
+            'code' => 'DSG-001',
+            'name' => 'Backpack Alpha',
+            'version' => '1.0',
+            'status' => 'approved',
+            'product_type' => 'backpack',
+        ]);
+
+        ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $design->id,
+            'material_id' => $mat->id,
+            'component' => 'Front Pocket',
+            'standard_rate' => 0.25,
+            'unit' => 'MTR',
+            'wastage_rate' => 4,
+        ]);
+
+        $project = Project::create([
+            'company_id' => $this->company->id,
+            'project_code' => 'PRJ-001',
+            'name' => 'Backpack Order',
+            'design_id' => $design->id,
+            'target_qty' => 100,
+            'status' => 'in_progress',
+        ]);
+
+        $planning = MerchandisePlanning::create([
+            'company_id' => $this->company->id,
+            'project_id' => $project->id,
+            'design_id' => $design->id,
+            'status' => 'draft',
+        ]);
+
+        $syncedCount = MerchandisePlanningSyncService::syncFromDesign($planning);
+
+        $this->assertEquals(1, $syncedCount);
+        $this->assertDatabaseHas('merchandise_planning_items', [
+            'merchandise_planning_id' => $planning->id,
+            'material_id' => $mat->id,
+            'component' => 'Front Pocket',
+            'planned_qty' => 26.0, // 0.25 * 100 * 1.04
+            'is_from_rnd' => true,
+        ]);
+    }
+
     public function test_consumption_rate_addition_auto_syncs_to_merchandise_planning(): void
     {
         // 1. Create a consumption rate in R&D
@@ -100,16 +156,10 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'component' => 'Main Body',
             'standard_rate' => 2.0,
             'unit' => 'meter',
-            'wastage_rate' => 10,
+            'wastage_rate' => 3,
         ]);
 
-        // 2. Assert BOM item was created
-        $bomItem = BomItem::where('bom_id', $this->bom->id)
-            ->where('material_id', $this->material->id)
-            ->first();
-        $this->assertNotNull($bomItem);
-
-        // 3. Assert MerchandisePlanningItem was automatically created
+        // 2. Assert MerchandisePlanningItem was automatically created directly from R&D
         $planItem = MerchandisePlanningItem::where('merchandise_planning_id', $this->planning->id)
             ->where('material_id', $this->material->id)
             ->first();
@@ -117,38 +167,35 @@ class MerchandisePlanningBomSyncTest extends TestCase
         $this->assertEquals('Main Body', $planItem->component);
 
         // planned_qty = 2.0 (rate) * 10 (target_qty) * (1 + 3/100 config wastage) = 20.6
-        $expectedWastageMultiplier = 1 + (((float) ($bomItem->wastage_percent ?? 0)) / 100);
-        $expectedPlannedQty = 2.0 * 10 * $expectedWastageMultiplier;
+        $expectedPlannedQty = 2.0 * 10 * 1.03;
         $this->assertEquals($expectedPlannedQty, (float) $planItem->planned_qty);
 
-        // 4. Assert totals recalculated
+        // 3. Assert totals recalculated
         $this->planning->refresh();
         $this->assertEquals($planItem->total_price, $this->planning->total_material_cost);
     }
 
-    public function test_bom_item_direct_addition_and_update_auto_syncs_to_merchandise_planning(): void
+    public function test_consumption_rate_update_auto_syncs_to_merchandise_planning(): void
     {
-        // 1. Direct BOM Item creation
-        $bomItem = BomItem::create([
-            'bom_id' => $this->bom->id,
+        $rate = ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
             'component' => 'Zipper Front',
-            'quantity_per_unit' => 1.5,
+            'standard_rate' => 1.5,
             'unit' => 'meter',
-            'wastage_percent' => 5,
-            'is_from_rnd' => true,
+            'wastage_rate' => 5,
         ]);
 
         $planItem = MerchandisePlanningItem::where('merchandise_planning_id', $this->planning->id)
             ->where('material_id', $this->material->id)
             ->first();
         $this->assertNotNull($planItem);
-        // 1.5 * 10 * 1.05 = 15.75
         $this->assertEquals(15.75, (float) $planItem->planned_qty);
 
-        // 2. Direct BOM Item update
-        $bomItem->update([
-            'quantity_per_unit' => 3.0,
+        // Update rate
+        $rate->update([
+            'standard_rate' => 3.0,
         ]);
 
         $planItem->refresh();
@@ -156,16 +203,16 @@ class MerchandisePlanningBomSyncTest extends TestCase
         $this->assertEquals(31.50, (float) $planItem->planned_qty);
     }
 
-    public function test_bom_item_deletion_removes_rnd_item_from_merchandise_planning(): void
+    public function test_consumption_rate_deletion_removes_rnd_item_from_merchandise_planning(): void
     {
-        $bomItem = BomItem::create([
-            'bom_id' => $this->bom->id,
+        $rate = ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
             'component' => 'Shoulder Strap',
-            'quantity_per_unit' => 1.0,
+            'standard_rate' => 1.0,
             'unit' => 'meter',
-            'wastage_percent' => 0,
-            'is_from_rnd' => true,
+            'wastage_rate' => 0,
         ]);
 
         $this->assertDatabaseHas('merchandise_planning_items', [
@@ -173,8 +220,8 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'material_id' => $this->material->id,
         ]);
 
-        // Delete BOM item
-        $bomItem->delete();
+        // Delete consumption rate
+        $rate->delete();
 
         $this->assertDatabaseMissing('merchandise_planning_items', [
             'merchandise_planning_id' => $this->planning->id,
@@ -189,13 +236,13 @@ class MerchandisePlanningBomSyncTest extends TestCase
     {
         $this->planning->update(['status' => 'finalised']);
 
-        // Create a new BOM item
-        BomItem::create([
-            'bom_id' => $this->bom->id,
+        // Create a new consumption rate
+        ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
-            'quantity_per_unit' => 1.0,
+            'standard_rate' => 1.0,
             'unit' => 'meter',
-            'is_from_rnd' => true,
         ]);
 
         // Planning should remain untouched
@@ -217,21 +264,21 @@ class MerchandisePlanningBomSyncTest extends TestCase
             'is_from_rnd' => false,
         ]);
 
-        // Create BOM item
-        $bomItem = BomItem::create([
-            'bom_id' => $this->bom->id,
+        // Create consumption rate
+        $rate = ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
-            'quantity_per_unit' => 2.0,
+            'standard_rate' => 2.0,
             'unit' => 'meter',
-            'is_from_rnd' => true,
         ]);
 
         $this->planning->refresh();
         $this->assertCount(2, $this->planning->items);
         $this->assertEquals(50000, $this->planning->total_subcon_cost);
 
-        // Delete BOM item
-        $bomItem->delete();
+        // Delete consumption rate
+        $rate->delete();
 
         // Manual item must still exist
         $this->planning->refresh();
@@ -242,13 +289,13 @@ class MerchandisePlanningBomSyncTest extends TestCase
 
     public function test_project_target_qty_change_recalculates_planned_qty_in_merchandise_planning(): void
     {
-        BomItem::create([
-            'bom_id' => $this->bom->id,
+        ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
-            'quantity_per_unit' => 2.0,
+            'standard_rate' => 2.0,
             'unit' => 'meter',
-            'wastage_percent' => 0,
-            'is_from_rnd' => true,
+            'wastage_rate' => 0,
         ]);
 
         $planItem = MerchandisePlanningItem::where('merchandise_planning_id', $this->planning->id)
@@ -265,39 +312,16 @@ class MerchandisePlanningBomSyncTest extends TestCase
         $this->assertEquals(100.0, (float) $planItem->planned_qty);
     }
 
-    public function test_discontinued_bom_does_not_sync_from_rnd_or_to_plannings(): void
-    {
-        $this->bom->update(['status' => 'discontinued']);
-
-        // 1. Consumption rate change should not create BOM item in discontinued BOM
-        ConsumptionRate::create([
-            'company_id' => $this->company->id,
-            'design_id' => $this->design->id,
-            'material_id' => $this->material->id,
-            'component' => 'Discontinued Part',
-            'standard_rate' => 1.0,
-            'unit' => 'meter',
-        ]);
-
-        $this->assertDatabaseMissing('bom_items', [
-            'bom_id' => $this->bom->id,
-            'material_id' => $this->material->id,
-        ]);
-
-        // 2. Planning items should remain empty
-        $this->assertCount(0, $this->planning->items);
-    }
-
     public function test_completed_or_archived_project_is_protected_from_sync(): void
     {
         $this->project->update(['status' => 'completed']);
 
-        BomItem::create([
-            'bom_id' => $this->bom->id,
+        ConsumptionRate::create([
+            'company_id' => $this->company->id,
+            'design_id' => $this->design->id,
             'material_id' => $this->material->id,
-            'quantity_per_unit' => 2.0,
+            'standard_rate' => 2.0,
             'unit' => 'meter',
-            'is_from_rnd' => true,
         ]);
 
         $this->planning->refresh();

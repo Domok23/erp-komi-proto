@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Portal Layanan Mandiri Cuti Karyawan</title>
+    <title>Employee Self-Service Leave Portal</title>
     
     <!-- Google Fonts: Plus Jakarta Sans & Fira Code -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,7 +65,9 @@
             }
         }
     </script>
-    @vite(['resources/css/app.css'])
+    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+        @vite(['resources/css/app.css'])
+    @endif
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -114,7 +116,7 @@
 
         <div class="text-center mt-8 text-xs text-slate-500 font-medium flex items-center justify-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>Portal Layanan Mandiri Cuti Karyawan &copy; {{ date('Y') }} ERP Komi</span>
+            <span>Employee Self-Service Leave Portal &copy; {{ date('Y') }} ERP Komi</span>
         </div>
     </div>
 </body>

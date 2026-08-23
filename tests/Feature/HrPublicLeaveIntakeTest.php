@@ -89,7 +89,7 @@ class HrPublicLeaveIntakeTest extends TestCase
         ]);
 
         $response->assertRedirect("/leave-request/{$this->company->code}?employee_number=EMP-700");
-        $response->assertSessionHas('status', 'Pengajuan cuti berhasil dikirim.');
+        $response->assertSessionHas('status', 'Leave request submitted successfully.');
 
         $this->assertDatabaseHas('hr_leave_requests', [
             'employee_id' => $this->employee->id,
@@ -240,7 +240,7 @@ class HrPublicLeaveIntakeTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Wati');
-        $response->assertSee('Ajukan Cuti Baru');
+        $response->assertSee('Submit New Leave Request');
     }
 
     public function test_rejected_leave_request_displays_rejection_reason(): void
@@ -259,7 +259,7 @@ class HrPublicLeaveIntakeTest extends TestCase
         $response = $this->get("/leave-request/{$this->company->code}?employee_number=EMP-700");
 
         $response->assertOk();
-        $response->assertSee('Ditolak');
+        $response->assertSee('Rejected');
         $response->assertSee('Quota tidak mencukupi untuk bulan ini.');
     }
 

@@ -50,7 +50,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
-                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                ->label(new HtmlString('Actual Consumption <span title="Actual net material requirement per unit (without waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->label('UOM')
                 ->default('pcs')
@@ -60,7 +60,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->default(config('costing.wastage_pct', 3))
                 ->disabled()
                 ->dehydrated()
-                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Yield 3% waste <span title="Production waste tolerance percentage (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -283,24 +283,24 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                             $newComponentsCount = count($newComponentsCreated);
                             $compNote = $newComponentsCount > 0
-                                ? "\nInfo: {$newComponentsCount} component baru otomatis didaftarkan: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', dll.' : '.')
+                                ? "\nInfo: {$newComponentsCount} new components automatically registered: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', etc.' : '.')
                                 : '';
 
                             if (empty($errors)) {
                                 Notification::make()
-                                    ->title('Import Excel Berhasil')
-                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.{$compNote}")
+                                    ->title('Excel Import Successful')
+                                    ->body("Successfully imported {$successCount} consumption rate records.{$compNote}")
                                     ->success()
                                     ->send();
                             } else {
                                 $errorText = implode("\n", array_slice($errors, 0, 5));
                                 if (count($errors) > 5) {
-                                    $errorText .= "\n...dan ".(count($errors) - 5).' error lainnya.';
+                                    $errorText .= "\n...and ".(count($errors) - 5).' more errors.';
                                 }
 
                                 Notification::make()
-                                    ->title('Import Selesai dengan '.count($errors).' Error')
-                                    ->body("{$successCount} baris berhasil diimpor.{$compNote}\nError:\n{$errorText}")
+                                    ->title('Import Completed with '.count($errors).' Errors')
+                                    ->body("{$successCount} rows imported successfully.{$compNote}\nErrors:\n{$errorText}")
                                     ->warning()
                                     ->persistent()
                                     ->send();
@@ -308,7 +308,7 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Import Excel Gagal')
+                                ->title('Excel Import Failed')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
