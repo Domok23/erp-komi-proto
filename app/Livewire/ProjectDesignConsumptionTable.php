@@ -52,11 +52,12 @@ class ProjectDesignConsumptionTable extends Component implements HasActions, Has
                     ->label('Component')
                     ->weight('bold')
                     ->sortable()
+                    ->searchable()
                     ->default('-'),
                 TextColumn::make('material.name')
                     ->label('Material Name')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(['name', 'code'])
                     ->html()
                     ->formatStateUsing(function ($state, ConsumptionRate $record) {
                         if (! $state || ! $record->material_id) {
@@ -73,6 +74,12 @@ class ProjectDesignConsumptionTable extends Component implements HasActions, Has
                     ->label('Category')
                     ->badge()
                     ->sortable()
+                    ->searchable(query: function ($query, string $search) {
+                        $query->whereHas('material', function ($materialQuery) use ($search) {
+                            $materialQuery->where('category', 'like', "%{$search}%")
+                                ->orWhereHas('categoryRef', fn ($catQuery) => $catQuery->where('name', 'like', "%{$search}%"));
+                        });
+                    })
                     ->default(fn (ConsumptionRate $record) => $record->material?->category ?? '-'),
                 TextColumn::make('standard_rate')
                     ->label('Actual Cons.')
