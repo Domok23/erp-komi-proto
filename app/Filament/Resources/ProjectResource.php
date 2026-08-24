@@ -6,6 +6,7 @@ use App\Exceptions\ProjectArchiveException;
 use App\Exceptions\SubProjectException;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
+use App\Livewire\ProjectDesignConsumptionTable;
 use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
@@ -21,6 +22,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -98,34 +100,40 @@ class ProjectResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('customer_id')
                         ->relationship('customer', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CustomerResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('sales_order_id')
                         ->relationship('salesOrder', 'so_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SalesOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->so_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('design_id')
                         ->label('R&D Design')
                         ->relationship('design', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'approved'
-                            ? "{$record->code} - {$record->name} (v{$record->version})"
-                            : new HtmlString("{$record->code} - {$record->name} (v{$record->version}) <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $url = RdDesignResource::getUrl('edit', ['record' => $record]);
+                            $labelText = "{$record->code} - {$record->name} (v{$record->version})";
+                            if ($record->status === 'approved') {
+                                return new HtmlString('<a href="'.$url.'" class="ref-link">'.$labelText.'</a>');
+                            }
+
+                            return new HtmlString('<a href="'.$url.'" class="ref-link">'.$labelText.'</a> <span style="color: #888; font-size: 0.9em; margin-left: 5px;">['.$record->status.']</span>');
+                        })
                         ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->reactive()
-                        ->afterStateHydrated(function ($state, callable $set) {
-                            self::loadDesignConsumptionItems($state, $set);
-                        })
+                        ->live()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $design = RdDesign::find($state);
                                 if ($design && $design->status !== 'approved') {
                                     $set('design_id', null);
-                                    $set('consumption_items', []);
 
                                     $title = match ($design->status) {
                                         'draft' => 'Design is Still Draft',
@@ -146,13 +154,7 @@ class ProjectResource extends Resource
                                         ->body($body)
                                         ->warning()
                                         ->send();
-
-                                    return;
                                 }
-
-                                self::loadDesignConsumptionItems($state, $set);
-                            } else {
-                                $set('consumption_items', []);
                             }
                         })
                         ->rules([
@@ -173,43 +175,10 @@ class ProjectResource extends Resource
                                 };
                             },
                         ]),
-                    Forms\Components\Placeholder::make('no_consumption_items')
-                        ->label('R&D Material Consumption')
-                        ->content('Select an Approved R&D Design to view its material formula items')
-                        ->visible(fn (callable $get) => ! $get('design_id'))
-                        ->columnSpanFull(),
-                    Forms\Components\Repeater::make('consumption_items')
-                        ->label('R&D Material Consumption Formula (Per Unit)')
-                        ->dehydrated(false)
-                        ->schema([
-                            Forms\Components\TextInput::make('material_name')
-                                ->label('Material Name')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('component')
-                                ->label('Component')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('category')
-                                ->label('Category')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('quantity_per_unit')
-                                ->label(new HtmlString('Rate / Unit <span title="Standard material consumption requirement per unit" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->disabled()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 4, '.', ',') : $state),
-                            Forms\Components\TextInput::make('unit')
-                                ->label('UOM')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('wastage_percent')
-                                ->label(new HtmlString('Waste % <span title="R&D material waste tolerance percentage" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->disabled()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state),
-                        ])
-                        ->columns(6)
-                        ->itemLabel(fn (array $state): ?string => ($state['component'] ?? '').' - '.($state['material_name'] ?? ''))
-                        ->reorderable(false)
-                        ->addable(false)
-                        ->deletable(false)
-                        ->default([])
-                        ->visible(fn (callable $get) => (bool) $get('design_id'))
+                    Livewire::make(ProjectDesignConsumptionTable::class, fn (callable $get) => [
+                        'designId' => $get('design_id'),
+                    ])
+                        ->key(fn (callable $get) => 'project-design-consumption-table-'.($get('design_id') ?? 'empty'))
                         ->columnSpanFull(),
                     Forms\Components\Select::make('reference_project_id')
                         ->label(new HtmlString('Reference Project <span title="Originating reference project automatically linked when sample or mass project is created via approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
@@ -260,46 +229,59 @@ class ProjectResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('project_code')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('design.code')
-                ->label('R&D Design')
-                ->description(fn (Project $record) => $record->design ? "v{$record->design->version}" : null)
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\BadgeColumn::make('type')
-                ->color(fn (string $state): string => match ($state) {
-                    'proto' => 'gray',
-                    'sample' => 'info',
-                    'mass' => 'success',
-                    default => 'gray',
-                }),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'planning' => 'gray',
-                    'development' => 'info',
-                    'sampling' => 'warning',
-                    'approved' => 'primary',
-                    'production' => 'warning',
-                    'completed' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('archive_badge')
-                ->label('')
-                ->state(fn (Project $record) => $record->isArchived() ? 'Archived' : null)
-                ->badge()
-                ->color('warning')
-                ->placeholder(''),
-            Tables\Columns\TextColumn::make('customer.name')->searchable(),
-            Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
-            Tables\Columns\TextColumn::make('target_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('produced_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-        ])
+        return $table
+            ->recordUrl(fn (Project $record): string => self::getUrl('edit', ['record' => $record]))
+            ->recordAction(EditAction::class)
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('project_code')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('design.code')
+                    ->label('R&D Design')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, Project $record) {
+                        if (! $state || ! $record->design_id) {
+                            return $state ?? '-';
+                        }
+                        $url = RdDesignResource::getUrl('edit', ['record' => $record->design_id]);
+                        $tooltip = $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (Project $record) => $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : null),
+                Tables\Columns\BadgeColumn::make('type')
+                    ->color(fn (string $state): string => match ($state) {
+                        'proto' => 'gray',
+                        'sample' => 'info',
+                        'mass' => 'success',
+                        default => 'gray',
+                    }),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'planning' => 'gray',
+                        'development' => 'info',
+                        'sampling' => 'warning',
+                        'approved' => 'primary',
+                        'production' => 'warning',
+                        'completed' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('archive_badge')
+                    ->label('')
+                    ->state(fn (Project $record) => $record->isArchived() ? 'Archived' : null)
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder(''),
+                Tables\Columns\TextColumn::make('customer.name')->searchable(),
+                Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
+                Tables\Columns\TextColumn::make('target_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('produced_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            ])
             ->filters([
                 SelectFilter::make('visibility')
                     ->label('Visibility')
@@ -511,34 +493,6 @@ class ProjectResource extends Resource
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
         ];
-    }
-
-    public static function loadDesignConsumptionItems($state, callable $set): void
-    {
-        if ($state) {
-            $design = RdDesign::with('consumptionRates.material.categoryRef')->find($state);
-            if ($design) {
-                $items = [];
-                foreach ($design->consumptionRates as $item) {
-                    $categoryName = $item->material?->categoryRef?->name
-                        ?: $item->material?->category
-                        ?: '-';
-
-                    $items[] = [
-                        'material_name' => $item->material?->name ?? 'N/A',
-                        'component' => $item->component ?? '-',
-                        'category' => $categoryName,
-                        'quantity_per_unit' => $item->standard_rate,
-                        'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
-                        'wastage_percent' => $item->wastage_rate ?? config('costing.wastage_pct', 3),
-                    ];
-                }
-                $set('consumption_items', $items);
-
-                return;
-            }
-        }
-        $set('consumption_items', []);
     }
 
     public static function loadBomItems($state, callable $set): void

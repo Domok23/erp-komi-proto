@@ -53,7 +53,8 @@ class ConsumptionRateResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('material_id')
                         ->relationship('material', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                        ->allowHtml()
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
                         ->required()
@@ -125,10 +126,23 @@ class ConsumptionRateResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('id')->sortable(),
             Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('material.name')
+                ->sortable()
+                ->searchable()
+                ->html()
+                ->formatStateUsing(function ($state, ConsumptionRate $record) {
+                    if (! $state || ! $record->material_id) {
+                        return $state ?? 'N/A';
+                    }
+                    $url = MaterialResource::getUrl('edit', ['record' => $record->material_id]);
+                    $tooltip = $record->material?->code ? 'Code: '.$record->material->code : '';
+
+                    return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                })
+                ->tooltip(fn (ConsumptionRate $record) => $record->material?->code ? 'Code: '.$record->material->code : null),
             Tables\Columns\TextColumn::make('unit')->label('UOM'),
             Tables\Columns\TextColumn::make('standard_rate')
-                ->label('Actual Consumption')
+                ->label('Actual Cons.')
                 ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
                 ->sortable(),
             Tables\Columns\TextColumn::make('wastage_rate')

@@ -148,6 +148,7 @@ class MerchandisePlanningResource extends Resource
                             return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('design_id')
+                        ->label('R&D Design')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
                         ->allowHtml()
@@ -200,7 +201,8 @@ class MerchandisePlanningResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                                ->allowHtml()
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->nullable()
@@ -382,30 +384,55 @@ class MerchandisePlanningResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('project.name')
-                ->label('Project')
-                ->sortable()
-                ->searchable()
-                ->extraAttributes(fn ($record) => [
-                    'title' => $record->project?->project_code,
-                ]),
-            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'preliminary' => 'gray',
-                    'tech_pack' => 'info',
-                    'finalised' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('total_material_cost')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('total_subcon_cost')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-        ])
+        return $table
+            ->recordUrl(fn (MerchandisePlanning $record): string => self::getUrl('edit', ['record' => $record]))
+            ->recordAction(EditAction::class)
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('project.name')
+                    ->label('Project')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, MerchandisePlanning $record) {
+                        if (! $state || ! $record->project_id) {
+                            return $state ?? '-';
+                        }
+                        $url = ProjectResource::getUrl('edit', ['record' => $record->project_id]);
+                        $tooltip = $record->project ? "Code: {$record->project->project_code}" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (MerchandisePlanning $record) => $record->project ? "Code: {$record->project->project_code}" : null),
+                Tables\Columns\TextColumn::make('design.name')
+                    ->label('R&D Design')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, MerchandisePlanning $record) {
+                        if (! $state || ! $record->design_id) {
+                            return $state ?? '-';
+                        }
+                        $url = RdDesignResource::getUrl('edit', ['record' => $record->design_id]);
+                        $tooltip = $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (MerchandisePlanning $record) => $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : null),
+                Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'preliminary' => 'gray',
+                        'tech_pack' => 'info',
+                        'finalised' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('total_material_cost')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('total_subcon_cost')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'preliminary' => 'Preliminary',

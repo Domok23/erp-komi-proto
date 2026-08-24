@@ -128,7 +128,8 @@ class BomResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('material_id')
                                 ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                                ->allowHtml()
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
                                 ->required()
