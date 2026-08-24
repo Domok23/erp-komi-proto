@@ -10,35 +10,11 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        <!-- Tailwind CSS CDN -->
-        <script src="https://cdn.tailwindcss.com"></script>
         <script>
-            tailwind.config = {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['Plus Jakarta Sans', 'sans-serif'],
-                            mono: ['Fira Code', 'monospace'],
-                        },
-                        colors: {
-                            amber: {
-                                500: '#f59e0b',
-                                600: '#d97706',
-                            }
-                        }
-                    }
-                }
-            }
-        </script>
-        <script>
-            if (localStorage.theme === 'dark') {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
-                if (!('theme' in localStorage)) {
-                    localStorage.theme = 'light';
-                }
             }
 
             function toggleTheme() {
@@ -56,16 +32,16 @@
     <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-200">
         <!-- Background Glow FX -->
         <div class="fixed inset-0 pointer-events-none z-0">
-            <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 dark:bg-amber-500/10 rounded-full blur-3xl"></div>
-            <div class="absolute top-1/3 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/10 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 dark:bg-amber-500/15 rounded-full blur-3xl"></div>
+            <div class="absolute top-1/3 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/15 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl"></div>
             <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40"></div>
         </div>
 
         <!-- Navigation Bar -->
         <header class="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-slate-950 text-xl tracking-tighter">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 bg-linear-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-slate-950 text-xl tracking-tighter">
                     EK
                 </div>
                 <div>
@@ -94,7 +70,7 @@
 
                     <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
                         Integrated ERP <br>
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-600 dark:from-amber-400 dark:via-amber-200 dark:to-emerald-400">Precision &amp; Control</span>
+                        <span class="text-amber-500 dark:text-amber-400 bg-clip-text text-transparent bg-linear-to-r from-amber-500 via-amber-600 to-emerald-600 dark:from-amber-400 dark:via-amber-300 dark:to-emerald-400">Precision &amp; Control</span>
                     </h1>
 
                     <p class="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl font-normal leading-relaxed">
