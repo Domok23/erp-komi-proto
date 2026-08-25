@@ -17,6 +17,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
 
 class HrWarningLetterResource extends Resource
@@ -92,34 +93,36 @@ class HrWarningLetterResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('employee.name')
-                ->label('Employee')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\BadgeColumn::make('level')
-                ->label('Level')
-                ->formatStateUsing(fn (string $state): string => match ($state) {
-                    'sp_1' => 'SP 1',
-                    'sp_2' => 'SP 2',
-                    'sp_3' => 'SP 3',
-                    default => strtoupper($state),
-                })
-                ->color(fn (string $state): string => match ($state) {
-                    'sp_1' => 'warning',
-                    'sp_2' => 'danger',
-                    'sp_3' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('letter_number')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('issued_date')
-                ->date()
-                ->sortable(),
-            Tables\Columns\TextColumn::make('reason')
-                ->limit(50),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('employee'))
+            ->columns([
+                Tables\Columns\TextColumn::make('employee.name')
+                    ->label('Employee')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\BadgeColumn::make('level')
+                    ->label('Level')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'sp_1' => 'SP 1',
+                        'sp_2' => 'SP 2',
+                        'sp_3' => 'SP 3',
+                        default => strtoupper($state),
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'sp_1' => 'warning',
+                        'sp_2' => 'danger',
+                        'sp_3' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('letter_number')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('issued_date')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('reason')
+                    ->limit(50),
+            ])
             ->defaultSort('issued_date', 'desc')
             ->actions([
                 ActionGroup::make([

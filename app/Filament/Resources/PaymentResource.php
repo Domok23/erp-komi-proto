@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class PaymentResource extends Resource
@@ -133,17 +134,19 @@ class PaymentResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('payment_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('invoice_type')->badge(),
-            Tables\Columns\TextColumn::make('invoice.invoice_number')->label('Invoice Number'),
-            Tables\Columns\TextColumn::make('payment_date')->date()->sortable(),
-            Tables\Columns\TextColumn::make('amount')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('payment_method'),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('invoice'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('payment_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('invoice_type')->badge(),
+                Tables\Columns\TextColumn::make('invoice.invoice_number')->label('Invoice Number'),
+                Tables\Columns\TextColumn::make('payment_date')->date()->sortable(),
+                Tables\Columns\TextColumn::make('amount')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('payment_method'),
+            ])
             ->filters([
                 SelectFilter::make('payment_method')->options([
                     'bank_transfer' => 'Bank Transfer',

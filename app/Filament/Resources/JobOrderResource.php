@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class JobOrderResource extends Resource
@@ -228,36 +229,38 @@ class JobOrderResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('job_order_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('productionOrder.production_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('task_type')
-                ->badge()
-                ->color(fn (string $state): string => match ($state) {
-                    'cutting' => 'info',
-                    'sewing' => 'warning',
-                    'finishing' => 'success',
-                    'qc' => 'primary',
-                    'packing' => 'gray',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('planned_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('completed_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('status')
-                ->badge()
-                ->color(fn (string $state): string => match ($state) {
-                    'pending' => 'gray',
-                    'in_progress' => 'info',
-                    'completed' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('end_date')->date(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('productionOrder'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('job_order_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('productionOrder.production_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('task_type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'cutting' => 'info',
+                        'sewing' => 'warning',
+                        'finishing' => 'success',
+                        'qc' => 'primary',
+                        'packing' => 'gray',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('planned_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('completed_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'gray',
+                        'in_progress' => 'info',
+                        'completed' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('start_date')->date(),
+                Tables\Columns\TextColumn::make('end_date')->date(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'pending' => 'Pending',

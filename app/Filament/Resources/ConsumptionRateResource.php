@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class ConsumptionRateResource extends Resource
@@ -123,35 +124,37 @@ class ConsumptionRateResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('material.name')
-                ->sortable()
-                ->searchable()
-                ->html()
-                ->formatStateUsing(function ($state, ConsumptionRate $record) {
-                    if (! $state || ! $record->material_id) {
-                        return $state ?? 'N/A';
-                    }
-                    $url = MaterialResource::getUrl('edit', ['record' => $record->material_id]);
-                    $tooltip = $record->material?->code ? 'Code: '.$record->material->code : '';
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['design', 'material']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('material.name')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, ConsumptionRate $record) {
+                        if (! $state || ! $record->material_id) {
+                            return $state ?? 'N/A';
+                        }
+                        $url = MaterialResource::getUrl('edit', ['record' => $record->material_id]);
+                        $tooltip = $record->material?->code ? 'Code: '.$record->material->code : '';
 
-                    return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
-                })
-                ->tooltip(fn (ConsumptionRate $record) => $record->material?->code ? 'Code: '.$record->material->code : null),
-            Tables\Columns\TextColumn::make('unit')->label('UOM'),
-            Tables\Columns\TextColumn::make('standard_rate')
-                ->label('Actual Cons.')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('wastage_rate')
-                ->label('Yield 3% waste')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->suffix('%'),
-            Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-        ])
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (ConsumptionRate $record) => $record->material?->code ? 'Code: '.$record->material->code : null),
+                Tables\Columns\TextColumn::make('unit')->label('UOM'),
+                Tables\Columns\TextColumn::make('standard_rate')
+                    ->label('Actual Cons.')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('wastage_rate')
+                    ->label('Yield 3% waste')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->suffix('%'),
+                Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
             ->filters([
                 SelectFilter::make('design_id')->relationship('design', 'name'),
                 SelectFilter::make('material_id')

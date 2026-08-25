@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rules\Unique;
 
@@ -127,30 +128,32 @@ class ShipmentResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('shipment_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('salesOrder.so_number')->searchable(),
-            Tables\Columns\TextColumn::make('shipment_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'pending' => 'gray',
-                    'in_transit' => 'info',
-                    'customs' => 'warning',
-                    'delivered' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\BadgeColumn::make('shipping_method')
-                ->colors(['primary' => 'sea', 'info' => 'air', 'warning' => 'land', 'success' => 'courier']),
-            Tables\Columns\TextColumn::make('carrier'),
-            Tables\Columns\TextColumn::make('etd')->date(),
-            Tables\Columns\TextColumn::make('eta')->date(),
-            Tables\Columns\TextColumn::make('total_packages')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('shipping_cost_usd')->money('USD')->sortable(),
-            Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('salesOrder'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('shipment_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('salesOrder.so_number')->searchable(),
+                Tables\Columns\TextColumn::make('shipment_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'gray',
+                        'in_transit' => 'info',
+                        'customs' => 'warning',
+                        'delivered' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\BadgeColumn::make('shipping_method')
+                    ->colors(['primary' => 'sea', 'info' => 'air', 'warning' => 'land', 'success' => 'courier']),
+                Tables\Columns\TextColumn::make('carrier'),
+                Tables\Columns\TextColumn::make('etd')->date(),
+                Tables\Columns\TextColumn::make('eta')->date(),
+                Tables\Columns\TextColumn::make('total_packages')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('shipping_cost_usd')->money('USD')->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
             ->filters([
                 SelectFilter::make('status')->options(['pending' => 'Pending', 'in_transit' => 'In Transit', 'customs' => 'Customs', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled']),
                 SelectFilter::make('shipping_method')->options(['sea' => 'Sea', 'air' => 'Air', 'land' => 'Land', 'courier' => 'Courier']),

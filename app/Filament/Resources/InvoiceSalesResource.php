@@ -21,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class InvoiceSalesResource extends Resource
 {
@@ -157,26 +158,28 @@ class InvoiceSalesResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('invoice_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('salesOrder.so_number')->searchable(),
-            Tables\Columns\TextColumn::make('invoice_date')->date()->sortable(),
-            Tables\Columns\TextColumn::make('grand_total')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('paid_amount')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'unpaid' => 'danger',
-                    'partial' => 'warning',
-                    'paid' => 'success',
-                    'overdue' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\IconColumn::make('is_tax_invoice')->boolean(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('salesOrder'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('invoice_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('salesOrder.so_number')->searchable(),
+                Tables\Columns\TextColumn::make('invoice_date')->date()->sortable(),
+                Tables\Columns\TextColumn::make('grand_total')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('paid_amount')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'unpaid' => 'danger',
+                        'partial' => 'warning',
+                        'paid' => 'success',
+                        'overdue' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\IconColumn::make('is_tax_invoice')->boolean(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'unpaid' => 'Unpaid',

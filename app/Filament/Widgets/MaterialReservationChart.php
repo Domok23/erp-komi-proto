@@ -18,10 +18,13 @@ class MaterialReservationChart extends ChartWidget
         $statuses = ['pending', 'partially_issued', 'issued', 'cancelled'];
         $labels = ['Pending', 'Partially Issued', 'Issued', 'Cancelled'];
 
+        $counts = MaterialReservation::groupBy('status')
+            ->selectRaw('status, count(*) as total')
+            ->pluck('total', 'status');
+
         $data = [];
         foreach ($statuses as $status) {
-            $count = MaterialReservation::where('status', $status)->count();
-            $data[] = $count;
+            $data[] = (int) ($counts[$status] ?? 0);
         }
 
         // If all are zero, use premium dummy data to show in empty state

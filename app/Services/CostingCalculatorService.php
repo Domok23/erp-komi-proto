@@ -61,26 +61,29 @@ class CostingCalculatorService
         $materialCost = 0;
         $defaultWastage = config('costing.wastage_pct', 3);
         $importCostPct = config('costing.import_cost_pct', 5);
-
         $bom = $subProject ? $subProject->effectiveBom() : $project->bom;
 
-        if ($bom && $bom->items()->exists()) {
-            foreach ($bom->items as $item) {
-                $material = $item->material;
-                if ($material) {
-                    $wastageRate = $item->wastage_percent !== null ? (float) $item->wastage_percent : (float) $defaultWastage;
-                    $wastageMultiplier = 1 + ($wastageRate / 100);
-                    $qtyAdjusted = (float) $item->quantity_per_unit * $wastageMultiplier;
+        if ($bom) {
+            $bom->loadMissing('items.material');
+            if ($bom->items->isNotEmpty()) {
+                foreach ($bom->items as $item) {
+                    $material = $item->material;
+                    if ($material) {
+                        $wastageRate = $item->wastage_percent !== null ? (float) $item->wastage_percent : (float) $defaultWastage;
+                        $wastageMultiplier = 1 + ($wastageRate / 100);
+                        $qtyAdjusted = (float) $item->quantity_per_unit * $wastageMultiplier;
 
-                    $effectivePrice = (float) $material->price;
-                    if ($material->is_import) {
-                        $effectivePrice *= (1 + ($importCostPct / 100));
+                        $effectivePrice = (float) $material->price;
+                        if ($material->is_import) {
+                            $effectivePrice *= (1 + ($importCostPct / 100));
+                        }
+
+                        $materialCost += $qtyAdjusted * $effectivePrice;
                     }
-
-                    $materialCost += $qtyAdjusted * $effectivePrice;
                 }
             }
         } elseif ($project->design) {
+            $project->design->loadMissing('consumptionRates.material');
             foreach ($project->design->consumptionRates as $rate) {
                 $material = $rate->material;
                 if ($material) {

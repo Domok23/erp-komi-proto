@@ -20,10 +20,13 @@ class SalesOrderStatusChart extends ChartWidget
         $statuses = ['draft', 'confirmed', 'in_production', 'shipped', 'delivered', 'cancelled'];
         $labels = ['Draft', 'Confirmed', 'In Production', 'Shipped', 'Delivered', 'Cancelled'];
 
+        $counts = SalesOrder::groupBy('status')
+            ->selectRaw('status, count(*) as total')
+            ->pluck('total', 'status');
+
         $data = [];
         foreach ($statuses as $status) {
-            $count = SalesOrder::where('status', $status)->count();
-            $data[] = $count;
+            $data[] = (int) ($counts[$status] ?? 0);
         }
 
         // Fallback to beautiful dummy data if no sales orders exist

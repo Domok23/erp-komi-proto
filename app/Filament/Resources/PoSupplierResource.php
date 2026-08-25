@@ -28,6 +28,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
@@ -352,25 +353,27 @@ class PoSupplierResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'ordered' => 'info',
-                    'partial' => 'warning',
-                    'received' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('grand_total')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['supplier', 'project', 'approvals'])->withCount('items'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'ordered' => 'info',
+                        'partial' => 'warning',
+                        'received' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('grand_total')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -407,6 +410,7 @@ class PoSupplierResource extends Resource
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
+                            $record->loadMissing(['company', 'supplier', 'items.material', 'items.subProject', 'items.project', 'approver', 'signee']);
                             $pdf = Pdf::loadView('pdf.po-supplier', [
                                 'po' => $record,
                                 'company' => $record->company,
@@ -456,7 +460,15 @@ class PoSupplierResource extends Resource
             ->label('Submit for Approval')
             ->icon('heroicon-o-paper-airplane')
             ->color('primary')
-            ->visible(fn (PoSupplier $record) => $record->approval_status === 'draft' && $record->items()->count() > 0)
+            ->visible(function (PoSupplier $record): bool {
+                if ($record->approval_status !== 'draft') {
+                    return false;
+                }
+
+                $itemsCount = $record->items_count ?? ($record->relationLoaded('items') ? $record->items->count() : $record->items()->count());
+
+                return $itemsCount > 0;
+            })
             ->action(function (PoSupplier $record) {
                 $record->update([
                     'approval_status' => 'pending_approval',
@@ -493,13 +505,17 @@ class PoSupplierResource extends Resource
                     return false;
                 }
 
-                $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
+                $approvals = $record->relationLoaded('approvals')
+                    ? $record->approvals
+                    : $record->approvals()->get();
+
+                $activeLevel = $approvals->where('status', 'pending')->sortBy('id')->first();
                 if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
-                    $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
+                    $managerApproved = $approvals->where('approval_level', 'manager')->where('status', 'approved')->isNotEmpty();
                     if (! $managerApproved) {
                         return false;
                     }
@@ -596,13 +612,17 @@ class PoSupplierResource extends Resource
                     return false;
                 }
 
-                $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
+                $approvals = $record->relationLoaded('approvals')
+                    ? $record->approvals
+                    : $record->approvals()->get();
+
+                $activeLevel = $approvals->where('status', 'pending')->sortBy('id')->first();
                 if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
-                    $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
+                    $managerApproved = $approvals->where('approval_level', 'manager')->where('status', 'approved')->isNotEmpty();
                     if (! $managerApproved) {
                         return false;
                     }

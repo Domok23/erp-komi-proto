@@ -81,27 +81,29 @@ class HrAttendanceResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('employee.name')
-                ->label('Employee')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('date')
-                ->date()
-                ->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'present' => 'success',
-                    'sick' => 'warning',
-                    'permission' => 'info',
-                    'leave' => 'primary',
-                    'alpha' => 'danger',
-                    'half_day' => 'warning',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('notes')
-                ->limit(50),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('employee'))
+            ->columns([
+                Tables\Columns\TextColumn::make('employee.name')
+                    ->label('Employee')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('date')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'present' => 'success',
+                        'sick' => 'warning',
+                        'permission' => 'info',
+                        'leave' => 'primary',
+                        'alpha' => 'danger',
+                        'half_day' => 'warning',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('notes')
+                    ->limit(50),
+            ])
             ->defaultSort('date', 'desc')
             ->filters([
                 SelectFilter::make('employee_id')

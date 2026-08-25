@@ -8,12 +8,14 @@ use Filament\Actions\EditAction;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GeneralLedgersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['debitAccount', 'creditAccount']))
             ->columns([
                 Tables\Columns\TextColumn::make('entry_number')
                     ->label('Entry Number')

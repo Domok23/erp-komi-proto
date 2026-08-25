@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class SubconMaterialInResource extends Resource
@@ -214,6 +215,7 @@ class SubconMaterialInResource extends Resource
                                         if (! $outId) {
                                             return;
                                         }
+                                        /** @var SubconMaterialOut|null $out */
                                         $out = SubconMaterialOut::with('items')->find($outId);
                                         if (! $out) {
                                             return;
@@ -249,6 +251,7 @@ class SubconMaterialInResource extends Resource
                                         if (! $outId) {
                                             return;
                                         }
+                                        /** @var SubconMaterialOut|null $out */
                                         $out = SubconMaterialOut::with('items')->find($outId);
                                         if (! $out) {
                                             return;
@@ -278,21 +281,23 @@ class SubconMaterialInResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
-            Tables\Columns\TextColumn::make('subconMaterialOut.document_number')->label('Material Out Ref'),
-            Tables\Columns\TextColumn::make('subcon.name')->sortable(),
-            Tables\Columns\TextColumn::make('receive_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'received' => 'info',
-                    'verified' => 'success',
-                    default => 'gray',
-                }),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['poSubcon', 'subconMaterialOut', 'subcon']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
+                Tables\Columns\TextColumn::make('subconMaterialOut.document_number')->label('Material Out Ref'),
+                Tables\Columns\TextColumn::make('subcon.name')->sortable(),
+                Tables\Columns\TextColumn::make('receive_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'received' => 'info',
+                        'verified' => 'success',
+                        default => 'gray',
+                    }),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',

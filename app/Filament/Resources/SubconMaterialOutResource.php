@@ -21,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class SubconMaterialOutResource extends Resource
@@ -170,26 +171,28 @@ class SubconMaterialOutResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
-            Tables\Columns\TextColumn::make('subcon.name')->sortable(),
-            Tables\Columns\TextColumn::make('departure_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->formatStateUsing(fn (string $state): string => match ($state) {
-                    'draft' => 'Draft',
-                    'sent' => 'Sent',
-                    'received' => 'Received by Subcon',
-                    default => ucfirst($state),
-                })
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'sent' => 'info',
-                    'received' => 'success',
-                    default => 'gray',
-                }),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['poSubcon', 'subcon']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
+                Tables\Columns\TextColumn::make('subcon.name')->sortable(),
+                Tables\Columns\TextColumn::make('departure_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'draft' => 'Draft',
+                        'sent' => 'Sent',
+                        'received' => 'Received by Subcon',
+                        default => ucfirst($state),
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'sent' => 'info',
+                        'received' => 'success',
+                        default => 'gray',
+                    }),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',

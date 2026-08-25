@@ -230,6 +230,7 @@ class ProjectResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['design', 'customer']))
             ->recordUrl(fn (Project $record): string => self::getUrl('edit', ['record' => $record]))
             ->recordAction(EditAction::class)
             ->columns([

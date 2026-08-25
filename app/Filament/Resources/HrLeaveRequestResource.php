@@ -210,6 +210,7 @@ class HrLeaveRequestResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['employee', 'leaveType'])
             ->whereHas('employee', fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()));
     }
 

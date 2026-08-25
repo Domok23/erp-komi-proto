@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class HrOvertimeRecordResource extends Resource
 {
@@ -106,7 +107,7 @@ class HrOvertimeRecordResource extends Resource
                     ->visible(fn ($record) => $record->status === 'pending')
                     ->action(fn ($record) => $record->update([
                         'status' => 'approved',
-                        'updated_by' => auth()->id(),
+                        'updated_by' => Auth::id(),
                     ])),
                 Action::make('reject')
                     ->label('Reject')
@@ -115,7 +116,7 @@ class HrOvertimeRecordResource extends Resource
                     ->visible(fn ($record) => $record->status === 'pending')
                     ->action(fn ($record) => $record->update([
                         'status' => 'rejected',
-                        'updated_by' => auth()->id(),
+                        'updated_by' => Auth::id(),
                     ])),
                 ActionGroup::make([
                     EditAction::make(),
@@ -132,6 +133,7 @@ class HrOvertimeRecordResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with('employee')
             ->whereHas('employee', fn (Builder $query) => $query->where('company_id', CompanyContext::getCompanyId()));
     }
 

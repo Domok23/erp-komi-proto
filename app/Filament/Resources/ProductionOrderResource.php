@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class ProductionOrderResource extends Resource
@@ -263,27 +264,29 @@ class ProductionOrderResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('production_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('planned_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('completed_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'planned' => 'gray',
-                    'in_progress' => 'info',
-                    'qc_passed' => 'success',
-                    'qc_failed' => 'danger',
-                    'completed' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('end_date')->date(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('project'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('production_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('planned_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('completed_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'planned' => 'gray',
+                        'in_progress' => 'info',
+                        'qc_passed' => 'success',
+                        'qc_failed' => 'danger',
+                        'completed' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('start_date')->date(),
+                Tables\Columns\TextColumn::make('end_date')->date(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'planned' => 'Planned',

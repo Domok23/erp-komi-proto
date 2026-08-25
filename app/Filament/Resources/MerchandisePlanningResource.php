@@ -30,6 +30,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
@@ -385,6 +386,7 @@ class MerchandisePlanningResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['project', 'design']))
             ->recordUrl(fn (MerchandisePlanning $record): string => self::getUrl('edit', ['record' => $record]))
             ->recordAction(EditAction::class)
             ->columns([

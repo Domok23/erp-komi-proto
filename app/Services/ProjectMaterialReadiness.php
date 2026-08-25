@@ -34,7 +34,9 @@ class ProjectMaterialReadiness
             ];
         }
 
-        $items = $bom->items()->with(['material.supplier'])->get();
+        $items = $bom->relationLoaded('items')
+            ? $bom->items
+            : $bom->items()->with(['material.supplier'])->get();
 
         if ($items->isEmpty()) {
             return [
@@ -45,6 +47,16 @@ class ProjectMaterialReadiness
             ];
         }
 
+        $materialIds = $items->pluck('material_id')->filter()->unique()->all();
+        $stockMap = ! empty($materialIds)
+            ? InventoryStock::whereIn('material_id', $materialIds)
+                ->where('company_id', $project->company_id)
+                ->groupBy('material_id')
+                ->selectRaw('material_id, SUM(available_qty) as total_available')
+                ->pluck('total_available', 'material_id')
+                ->toArray()
+            : [];
+
         $resultItems = [];
         $readyCount = 0;
         $atRiskCount = 0;
@@ -54,13 +66,11 @@ class ProjectMaterialReadiness
             $qtyNeeded = (float) $item->quantity_per_unit * (1 + ($wastage / 100)) * (float) $project->target_qty;
 
             // Fetch available stock for this material in the project's company
-            $qtyAvailable = (float) InventoryStock::where('material_id', $item->material_id)
-                ->where('company_id', $project->company_id)
-                ->sum('available_qty');
+            $qtyAvailable = (float) ($stockMap[$item->material_id] ?? 0);
 
             if ($qtyAvailable == 0 && $item->material) {
                 // Fallback to total_stock on material if InventoryStock record is not explicitly created
-                $qtyAvailable = (float) ($item->material->total_stock ?? 0);
+                $qtyAvailable = (float) ($item->material->total_stock ?? $item->material->stock ?? 0);
             }
 
             if ($qtyAvailable >= ($qtyNeeded * 1.1)) {

@@ -20,20 +20,20 @@
         <!-- Row 1: Finance Chart (Revenue vs Cost) + Material Reservations Breakdown -->
         <div class="dashboard-row-two-col">
             <div class="chart-container-large">
-                @livewire(\App\Filament\Widgets\ManagementFinanceChart::class)
+                @livewire(\App\Filament\Widgets\ManagementFinanceChart::class, key('top-mgmt-finance-chart'))
             </div>
             <div class="chart-container-small">
-                @livewire(\App\Filament\Widgets\MaterialReservationChart::class)
+                @livewire(\App\Filament\Widgets\MaterialReservationChart::class, key('top-mgmt-res-chart'))
             </div>
         </div>
 
         <!-- Row 2: Sales Order Status Chart + Production Capacity Widget + Top High-Value Sales -->
         <div class="dashboard-row-three-col">
             <div class="widget-box">
-                @livewire(\App\Filament\Widgets\SalesOrderStatusChart::class)
+                @livewire(\App\Filament\Widgets\SalesOrderStatusChart::class, key('top-mgmt-so-chart'))
             </div>
             <div class="widget-box">
-                @livewire(\App\Filament\Widgets\ProductionCapacityWidget::class)
+                @livewire(\App\Filament\Widgets\ProductionCapacityWidget::class, key('top-mgmt-prod-cap'))
             </div>
             <div class="widget-box">
                 <x-filament::section

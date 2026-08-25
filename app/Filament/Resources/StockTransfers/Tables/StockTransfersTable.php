@@ -10,12 +10,14 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class StockTransfersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['fromCompany', 'toCompany']))
             ->columns([
                 TextColumn::make('id')->sortable(),
                 TextColumn::make('transfer_number')->sortable()->searchable(),
