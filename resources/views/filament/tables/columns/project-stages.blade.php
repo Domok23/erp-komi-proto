@@ -88,10 +88,10 @@
         } else {
             $displayText = "Completed";
         }
-        $badgeClass = "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700";
+        $badgeClass = "bg-gray-500/10 text-gray-700 border border-gray-500/20 dark:bg-gray-400/10 dark:text-gray-400 dark:border-gray-400/20";
     } else {
         $displayText = "Not Started";
-        $badgeClass = "bg-gray-50 text-gray-400 border border-dashed border-gray-200 dark:bg-gray-900/50 dark:text-gray-500 dark:border-gray-800";
+        $badgeClass = "bg-gray-500/5 text-gray-500 border border-dashed border-gray-500/20 dark:bg-white/5 dark:text-gray-400 dark:border-white/10";
     }
 @endphp
 

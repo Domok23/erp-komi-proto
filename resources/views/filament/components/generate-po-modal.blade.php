@@ -101,8 +101,8 @@
             overflow: hidden;
         }
         .dark .po-card {
-            border-color: #334155;
-            background-color: #0f172a;
+            border-color: rgba(255, 255, 255, 0.1);
+            background-color: #18181b;
             box-shadow: none;
         }
         .po-card-header {
@@ -114,8 +114,8 @@
             align-items: center;
         }
         .dark .po-card-header {
-            background-color: #1e293b;
-            border-color: #334155;
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-card-title {
             font-weight: 700;
@@ -166,9 +166,9 @@
             border-bottom: 1px solid #e2e8f0;
         }
         .dark .po-table th {
-            background-color: #1e293b;
+            background-color: rgba(255, 255, 255, 0.02);
             color: #94a3b8;
-            border-color: #334155;
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-table td {
             padding: 10px 16px;
@@ -177,7 +177,7 @@
             color: #334155;
         }
         .dark .po-table td {
-            border-color: #1e293b;
+            border-color: rgba(255, 255, 255, 0.05);
             color: #cbd5e1;
         }
         .po-table tbody tr:hover {
@@ -231,16 +231,16 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 10px;
-            font-weight: 700;
-            line-height: 1.2;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.4;
         }
         .badge-draft {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fde68a;
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
         .dark .badge-draft {
             background-color: rgba(245, 158, 11, 0.15);
@@ -248,26 +248,26 @@
             border-color: rgba(245, 158, 11, 0.3);
         }
         .badge-shortage {
-            background-color: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #b91c1c;
+            border: 1px solid rgba(239, 68, 68, 0.2);
             padding: 2px 6px;
         }
         .dark .badge-shortage {
             background-color: rgba(239, 68, 68, 0.15);
-            color: #fca5a5;
+            color: #f87171;
             border-color: rgba(239, 68, 68, 0.3);
         }
         .badge-ok {
-            background-color: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.2);
             padding: 2px 6px;
         }
         .dark .badge-ok {
-            background-color: rgba(34, 197, 94, 0.15);
-            color: #86efac;
-            border-color: rgba(34, 197, 94, 0.3);
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
         }
         .fully-stocked-text {
             font-size: 9px;
@@ -305,8 +305,8 @@
             font-size: 12px;
         }
         .dark .po-total-section {
-            background-color: #1e293b;
-            border-color: #334155;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-total-row {
             display: flex;
@@ -328,7 +328,7 @@
             color: #0f172a;
         }
         .dark .po-total-row-grand {
-            border-color: #475569;
+            border-color: rgba(255, 255, 255, 0.15);
             color: #f8fafc;
         }
         .total-price-supplier {

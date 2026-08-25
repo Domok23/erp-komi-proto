@@ -15,8 +15,8 @@
             position: relative;
         }
         .dark .pl-card {
-            background-color: #0f172a;
-            border-color: #1e293b;
+            background-color: #18181b;
+            border-color: rgba(255, 255, 255, 0.08);
             box-shadow: none;
         }
         .pl-card-title {
@@ -34,7 +34,7 @@
         }
         .dark .pl-card-title {
             color: #f8fafc;
-            border-bottom-color: #1e293b;
+            border-bottom-color: rgba(255, 255, 255, 0.08);
         }
         .pl-grid-2 {
             display: grid;
@@ -86,8 +86,8 @@
             box-sizing: border-box;
         }
         .dark .pl-input {
-            border-color: #334155;
-            background-color: #1e293b;
+            border-color: rgba(255, 255, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.04);
             color: #f8fafc;
         }
         .pl-stat-header {
@@ -133,9 +133,9 @@
             border-bottom: 1px solid #e2e8f0;
         }
         .dark .pl-table-view th {
-            background-color: #1e293b;
+            background-color: rgba(255, 255, 255, 0.02);
             color: #94a3b8;
-            border-color: #334155;
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .pl-table-view td {
             padding: 12px;
@@ -143,7 +143,7 @@
             color: #334155;
         }
         .dark .pl-table-view td {
-            border-color: #1e293b;
+            border-color: rgba(255, 255, 255, 0.05);
             color: #cbd5e1;
         }
         .pl-badge-dot {

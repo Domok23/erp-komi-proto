@@ -16,8 +16,8 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .dark .company-card-btn {
-            background-color: #0f172a;
-            border-color: #1e293b;
+            background-color: #18181b;
+            border-color: rgba(255, 255, 255, 0.08);
             box-shadow: none;
         }
         .company-card-btn:hover {
@@ -60,34 +60,40 @@
             transform: translateX(3px);
         }
         .company-badge-main {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 10px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            background-color: #fef3c7;
-            color: #92400e;
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
         .dark .company-badge-main {
-            background-color: rgba(245, 158, 11, 0.2);
-            color: #fde68a;
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
         }
         .company-badge-branch {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 10px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            background-color: #dbeafe;
-            color: #1e40af;
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #1d4ed8;
+            border: 1px solid rgba(59, 130, 246, 0.2);
         }
         .dark .company-badge-branch {
-            background-color: rgba(59, 130, 246, 0.2);
-            color: #93c5fd;
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.3);
         }
     </style>
 

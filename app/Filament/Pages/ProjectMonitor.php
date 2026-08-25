@@ -208,7 +208,7 @@ class ProjectMonitor extends Page implements HasTable
                     ->modalHeading(fn (Project $record): string => "Project Operations — {$record->project_code}")
                     ->modalContent(fn (Project $record) => view('filament.pages.project-monitor-slide-over', ['record' => $record]))
                     ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
+                    ->modalCancelAction(false)
                     ->slideOver()
                     ->modalWidth('4xl'),
             ])
