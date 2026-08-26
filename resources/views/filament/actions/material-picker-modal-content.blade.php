@@ -1,7 +1,10 @@
 <div 
     x-data="{
-        repeaterName: @js($repeaterName),
+        repeaterName: @js($repeaterName ?? 'items'),
+        showAllocationStep: @js($showAllocationStep ?? false),
         handleMaterialsPicked(event) {
+            if (this.showAllocationStep) return;
+
             const materials = event.detail.materials || [];
             if (!materials.length) return;
 
@@ -33,10 +36,12 @@
     x-on:materials-picked.window="handleMaterialsPicked($event)"
 >
     @livewire('components.material-picker-modal', [
-        'supplierId' => $supplierId,
-        'warehouseId' => $warehouseId,
-        'onlyInStock' => $onlyInStock,
-        'alreadyAddedIds' => $alreadyAddedIds,
+        'supplierId' => $supplierId ?? null,
+        'warehouseId' => $warehouseId ?? null,
+        'onlyInStock' => $onlyInStock ?? false,
+        'alreadyAddedIds' => $alreadyAddedIds ?? [],
+        'showAllocationStep' => $showAllocationStep ?? false,
+        'designId' => $designId ?? null,
         'mode' => 'bulk',
     ])
 </div>

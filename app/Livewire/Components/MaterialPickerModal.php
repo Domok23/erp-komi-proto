@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Components;
 
+use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
@@ -11,6 +12,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -21,6 +23,7 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class MaterialPickerModal extends Component implements HasActions, HasForms, HasTable
@@ -39,18 +42,63 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
 
     public string $mode = 'bulk';
 
+    public bool $showAllocationStep = false;
+
+    public ?int $designId = null;
+
+    public string $step = 'picker';
+
+    public array $selectedMaterials = [];
+
+    public array $availableComponents = [];
+
     public function mount(
         ?int $supplierId = null,
         ?int $warehouseId = null,
         bool $onlyInStock = false,
         array $alreadyAddedIds = [],
-        string $mode = 'bulk'
+        string $mode = 'bulk',
+        bool $showAllocationStep = false,
+        ?int $designId = null
     ): void {
         $this->supplierId = $supplierId;
         $this->warehouseId = $warehouseId;
         $this->onlyInStock = $onlyInStock;
         $this->alreadyAddedIds = $alreadyAddedIds;
         $this->mode = $mode;
+        $this->showAllocationStep = $showAllocationStep;
+        $this->designId = $designId;
+        $this->loadAvailableComponents();
+    }
+
+    public function loadAvailableComponents(): void
+    {
+        $companyId = CompanyContext::getCompanyId();
+        $this->availableComponents = \App\Models\Component::query()
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->orderBy('name')
+            ->pluck('name', 'name')
+            ->toArray();
+    }
+
+    public function createNewComponent(string $name, ?int $targetIndex = null): void
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return;
+        }
+
+        $companyId = CompanyContext::getCompanyId();
+        \App\Models\Component::firstOrCreate([
+            'company_id' => $companyId,
+            'name' => $name,
+        ]);
+
+        $this->loadAvailableComponents();
+
+        if ($targetIndex !== null && isset($this->selectedMaterials[$targetIndex])) {
+            $this->selectedMaterials[$targetIndex]['component'] = $name;
+        }
     }
 
     public function singleSelect(int $materialId): void
@@ -66,7 +114,7 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
             ->when($this->warehouseId, fn ($q) => $q->where('warehouse_id', $this->warehouseId))
             ->sum('available_qty');
 
-        $payload = [[
+        $itemData = [
             'id' => $material->id,
             'code' => $material->code,
             'name' => $material->name,
@@ -77,9 +125,104 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
             'size' => $material->size,
             'supplier_id' => $material->supplier_id,
             'available_stock' => $stock,
-        ]];
+            'component' => '',
+            'actual_consumption' => null,
+            'notes' => '',
+        ];
 
-        $this->dispatch('materials-picked', materials: $payload);
+        if ($this->showAllocationStep) {
+            $this->selectedMaterials = [$itemData];
+            $this->selectedTableRecords = [(string) $material->id];
+            $this->loadAvailableComponents();
+            $this->step = 'allocation';
+
+            return;
+        }
+
+        $this->dispatch('materials-picked', materials: [$itemData]);
+    }
+
+    public function backToPicker(): void
+    {
+        $this->step = 'picker';
+        if (! empty($this->selectedMaterials)) {
+            $this->selectedTableRecords = array_map('strval', array_column($this->selectedMaterials, 'id'));
+        }
+    }
+
+    public function removeSelectedMaterial(int $index): void
+    {
+        unset($this->selectedMaterials[$index]);
+        $this->selectedMaterials = array_values($this->selectedMaterials);
+        $this->selectedTableRecords = array_map('strval', array_column($this->selectedMaterials, 'id'));
+
+        if (empty($this->selectedMaterials)) {
+            $this->step = 'picker';
+        }
+    }
+
+    public function saveAllocation(): void
+    {
+        if (empty($this->selectedMaterials) || ! $this->designId) {
+            return;
+        }
+
+        // Validate that each item has a valid actual_consumption > 0
+        foreach ($this->selectedMaterials as $item) {
+            $rate = (float) ($item['actual_consumption'] ?? 0);
+            if ($rate <= 0) {
+                Notification::make()
+                    ->title('Actual Consumption Required')
+                    ->body('Please enter a valid Actual Consumption (> 0) for '.($item['name'] ?? 'all materials').'.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        $companyId = CompanyContext::getCompanyId();
+
+        DB::transaction(function () use ($companyId) {
+            foreach ($this->selectedMaterials as $item) {
+                $componentName = trim($item['component'] ?? '');
+                if ($componentName !== '') {
+                    \App\Models\Component::firstOrCreate([
+                        'company_id' => $companyId,
+                        'name' => $componentName,
+                    ]);
+                }
+
+                $rate = (float) $item['actual_consumption'];
+
+                ConsumptionRate::updateOrCreate([
+                    'company_id' => $companyId,
+                    'design_id' => $this->designId,
+                    'material_id' => $item['id'],
+                ], [
+                    'component' => $componentName ?: null,
+                    'standard_rate' => $rate,
+                    'wastage_rate' => config('costing.wastage_pct', 3),
+                    'unit' => $item['uom'] ?: 'pcs',
+                    'notes' => trim($item['notes'] ?? '') ?: null,
+                ]);
+            }
+        });
+
+        Notification::make()
+            ->title('Consumption Rates Added')
+            ->body('Successfully added '.count($this->selectedMaterials).' material(s) to design.')
+            ->success()
+            ->send();
+
+        $newIds = array_column($this->selectedMaterials, 'id');
+        $this->alreadyAddedIds = array_unique(array_merge($this->alreadyAddedIds, $newIds));
+
+        $this->selectedMaterials = [];
+        $this->step = 'picker';
+
+        $this->dispatch('close-modal', id: 'browse_materials');
+        $this->dispatch('refresh-consumption-rates');
     }
 
     public function table(Table $table): Table
@@ -93,6 +236,7 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
                     ->where('is_active', true)
                     ->when($this->supplierId, fn ($q) => $q->where('supplier_id', $this->supplierId))
             )
+            ->currentSelectionLivewireProperty('selectedTableRecords')
             ->searchable(['code', 'name', 'color', 'size'])
             ->columns([
                 TextColumn::make('name')
@@ -199,7 +343,11 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
                         }),
                     ),
             ], layout: FiltersLayout::AboveContent)
-            ->filtersFormColumns(3)
+            ->filtersFormColumns([
+                'default' => 1,
+                'sm' => 2,
+                'md' => 3,
+            ])
             ->deferFilters(false)
             ->checkIfRecordIsSelectableUsing(fn (Material $record): bool => ! in_array($record->id, $this->alreadyAddedIds))
             ->actions([
@@ -213,11 +361,11 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
             ])
             ->bulkActions([
                 BulkAction::make('add_selected')
-                    ->label('Add Selected Items')
+                    ->label(fn () => $this->showAllocationStep ? 'Next: Configure Consumption' : 'Add Selected Items')
                     ->button()
                     ->color('primary')
-                    ->icon('heroicon-m-plus')
-                    ->deselectRecordsAfterCompletion()
+                    ->icon(fn () => $this->showAllocationStep ? 'heroicon-m-arrow-right' : 'heroicon-m-plus')
+                    ->deselectRecordsAfterCompletion(fn () => ! $this->showAllocationStep)
                     ->action(function (Collection $records) use ($companyId) {
                         $payload = $records->map(function (Material $material) use ($companyId) {
                             $stock = (float) InventoryStock::where('material_id', $material->id)
@@ -236,8 +384,20 @@ class MaterialPickerModal extends Component implements HasActions, HasForms, Has
                                 'size' => $material->size,
                                 'supplier_id' => $material->supplier_id,
                                 'available_stock' => $stock,
+                                'component' => '',
+                                'actual_consumption' => null,
+                                'notes' => '',
                             ];
                         })->values()->all();
+
+                        if ($this->showAllocationStep) {
+                            $this->selectedMaterials = $payload;
+                            $this->selectedTableRecords = array_map('strval', array_column($payload, 'id'));
+                            $this->loadAvailableComponents();
+                            $this->step = 'allocation';
+
+                            return;
+                        }
 
                         $this->dispatch('materials-picked', materials: $payload);
                     }),

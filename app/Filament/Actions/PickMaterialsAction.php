@@ -18,6 +18,12 @@ class PickMaterialsAction extends Action
 
     protected ?Closure $itemHydrator = null;
 
+    protected bool $showAllocationStep = false;
+
+    protected ?Closure $designIdCallback = null;
+
+    protected ?Closure $alreadyAddedIdsCallback = null;
+
     public static function getDefaultName(): ?string
     {
         return 'browse_materials';
@@ -32,13 +38,32 @@ class PickMaterialsAction extends Action
             ->color('gray')
             ->modalHeading('Browse Material Catalog')
             ->modalWidth('7xl')
+            ->stickyModalHeader()
             ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Close')
-            ->modalContent(function (callable $get): View {
-                $supplierId = $this->supplierContext ? value($this->supplierContext, $get) : null;
-                $warehouseId = $this->warehouseContext ? value($this->warehouseContext, $get) : null;
-                $existingItems = $get($this->repeaterName) ?? [];
-                $alreadyAddedIds = collect($existingItems)->pluck('material_id')->filter()->map(fn ($id) => (int) $id)->all();
+            ->modalCancelAction(false)
+            ->modalContent(function ($record = null, $livewire = null): View {
+                $formData = [];
+                if ($livewire) {
+                    if (method_exists($livewire, 'getFormState')) {
+                        $formData = $livewire->getFormState();
+                    } elseif (property_exists($livewire, 'data') && is_array($livewire->data)) {
+                        $formData = $livewire->data;
+                    }
+                }
+
+                $get = fn (string $key) => data_get($formData, $key);
+
+                $supplierId = $this->supplierContext ? value($this->supplierContext, $get, $record) : null;
+                $warehouseId = $this->warehouseContext ? value($this->warehouseContext, $get, $record) : null;
+
+                if ($this->alreadyAddedIdsCallback) {
+                    $alreadyAddedIds = value($this->alreadyAddedIdsCallback, $get, $record) ?? [];
+                } else {
+                    $existingItems = $formData[$this->repeaterName] ?? [];
+                    $alreadyAddedIds = collect($existingItems)->pluck('material_id')->filter()->map(fn ($id) => (int) $id)->all();
+                }
+
+                $designId = $this->designIdCallback ? value($this->designIdCallback, $get, $record) : null;
 
                 return view('filament.actions.material-picker-modal-content', [
                     'supplierId' => $supplierId,
@@ -46,8 +71,31 @@ class PickMaterialsAction extends Action
                     'onlyInStock' => $this->stockRequired,
                     'alreadyAddedIds' => $alreadyAddedIds,
                     'repeaterName' => $this->repeaterName,
+                    'showAllocationStep' => $this->showAllocationStep,
+                    'designId' => $designId,
                 ]);
             });
+    }
+
+    public function showAllocationStep(bool $show = true): static
+    {
+        $this->showAllocationStep = $show;
+
+        return $this;
+    }
+
+    public function designId(Closure|int $id): static
+    {
+        $this->designIdCallback = $id instanceof Closure ? $id : fn () => $id;
+
+        return $this;
+    }
+
+    public function alreadyAddedIds(Closure|array $ids): static
+    {
+        $this->alreadyAddedIdsCallback = $ids instanceof Closure ? $ids : fn () => $ids;
+
+        return $this;
     }
 
     public function repeaterName(string $name): static

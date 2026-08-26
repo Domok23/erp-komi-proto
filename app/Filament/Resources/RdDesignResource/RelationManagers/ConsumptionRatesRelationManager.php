@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MaterialResource;
 use App\Filament\Support\MaterialFormFilterHelper;
@@ -36,6 +37,10 @@ class ConsumptionRatesRelationManager extends RelationManager
     protected static string $relationship = 'consumptionRates';
 
     protected static ?string $title = 'Consumption Rates';
+
+    protected $listeners = [
+        'refresh-consumption-rates' => '$refresh',
+    ];
 
     public function form(Schema $schema): Schema
     {
@@ -154,6 +159,10 @@ class ConsumptionRatesRelationManager extends RelationManager
             ])
             ->filters([])
             ->headerActions([
+                PickMaterialsAction::make()
+                    ->showAllocationStep(true)
+                    ->designId(fn () => $this->getOwnerRecord()->id)
+                    ->alreadyAddedIds(fn () => $this->getOwnerRecord()->consumptionRates->pluck('material_id')->filter()->map(fn ($id) => (int) $id)->all()),
                 StockPreviewAction::make('form', allowReserve: false),
                 CreateAction::make(),
                 Action::make('importExcel')
