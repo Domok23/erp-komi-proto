@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MaterialLeftoverResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\MaterialLeftover;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class MaterialLeftoverResource extends Resource
 {
@@ -38,8 +40,14 @@ class MaterialLeftoverResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required(),
+                    MaterialFormFilterHelper::categoryFilter(),
+                    MaterialFormFilterHelper::supplierFilter(),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
+                        ->relationship(
+                            'material',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()

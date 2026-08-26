@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\Material;
 use App\Models\PoSupplier;
@@ -147,6 +149,8 @@ class PoSupplierResource extends Resource
                 ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make()
+                        ->supplierContext(fn (callable $get) => $get('supplier_id')),
                     StockPreviewAction::make('form'),
                 ])
                 ->schema([
@@ -220,21 +224,35 @@ class PoSupplierResource extends Resource
                                 }),
                             Forms\Components\Hidden::make('project_id')->dehydrated(),
                             Forms\Components\Hidden::make('sub_project_id')->dehydrated(),
+                            MaterialFormFilterHelper::categoryFilter(),
                             Forms\Components\Select::make('material_id')
                                 ->label('Material')
-                                ->options(function (callable $get) {
-                                    $supplierId = $get('../../supplier_id');
-                                    if (! $supplierId) {
-                                        return [];
-                                    }
-
-                                    return Material::where('supplier_id', $supplierId)
-                                        ->get()
-                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label]);
-                                })
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable()
                                 ->preload()
+                                ->getSearchResultsUsing(function (string $search, callable $get): array {
+                                    $supplierId = $get('../../supplier_id');
+                                    $categoryId = $get('filter_category_id');
+
+                                    return Material::query()
+                                        ->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId))
+                                        ->when($categoryId, function ($q, $catId) {
+                                            $q->where(function ($sub) use ($catId) {
+                                                $sub->where('category_id', $catId)
+                                                    ->orWhere('category', $catId);
+                                            });
+                                        })
+                                        ->where(function ($q) use ($search) {
+                                            $q->where('code', 'like', "%{$search}%")
+                                                ->orWhere('name', 'like', "%{$search}%")
+                                                ->orWhere('color', 'like', "%{$search}%")
+                                                ->orWhere('size', 'like', "%{$search}%");
+                                        })
+                                        ->limit(30)
+                                        ->get()
+                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label])
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(fn ($value): ?string => Material::find($value)?->formatted_select_label)
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {

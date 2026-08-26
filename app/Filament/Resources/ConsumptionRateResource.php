@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -22,6 +23,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class ConsumptionRateResource extends Resource
 {
@@ -52,12 +54,26 @@ class ConsumptionRateResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required(),
+                    MaterialFormFilterHelper::categoryFilter(),
+                    MaterialFormFilterHelper::supplierFilter(),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
+                        ->relationship(
+                            'material',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
                         ->allowHtml()
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
+                        ->unique(
+                            table: 'consumption_rates',
+                            column: 'material_id',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule, callable $get) => $rule
+                                ->where('company_id', CompanyContext::getCompanyId())
+                                ->where('design_id', $get('design_id'))
+                        )
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {

@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\InventoryStock;
 use App\Models\Material;
@@ -94,6 +96,7 @@ class MerchandisePlanningResource extends Resource
                                         $plannedQty = floatval($rate->standard_rate) * $targetQty * $wastageMultiplier;
 
                                         return [
+                                            'filter_category_id' => $rate->material?->category_id,
                                             'material_id' => $rate->material_id,
                                             'component' => $rate->component,
                                             'supplier_id' => $rate->material?->supplier_id,
@@ -194,26 +197,49 @@ class MerchandisePlanningResource extends Resource
             Section::make('Materials & Services Planning')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make(),
                     StockPreviewAction::make('form'),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            MaterialFormFilterHelper::categoryFilter()
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
+                            MaterialFormFilterHelper::supplierFilter(
+                                name: 'supplier_id',
+                                label: 'Material Supplier',
+                                categoryFieldName: 'filter_category_id',
+                                dehydrated: true
+                            )
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
+                                ->relationship(
+                                    'material',
+                                    'name',
+                                    modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters(
+                                        $query,
+                                        $get,
+                                        categoryFieldName: 'filter_category_id',
+                                        supplierFieldName: 'supplier_id'
+                                    )
+                                )
                                 ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
                                 ->allowHtml()
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                 ->nullable()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $material = $state ? Material::with(['uomRef', 'categoryRef', 'supplier'])->find($state) : null;
                                     $set('unit', $material?->uom ?? $material?->uomRef?->name ?? $material?->unit);
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', number_format($price, 2, '.', ','));
                                     $set('supplier_id', $material?->supplier_id);
+                                    if ($material?->category_id && ! $get('filter_category_id')) {
+                                        $set('filter_category_id', $material->category_id);
+                                    }
 
                                     $qty = floatval(str_replace(',', '', $get('planned_qty') ?? '1'));
                                     $set('total_price', number_format($qty * floatval($price), 2, '.', ','));
@@ -259,13 +285,6 @@ class MerchandisePlanningResource extends Resource
                                     return $comp->name;
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            Forms\Components\Select::make('supplier_id')
-                                ->relationship('supplier', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->required()

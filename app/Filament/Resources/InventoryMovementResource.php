@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryMovementResource\Pages;
 use App\Filament\Resources\StockTransfers\StockTransferResource;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\GoodsReceipt;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
@@ -24,6 +25,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class InventoryMovementResource extends Resource
@@ -77,8 +79,16 @@ class InventoryMovementResource extends Resource
                         ->disabled()
                         ->dehydrated()
                         ->nullable(),
+                    MaterialFormFilterHelper::categoryFilter()
+                        ->disabled($isDisabled),
+                    MaterialFormFilterHelper::supplierFilter()
+                        ->disabled($isDisabled),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
+                        ->relationship(
+                            'material',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()

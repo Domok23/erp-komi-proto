@@ -4,6 +4,7 @@ namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MaterialResource;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -25,6 +26,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\XLSX\Reader as XLSXReader;
 use OpenSpout\Writer\XLSX\Writer;
@@ -38,12 +40,26 @@ class ConsumptionRatesRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->schema([
+            MaterialFormFilterHelper::categoryFilter(),
+            MaterialFormFilterHelper::supplierFilter(),
             Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
+                ->relationship(
+                    'material',
+                    'name',
+                    modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                )
                 ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
                 ->allowHtml()
                 ->searchable(['code', 'name', 'color', 'size'])
                 ->preload()
+                ->unique(
+                    table: 'consumption_rates',
+                    column: 'material_id',
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule) => $rule
+                        ->where('company_id', CompanyContext::getCompanyId())
+                        ->where('design_id', $this->getOwnerRecord()->id)
+                )
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {

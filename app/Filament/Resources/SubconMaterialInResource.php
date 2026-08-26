@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialInResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Material;
 use App\Models\PoSubcon;
 use App\Models\SubconMaterialIn;
@@ -162,23 +163,28 @@ class SubconMaterialInResource extends Resource
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $set('material_id', null);
-                                    $set('description', null);
+                                    $set('item_name', null);
                                     $set('unit', null);
                                 }),
-                            Forms\Components\TextInput::make('description')
-                                ->label('Material / Service Description')
+                            Forms\Components\TextInput::make('item_name')
+                                ->label('Processed Item Name / Description')
                                 ->required(fn (callable $get) => $get('item_type') === 'processed')
                                 ->visible(fn (callable $get) => $get('item_type') === 'processed')
                                 ->maxLength(255),
+                            MaterialFormFilterHelper::categoryFilter()
+                                ->visible(fn (callable $get) => $get('item_type') === 'raw_return'),
+                            MaterialFormFilterHelper::supplierFilter()
+                                ->visible(fn (callable $get) => $get('item_type') === 'raw_return'),
                             Forms\Components\Select::make('material_id')
                                 ->relationship(
                                     'material',
                                     'name',
-                                    fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
-                                        $companyId = CompanyContext::getCompanyId();
-                                        $q->where('company_id', $companyId)
-                                            ->where('quantity', '>', 0);
-                                    })
+                                    modifyQueryUsing: fn ($query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                                        ->whereHas('inventoryStocks', function ($q) {
+                                            $companyId = CompanyContext::getCompanyId();
+                                            $q->where('company_id', $companyId)
+                                                ->where('quantity', '>', 0);
+                                        })
                                 )
                                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable(['code', 'name', 'color', 'size'])

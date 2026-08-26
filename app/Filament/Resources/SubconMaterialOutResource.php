@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\SubconMaterialOutResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\PoSubcon;
@@ -111,25 +113,31 @@ class SubconMaterialOutResource extends Resource
             Section::make('Sent Materials')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make()
+                        ->stockRequired(true),
                     StockPreviewAction::make('form'),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            MaterialFormFilterHelper::categoryFilter(),
+                            MaterialFormFilterHelper::supplierFilter(),
                             Forms\Components\Select::make('material_id')
                                 ->relationship(
                                     'material',
                                     'name',
-                                    fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
-                                        $companyId = CompanyContext::getCompanyId();
-                                        $q->where('company_id', $companyId)
-                                            ->where('quantity', '>', 0);
-                                    })
+                                    modifyQueryUsing: fn ($query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                                        ->whereHas('inventoryStocks', function ($q) {
+                                            $companyId = CompanyContext::getCompanyId();
+                                            $q->where('company_id', $companyId)
+                                                ->where('quantity', '>', 0);
+                                        })
                                 )
                                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
