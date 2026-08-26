@@ -85,4 +85,13 @@ class PoSubcon extends Model
     {
         return $this->hasMany(InvoicePurchase::class, 'reference_id')->where('purchase_type', 'po_subcon');
     }
+
+    public function recalculateTotals(): void
+    {
+        $totalServiceCost = (float) $this->items()->sum('total_price');
+        $this->updateQuietly([
+            'service_cost' => $totalServiceCost,
+            'total_cost' => $totalServiceCost + (float) ($this->shipping_cost ?? 0) + (float) ($this->shipping_return_cost ?? 0),
+        ]);
+    }
 }

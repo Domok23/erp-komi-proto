@@ -26,6 +26,7 @@ use App\Models\Payment;
 use App\Models\PoSubcon;
 use App\Models\PoSubconItem;
 use App\Models\PoSupplier;
+use App\Models\PoSupplierApproval;
 use App\Models\PoSupplierItem;
 use App\Models\ProductionOrder;
 use App\Models\ProductionOrderMaterial;
@@ -512,7 +513,7 @@ class DataSeeder extends Seeder
         // 8. Seed Projects & SubProjects
         $project = Project::create([
             'company_id' => $kei->id,
-            'project_code' => CodeGenerator::generateProjectCode(),
+            'project_code' => 'PRJ-2026-001',
             'name' => 'Nike Backpack Elite',
             'description' => 'Mass production order for 1,000 units',
             'type' => 'mass',
@@ -543,6 +544,54 @@ class DataSeeder extends Seeder
             'bom_id' => $bomBackpack->id,
             'target_qty' => 1000,
             'produced_qty' => 500,
+        ]);
+
+        $project2 = Project::create([
+            'company_id' => $kei->id,
+            'project_code' => 'PRJ-2026-002',
+            'name' => 'Racket Soft Cover Bag',
+            'description' => 'Sample validation production for 200 units',
+            'type' => 'sample',
+            'status' => 'approved',
+            'customer_id' => $customerVera->id,
+            'design_id' => $designBackpack->id,
+            'bom_id' => $bomBackpack->id,
+            'target_qty' => 200,
+        ]);
+
+        $subProject2_1 = SubProject::create([
+            'company_id' => $kei->id,
+            'project_id' => $project2->id,
+            'code' => 'LSG-10',
+            'name' => 'LAVA SMOKE GRAY (NO POCKET)',
+            'category' => 'colorway',
+            'bom_id' => null,
+            'target_qty' => 100,
+            'produced_qty' => 50,
+        ]);
+
+        $subProject2_2 = SubProject::create([
+            'company_id' => $kei->id,
+            'project_id' => $project2->id,
+            'code' => 'STWB-01',
+            'name' => 'SURF THE WEB BLUE (NO POCKET)',
+            'category' => 'colorway',
+            'bom_id' => null,
+            'target_qty' => 100,
+            'produced_qty' => 30,
+        ]);
+
+        $project3 = Project::create([
+            'company_id' => $kei->id,
+            'project_code' => 'PRJ-2026-003',
+            'name' => 'Adidas Performance Tote Bag',
+            'description' => 'Proto design stage evaluation',
+            'type' => 'proto',
+            'status' => 'planning',
+            'customer_id' => $customerVera->id,
+            'design_id' => $designBackpack->id,
+            'bom_id' => $bomBackpack->id,
+            'target_qty' => 50,
         ]);
 
         // Seed Material Reservations
@@ -578,11 +627,12 @@ class DataSeeder extends Seeder
         $planning = MerchandisePlanning::create([
             'company_id' => $kei->id,
             'project_id' => $project->id,
+            'sub_project_id' => $subProject1->id,
             'design_id' => $designBackpack->id,
             'planning_date' => now()->toDateString(),
             'status' => 'finalised',
-            'total_material_cost' => 120000,
-            'total_subcon_cost' => 50000,
+            'total_material_cost' => 79500000,
+            'total_subcon_cost' => 15000000,
             'special_instructions' => 'Embroidery to be done by CV Bordir Indonesia',
         ]);
 
@@ -590,6 +640,7 @@ class DataSeeder extends Seeder
             'merchandise_planning_id' => $planning->id,
             'material_id' => $matFabric->id,
             'supplier_id' => $supplierYKK->id,
+            'component' => 'Main Body Panel',
             'planned_qty' => 1500,
             'unit' => 'kg',
             'unit_price' => 38000,
@@ -602,6 +653,7 @@ class DataSeeder extends Seeder
             'merchandise_planning_id' => $planning->id,
             'material_id' => $matZipper->id,
             'supplier_id' => $supplierYKK->id,
+            'component' => 'Zipper Main Compartment',
             'planned_qty' => 3000,
             'unit' => 'pcs',
             'unit_price' => 7500,
@@ -618,6 +670,76 @@ class DataSeeder extends Seeder
             'unit_price' => 15000,
             'total_price' => 15000000,
             'is_subcon' => true,
+        ]);
+
+        $planning2 = MerchandisePlanning::create([
+            'company_id' => $kei->id,
+            'project_id' => $project2->id,
+            'sub_project_id' => $subProject2_1->id,
+            'design_id' => $designBackpack->id,
+            'planning_date' => now()->toDateString(),
+            'status' => 'finalised',
+            'total_material_cost' => 16500000,
+            'total_subcon_cost' => 2000000,
+            'special_instructions' => 'Sample batch for client review',
+        ]);
+
+        MerchandisePlanningItem::create([
+            'merchandise_planning_id' => $planning2->id,
+            'material_id' => $matFabric->id,
+            'supplier_id' => $supplierYKK->id,
+            'component' => 'Back Body',
+            'planned_qty' => 300,
+            'unit' => 'kg',
+            'unit_price' => 38000,
+            'total_price' => 11400000,
+            'is_subcon' => false,
+            'is_from_rnd' => true,
+        ]);
+
+        MerchandisePlanningItem::create([
+            'merchandise_planning_id' => $planning2->id,
+            'material_id' => $matWebbing->id,
+            'supplier_id' => $supplierYKK->id,
+            'component' => 'Shoulder & Chest Harness Webbing',
+            'planned_qty' => 600,
+            'unit' => 'pcs',
+            'unit_price' => 8500,
+            'total_price' => 5100000,
+            'is_subcon' => false,
+            'is_from_rnd' => true,
+        ]);
+
+        MerchandisePlanningItem::create([
+            'merchandise_planning_id' => $planning2->id,
+            'subcon_id' => $subconJaya->id,
+            'planned_qty' => 200,
+            'unit' => 'pcs',
+            'unit_price' => 10000,
+            'total_price' => 2000000,
+            'is_subcon' => true,
+        ]);
+
+        $planning3 = MerchandisePlanning::create([
+            'company_id' => $kei->id,
+            'project_id' => $project3->id,
+            'design_id' => $designBackpack->id,
+            'planning_date' => now()->toDateString(),
+            'status' => 'preliminary',
+            'total_material_cost' => 3800000,
+            'total_subcon_cost' => 0,
+            'special_instructions' => 'Draft planning under R&D evaluation',
+        ]);
+
+        MerchandisePlanningItem::create([
+            'merchandise_planning_id' => $planning3->id,
+            'material_id' => $matFabric->id,
+            'supplier_id' => $supplierYKK->id,
+            'planned_qty' => 100,
+            'unit' => 'kg',
+            'unit_price' => 38000,
+            'total_price' => 3800000,
+            'is_subcon' => false,
         ]);
 
         // 10. Seed Costings
@@ -682,26 +804,31 @@ class DataSeeder extends Seeder
         // Update Project Sales Order link
         $project->update(['sales_order_id' => $salesOrder->id]);
 
-        // 12. Seed PO Suppliers
+        // 12. Seed PO Suppliers (Multi-Project Consolidated PO)
         $poSupplier = PoSupplier::create([
             'company_id' => $kei->id,
             'po_number' => CodeGenerator::generatePOSupplierNo(),
             'project_id' => $project->id,
+            'project_ids' => [$project->id, $project2->id],
             'supplier_id' => $supplierYKK->id,
             'po_date' => now()->toDateString(),
             'delivery_date' => now()->addDays(20)->toDateString(),
             'status' => 'ordered',
-            'subtotal' => 79500000,
+            'approval_status' => 'approved',
+            'subtotal' => 90900000,
             'ppn_percent' => 11,
-            'ppn_amount' => 79500000 * 0.11,
-            'grand_total' => 79500000 * 1.11,
-            'notes' => 'Zippers and fabric for Jacket production',
+            'ppn_amount' => 9999000,
+            'grand_total' => 100899000,
+            'notes' => 'Consolidated procurement for Nike Backpack & Racket Cover projects',
         ]);
 
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
+            'project_id' => $project->id,
+            'sub_project_id' => $subProject1->id,
             'material_id' => $matFabric->id,
-            'description' => 'Steel Sheet 2mm',
+            'component' => 'Main Body Panel',
+            'description' => 'Fabric Black 56 inch',
             'qty' => 1500,
             'unit' => 'kg',
             'unit_price' => 38000,
@@ -711,8 +838,25 @@ class DataSeeder extends Seeder
 
         PoSupplierItem::create([
             'po_supplier_id' => $poSupplier->id,
+            'project_id' => $project2->id,
+            'sub_project_id' => $subProject2_1->id,
+            'material_id' => $matFabric->id,
+            'component' => 'Back Body',
+            'description' => 'Fabric Black 56 inch',
+            'qty' => 300,
+            'unit' => 'kg',
+            'unit_price' => 38000,
+            'total_price' => 11400000,
+            'qty_received' => 0,
+        ]);
+
+        PoSupplierItem::create([
+            'po_supplier_id' => $poSupplier->id,
+            'project_id' => $project->id,
+            'sub_project_id' => $subProject2->id,
             'material_id' => $matZipper->id,
-            'description' => 'Metal Zipper',
+            'component' => 'Zipper Main Compartment',
+            'description' => 'Metal Zipper #5 YKK',
             'qty' => 3000,
             'unit' => 'pcs',
             'unit_price' => 7500,
@@ -720,27 +864,57 @@ class DataSeeder extends Seeder
             'qty_received' => 0,
         ]);
 
-        // 13. Seed PO Subcons
+        // Seed Approvals for PDF signatures
+        PoSupplierApproval::create([
+            'po_supplier_id' => $poSupplier->id,
+            'user_id' => $admin->id,
+            'approval_level' => 'manager',
+            'status' => 'approved',
+            'actioned_at' => now()->subHour(),
+        ]);
+
+        PoSupplierApproval::create([
+            'po_supplier_id' => $poSupplier->id,
+            'user_id' => $admin->id,
+            'approval_level' => 'director',
+            'status' => 'approved',
+            'actioned_at' => now()->subMinutes(30),
+        ]);
+
+        // 13. Seed PO Subcons (Multi-Project Consolidated PO)
         $poSubcon = PoSubcon::create([
             'company_id' => $kei->id,
             'po_number' => CodeGenerator::generatePOSubconNo(),
             'project_id' => $project->id,
+            'project_ids' => [$project->id, $project2->id],
             'subcon_id' => $subconJaya->id,
             'po_date' => now()->toDateString(),
             'delivery_date' => now()->addDays(25)->toDateString(),
             'status' => 'ordered',
-            'service_cost' => 15000000,
+            'service_cost' => 17000000,
             'shipping_cost' => 500000,
             'shipping_return_cost' => 500000,
-            'total_cost' => 16000000,
+            'total_cost' => 18000000,
         ]);
 
         PoSubconItem::create([
             'po_subcon_id' => $poSubcon->id,
-            'description' => 'Assembly Service',
+            'project_id' => $project->id,
+            'sub_project_id' => $subProject1->id,
+            'description' => 'Front Panel Assembly Service',
             'qty' => 1000,
             'unit_price' => 15000,
             'total_price' => 15000000,
+        ]);
+
+        PoSubconItem::create([
+            'po_subcon_id' => $poSubcon->id,
+            'project_id' => $project2->id,
+            'sub_project_id' => $subProject2_1->id,
+            'description' => 'Handle Webbing Reinforcement Service',
+            'qty' => 200,
+            'unit_price' => 10000,
+            'total_price' => 2000000,
         ]);
 
         // 14. Seed Purchase Shipment
@@ -870,9 +1044,9 @@ class DataSeeder extends Seeder
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matFabric->id,
-            'quantity' => 1000,
+            'quantity' => 500,
             'reserved_qty' => 0,
-            'available_qty' => 1000,
+            'available_qty' => 500,
             'unit' => 'kg',
             'min_stock' => 100,
             'location' => 'Aisle A-1',
@@ -882,9 +1056,9 @@ class DataSeeder extends Seeder
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matZipper->id,
-            'quantity' => 5000,
+            'quantity' => 0,
             'reserved_qty' => 0,
-            'available_qty' => 5000,
+            'available_qty' => 0,
             'unit' => 'pcs',
             'min_stock' => 500,
             'location' => 'Bin B-12',
@@ -894,9 +1068,9 @@ class DataSeeder extends Seeder
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matWebbing->id,
-            'quantity' => 2000,
+            'quantity' => 5000,
             'reserved_qty' => 0,
-            'available_qty' => 2000,
+            'available_qty' => 5000,
             'unit' => 'pcs',
             'min_stock' => 200,
             'location' => 'Rack C-3',

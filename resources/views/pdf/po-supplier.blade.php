@@ -81,7 +81,16 @@
         $groupedItems = $po->items->groupBy(fn($item) => ($item->material_id ? 'mat_' . $item->material_id : 'desc_' . ($item->description ?? '')) . '_' . ($item->component ?? ''))
             ->map(function($group) {
                 $first = $group->first();
-                $subProjectNames = $group->map(fn($i) => $i->subProject?->name)->filter()->unique()->implode(', ');
+                $allocations = $group->map(function($i) {
+                    $projName = $i->project?->name ?? $i->subProject?->project?->name;
+                    if ($i->subProject) {
+                        return $projName ? "[{$projName}] {$i->subProject->name}" : $i->subProject->name;
+                    }
+                    if ($projName) {
+                        return "[{$projName}]";
+                    }
+                    return null;
+                })->filter()->unique()->implode(', ');
 
                 return (object) [
                     'material' => $first->material,
@@ -91,11 +100,11 @@
                     'unit' => $first->unit,
                     'unit_price' => $first->unit_price,
                     'total_price' => $group->sum('total_price'),
-                    'sub_project_names' => $subProjectNames !== '' ? $subProjectNames : '-',
+                    'allocation_names' => $allocations !== '' ? $allocations : '-',
                 ];
             })->values();
 
-        $hasSubProjects = $groupedItems->contains(fn($item) => $item->sub_project_names !== '-');
+        $hasAllocations = $groupedItems->contains(fn($item) => $item->allocation_names !== '-');
     @endphp
 
     <div class="section-title">ORDER ITEMS</div>
@@ -103,8 +112,8 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                @if($hasSubProjects)
-                <th style="width: 20%;">Sub-Project</th>
+                @if($hasAllocations)
+                <th style="width: 22%;">Project / Allocation</th>
                 @endif
                 <th>Material Code</th>
                 <th>Description</th>
@@ -118,8 +127,8 @@
             @forelse($groupedItems as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    @if($hasSubProjects)
-                    <td>{{ $item->sub_project_names }}</td>
+                    @if($hasAllocations)
+                    <td style="font-size: 8.5pt; color: #495057;">{{ $item->allocation_names }}</td>
                     @endif
                     <td>{{ $item->material->code ?? '-' }}</td>
                     <td>
@@ -135,7 +144,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ $hasSubProjects ? 8 : 7 }}" class="text-center">No items found in this Purchase Order.</td>
+                    <td colspan="{{ $hasAllocations ? 8 : 7 }}" class="text-center">No items found in this Purchase Order.</td>
                 </tr>
             @endforelse
         </tbody>

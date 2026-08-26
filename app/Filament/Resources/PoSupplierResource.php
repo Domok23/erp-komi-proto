@@ -158,15 +158,15 @@ class PoSupplierResource extends Resource
                         ->relationship('items')
                         ->schema([
                             Forms\Components\Select::make('allocation_target')
-                                ->label(new HtmlString('Sub-Project <span title="Selected sub-project or project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->options(function (callable $get) {
+                                ->label(new HtmlString('Project / Sub-Project <span title="Selected project or sub-project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                                ->options(function (callable $get, $state) {
                                     $projectIds = $get('../../project_ids');
                                     if (empty($projectIds)) {
                                         $legacyId = $get('../../project_id');
                                         if ($legacyId) {
                                             $projectIds = [$legacyId];
                                         } else {
-                                            return [];
+                                            $projectIds = [];
                                         }
                                     }
 
@@ -179,11 +179,29 @@ class PoSupplierResource extends Resource
 
                                     foreach ($projects as $project) {
                                         if ($project->hasSubProjects()) {
+                                            $options["proj_{$project->id}"] = "[{$project->name}] (All / General)";
                                             foreach ($project->subProjects as $sp) {
                                                 $options["sp_{$sp->id}"] = "[{$project->name}] {$sp->name}";
                                             }
                                         } else {
                                             $options["proj_{$project->id}"] = "[{$project->name}]";
+                                        }
+                                    }
+
+                                    // Fallback if current state exists but not in project_ids
+                                    if ($state && ! isset($options[$state])) {
+                                        if (str_starts_with($state, 'sp_')) {
+                                            $spId = (int) str_replace('sp_', '', $state);
+                                            $sp = SubProject::with('project')->find($spId);
+                                            if ($sp) {
+                                                $options[$state] = "[{$sp->project?->name}] {$sp->name}";
+                                            }
+                                        } elseif (str_starts_with($state, 'proj_')) {
+                                            $projId = (int) str_replace('proj_', '', $state);
+                                            $proj = Project::find($projId);
+                                            if ($proj) {
+                                                $options[$state] = "[{$proj->name}]";
+                                            }
                                         }
                                     }
 
@@ -373,11 +391,30 @@ class PoSupplierResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['supplier', 'project', 'approvals'])->withCount('items'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['supplier', 'project', 'items.project', 'approvals'])->withCount('items'))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable(),
                 Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project_names')
+                    ->label('Projects')
+                    ->html()
+                    ->formatStateUsing(function ($state, PoSupplier $record) {
+                        $projects = $record->projects;
+                        if ($projects->isEmpty()) {
+                            return '<span class="text-gray-400">-</span>';
+                        }
+
+                        return $projects->map(function ($proj) {
+                            $url = ProjectResource::getUrl('edit', ['record' => $proj->id]);
+                            $tooltip = $proj->project_code ? "Code: {$proj->project_code}" : '';
+
+                            return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($proj->name).'</a>';
+                        })->implode(', ');
+                    })
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $query->whereHas('project', fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('project_code', 'like', "%{$search}%"))
+                            ->orWhereHas('items.project', fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('project_code', 'like', "%{$search}%"));
+                    }),
                 Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
                 Tables\Columns\BadgeColumn::make('status')
@@ -429,17 +466,33 @@ class PoSupplierResource extends Resource
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
-                            $record->loadMissing(['company', 'supplier', 'items.material', 'items.subProject', 'items.project', 'approver', 'signee']);
-                            $pdf = Pdf::loadView('pdf.po-supplier', [
-                                'po' => $record,
-                                'company' => $record->company,
-                                'supplier' => $record->supplier,
-                            ]);
+                            try {
+                                $record->loadMissing([
+                                    'company',
+                                    'supplier',
+                                    'items.material',
+                                    'items.subProject',
+                                    'items.project',
+                                    'approvals.user',
+                                ]);
 
-                            return response()->streamDownload(
-                                fn () => print ($pdf->output()),
-                                "po-{$record->po_number}.pdf"
-                            );
+                                $pdf = Pdf::loadView('pdf.po-supplier', [
+                                    'po' => $record,
+                                    'company' => $record->company,
+                                    'supplier' => $record->supplier,
+                                ]);
+
+                                return response()->streamDownload(
+                                    fn () => print ($pdf->output()),
+                                    "po-{$record->po_number}.pdf"
+                                );
+                            } catch (\Throwable $e) {
+                                Notification::make()
+                                    ->title('Gagal mengunduh PDF Purchase Order')
+                                    ->body('Terjadi kendala saat membuat dokumen PDF. Silakan periksa kelengkapan data PO atau hubungi administrator.')
+                                    ->danger()
+                                    ->send();
+                            }
                         }),
 
                     EditAction::make(),
