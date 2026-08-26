@@ -46,7 +46,22 @@ class PoSubcon extends Model
 
     public function getProjectsAttribute()
     {
+        if ($this->relationLoaded('items')) {
+            $projects = $this->items->pluck('project')->filter()->unique('id')->values();
+            if ($projects->isNotEmpty()) {
+                return $projects;
+            }
+        }
+
+        if ($this->relationLoaded('project') && $this->project) {
+            return collect([$this->project]);
+        }
+
         $ids = $this->project_ids ?? ($this->project_id ? [$this->project_id] : []);
+
+        if (empty($ids)) {
+            return collect();
+        }
 
         return Project::whereIn('id', $ids)->get();
     }

@@ -488,8 +488,8 @@ class PoSupplierResource extends Resource
                                 );
                             } catch (\Throwable $e) {
                                 Notification::make()
-                                    ->title('Gagal mengunduh PDF Purchase Order')
-                                    ->body('Terjadi kendala saat membuat dokumen PDF. Silakan periksa kelengkapan data PO atau hubungi administrator.')
+                                    ->title('Failed to download Purchase Order PDF')
+                                    ->body('An error occurred while generating the PDF document. Please check the PO data or contact the administrator.')
                                     ->danger()
                                     ->send();
                             }
