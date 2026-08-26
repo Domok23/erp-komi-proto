@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventoryMovementResource\Pages;
 use App\Filament\Resources\StockTransfers\StockTransferResource;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\GoodsReceipt;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
@@ -24,6 +25,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class InventoryMovementResource extends Resource
@@ -72,13 +74,21 @@ class InventoryMovementResource extends Resource
                         ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\Select::make('inventory_stock_id')
-                        ->label(new HtmlString('Inventory Stock ID <span title="ID relasi ke baris kartu stok fisik (inventory_stocks) barang terkait" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Inventory Stock ID <span title="Direct relation ID to warehouse inventory stock card" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->relationship('inventoryStock', 'id')
                         ->disabled()
                         ->dehydrated()
                         ->nullable(),
+                    MaterialFormFilterHelper::categoryFilter()
+                        ->disabled($isDisabled),
+                    MaterialFormFilterHelper::supplierFilter()
+                        ->disabled($isDisabled),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
+                        ->relationship(
+                            'material',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
@@ -99,24 +109,24 @@ class InventoryMovementResource extends Resource
                         ->afterStateUpdated(fn ($get, $set) => self::updateStockDetails($get, $set))
                         ->disabled($isDisabled),
                     Forms\Components\TextInput::make('before_qty')
-                        ->label(new HtmlString('Before Qty <span title="Jumlah stok fisik barang di gudang sesaat sebelum transaksi ini diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Before Qty <span title="Physical warehouse stock quantity before this transaction" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->disabled()
                         ->dehydrated()
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => is_numeric($state) ? str_replace(',', '', $state) : null),
                     Forms\Components\TextInput::make('after_qty')
-                        ->label(new HtmlString('After Qty <span title="Jumlah stok fisik barang di gudang setelah transaksi ini selesai diproses" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('After Qty <span title="Physical warehouse stock quantity after this transaction" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->disabled()
                         ->dehydrated()
                         ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 2, '.', ',') : $state)
                         ->dehydrateStateUsing(fn ($state) => is_numeric($state) ? str_replace(',', '', $state) : null),
                     Forms\Components\TextInput::make('reference_type')
-                        ->label(new HtmlString('Reference Type <span title="Nama modul/dokumen asal yang memicu terjadinya pergerakan stok ini" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Reference Type <span title="Source module or document triggering this stock movement" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->maxLength(100)
                         ->hiddenOn('create')
                         ->disabled(),
                     Forms\Components\TextInput::make('reference_id')
-                        ->label(new HtmlString('Reference ID <span title="Nomor ID dari dokumen pemicu yang tercatat di Reference Type" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Reference ID <span title="Source document record ID triggering this movement" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->numeric()
                         ->hiddenOn('create')
                         ->disabled(),

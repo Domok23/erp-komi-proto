@@ -77,10 +77,11 @@
             color: #9ca3af !important;
         }
         .dark .prod-cap-footer {
-            border-top-color: #374151 !important;
+            border-top-color: rgba(255, 255, 255, 0.08) !important;
         }
         .dark .prod-cap-circle-bg {
-            stroke: #374151 !important;
+            stroke: rgba(255, 255, 255, 0.1) !important;
+            background-color: rgba(255, 255, 255, 0.08) !important;
         }
     </style>
 </x-filament::section>

@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\RdDesignResource\RelationManagers;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
+use App\Filament\Resources\MaterialResource;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -21,8 +24,10 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\XLSX\Reader as XLSXReader;
 use OpenSpout\Writer\XLSX\Writer;
@@ -33,14 +38,33 @@ class ConsumptionRatesRelationManager extends RelationManager
 
     protected static ?string $title = 'Consumption Rates';
 
+    protected $listeners = [
+        'refresh-consumption-rates' => '$refresh',
+    ];
+
     public function form(Schema $schema): Schema
     {
         return $schema->schema([
+            MaterialFormFilterHelper::categoryFilter(),
+            MaterialFormFilterHelper::supplierFilter(),
             Forms\Components\Select::make('material_id')
-                ->relationship('material', 'name')
-                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                ->relationship(
+                    'material',
+                    'name',
+                    modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                )
+                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                ->allowHtml()
                 ->searchable(['code', 'name', 'color', 'size'])
                 ->preload()
+                ->unique(
+                    table: 'consumption_rates',
+                    column: 'material_id',
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule) => $rule
+                        ->where('company_id', CompanyContext::getCompanyId())
+                        ->where('design_id', $this->getOwnerRecord()->id)
+                )
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
@@ -50,7 +74,7 @@ class ConsumptionRatesRelationManager extends RelationManager
             Forms\Components\TextInput::make('standard_rate')
                 ->numeric()
                 ->required()
-                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                ->label(new HtmlString('Actual Consumption <span title="Actual net material requirement per unit (without waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
             Forms\Components\TextInput::make('unit')
                 ->label('UOM')
                 ->default('pcs')
@@ -60,7 +84,7 @@ class ConsumptionRatesRelationManager extends RelationManager
                 ->default(config('costing.wastage_pct', 3))
                 ->disabled()
                 ->dehydrated()
-                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Yield 3% waste <span title="Production waste tolerance percentage (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->suffix('%'),
             Forms\Components\Select::make('component')
                 ->label('Component')
@@ -103,23 +127,42 @@ class ConsumptionRatesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return $table->columns([
-            TextColumn::make('id')->sortable(),
-            TextColumn::make('material.name')->sortable()->searchable(),
-            TextColumn::make('standard_rate')
-                ->label('Actual Consumption')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            TextColumn::make('unit')->label('UOM'),
-            TextColumn::make('wastage_rate')
-                ->label('Yield 3% waste')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->suffix('%'),
-            TextColumn::make('component')->sortable()->searchable(),
-            TextColumn::make('notes')->limit(50),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('material'))
+            ->columns([
+                TextColumn::make('id')->sortable(),
+                TextColumn::make('material.name')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, ConsumptionRate $record) {
+                        if (! $state || ! $record->material_id) {
+                            return $state ?? 'N/A';
+                        }
+                        $url = MaterialResource::getUrl('edit', ['record' => $record->material_id]);
+                        $tooltip = $record->material?->code ? 'Code: '.$record->material->code : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (ConsumptionRate $record) => $record->material?->code ? 'Code: '.$record->material->code : null),
+                TextColumn::make('standard_rate')
+                    ->label('Actual Cons.')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                TextColumn::make('unit')->label('UOM'),
+                TextColumn::make('wastage_rate')
+                    ->label('Yield 3% waste')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->suffix('%'),
+                TextColumn::make('component')->sortable()->searchable(),
+                TextColumn::make('notes')->limit(50),
+            ])
             ->filters([])
             ->headerActions([
+                PickMaterialsAction::make()
+                    ->showAllocationStep(true)
+                    ->designId(fn () => $this->getOwnerRecord()->id)
+                    ->alreadyAddedIds(fn () => $this->getOwnerRecord()->consumptionRates->pluck('material_id')->filter()->map(fn ($id) => (int) $id)->all()),
                 StockPreviewAction::make('form', allowReserve: false),
                 CreateAction::make(),
                 Action::make('importExcel')
@@ -283,24 +326,24 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                             $newComponentsCount = count($newComponentsCreated);
                             $compNote = $newComponentsCount > 0
-                                ? "\nInfo: {$newComponentsCount} component baru otomatis didaftarkan: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', dll.' : '.')
+                                ? "\nInfo: {$newComponentsCount} new components automatically registered: ".implode(', ', array_slice($newComponentsCreated, 0, 3)).($newComponentsCount > 3 ? ', etc.' : '.')
                                 : '';
 
                             if (empty($errors)) {
                                 Notification::make()
-                                    ->title('Import Excel Berhasil')
-                                    ->body("Berhasil mengimpor {$successCount} data consumption rate.{$compNote}")
+                                    ->title('Excel Import Successful')
+                                    ->body("Successfully imported {$successCount} consumption rate records.{$compNote}")
                                     ->success()
                                     ->send();
                             } else {
                                 $errorText = implode("\n", array_slice($errors, 0, 5));
                                 if (count($errors) > 5) {
-                                    $errorText .= "\n...dan ".(count($errors) - 5).' error lainnya.';
+                                    $errorText .= "\n...and ".(count($errors) - 5).' more errors.';
                                 }
 
                                 Notification::make()
-                                    ->title('Import Selesai dengan '.count($errors).' Error')
-                                    ->body("{$successCount} baris berhasil diimpor.{$compNote}\nError:\n{$errorText}")
+                                    ->title('Import Completed with '.count($errors).' Errors')
+                                    ->body("{$successCount} rows imported successfully.{$compNote}\nErrors:\n{$errorText}")
                                     ->warning()
                                     ->persistent()
                                     ->send();
@@ -308,7 +351,7 @@ class ConsumptionRatesRelationManager extends RelationManager
 
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Import Excel Gagal')
+                                ->title('Excel Import Failed')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();

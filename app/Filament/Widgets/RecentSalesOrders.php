@@ -20,7 +20,7 @@ class RecentSalesOrders extends BaseWidget
     {
         return $table
             ->query(
-                SalesOrder::query()->latest()
+                SalesOrder::query()->with('customer')->latest()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('so_number')

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InventoryStockResource\Pages;
 use App\Filament\Resources\InventoryStockResource\RelationManagers;
 use App\Filament\Resources\MaterialReservations\MaterialReservationResource;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Services\CompanyContext;
@@ -44,19 +45,22 @@ class InventoryStockResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required(),
+                    MaterialFormFilterHelper::categoryFilter(),
+                    MaterialFormFilterHelper::supplierFilter(),
                     Forms\Components\Select::make('material_id')
                         ->relationship(
                             name: 'material',
                             titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query) {
+                            modifyQueryUsing: function (Builder $query, callable $get) {
                                 $companyId = CompanyContext::getCompanyId();
 
-                                return $query->where(function (Builder $q) use ($companyId) {
-                                    $q->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
-                                        $subQ->where('company_id', $companyId);
-                                    })
-                                        ->orWhereDoesntHave('inventoryStocks');
-                                });
+                                return MaterialFormFilterHelper::applyFilters($query, $get)
+                                    ->where(function (Builder $q) use ($companyId) {
+                                        $q->whereHas('inventoryStocks', function (Builder $subQ) use ($companyId) {
+                                            $subQ->where('company_id', $companyId);
+                                        })
+                                            ->orWhereDoesntHave('inventoryStocks');
+                                    });
                             }
                         )
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)

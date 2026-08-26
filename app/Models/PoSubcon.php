@@ -46,7 +46,22 @@ class PoSubcon extends Model
 
     public function getProjectsAttribute()
     {
+        if ($this->relationLoaded('items')) {
+            $projects = $this->items->pluck('project')->filter()->unique('id')->values();
+            if ($projects->isNotEmpty()) {
+                return $projects;
+            }
+        }
+
+        if ($this->relationLoaded('project') && $this->project) {
+            return collect([$this->project]);
+        }
+
         $ids = $this->project_ids ?? ($this->project_id ? [$this->project_id] : []);
+
+        if (empty($ids)) {
+            return collect();
+        }
 
         return Project::whereIn('id', $ids)->get();
     }
@@ -84,5 +99,14 @@ class PoSubcon extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(InvoicePurchase::class, 'reference_id')->where('purchase_type', 'po_subcon');
+    }
+
+    public function recalculateTotals(): void
+    {
+        $totalServiceCost = (float) $this->items()->sum('total_price');
+        $this->updateQuietly([
+            'service_cost' => $totalServiceCost,
+            'total_cost' => $totalServiceCost + (float) ($this->shipping_cost ?? 0) + (float) ($this->shipping_return_cost ?? 0),
+        ]);
     }
 }

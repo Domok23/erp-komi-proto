@@ -2,21 +2,21 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\MerchandisePlanningResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
-use App\Models\PoSubcon;
-use App\Models\PoSubconItem;
-use App\Models\PoSupplier;
-use App\Models\PoSupplierItem;
 use App\Models\Project;
-use App\Services\CodeGenerator;
 use App\Services\CompanyContext;
+use App\Services\MerchandisePlanningSyncService;
+use App\Services\PoGenerationService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -29,6 +29,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
@@ -82,25 +84,27 @@ class MerchandisePlanningResource extends Resource
                                 $set('total_material_cost', number_format(0, 2, '.', ','));
                                 $set('total_subcon_cost', number_format(0, 2, '.', ','));
 
-                                // Auto-fill planning items from Project's BOM if available
-                                if ($project->bom) {
-                                    $items = $project->bom->items->map(function ($bomItem) use ($project) {
-                                        $unitPrice = $bomItem->material?->price ?? 0;
+                                // Auto-fill planning items from Project's R&D Design if available
+                                if ($project->design) {
+                                    $items = $project->design->consumptionRates->map(function ($rate) use ($project) {
+                                        $unitPrice = (float) ($rate->material?->price ?? 0);
                                         $targetQty = max(1, (int) ($project->target_qty ?? 1));
-                                        $wastageMultiplier = 1 + (($bomItem->wastage_percent ?? 0) / 100);
-                                        $plannedQty = floatval($bomItem->quantity_per_unit) * $targetQty * $wastageMultiplier;
+                                        $wastageRate = (float) ($rate->wastage_rate ?? config('costing.wastage_pct', 3));
+                                        $wastageMultiplier = 1 + ($wastageRate / 100);
+                                        $plannedQty = floatval($rate->standard_rate) * $targetQty * $wastageMultiplier;
 
                                         return [
-                                            'material_id' => $bomItem->material_id,
-                                            'component' => $bomItem->component,
-                                            'supplier_id' => $bomItem->material?->supplier_id,
+                                            'filter_category_id' => $rate->material?->category_id,
+                                            'material_id' => $rate->material_id,
+                                            'component' => $rate->component,
+                                            'supplier_id' => $rate->material?->supplier_id,
                                             'planned_qty' => $plannedQty,
-                                            'unit' => $bomItem->unit,
+                                            'unit' => $rate->unit ?? $rate->material?->uom ?? 'pcs',
                                             'unit_price' => number_format($unitPrice, 2, '.', ','),
                                             'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
                                             'is_subcon' => false,
-                                            'notes' => $bomItem->notes,
-                                            'is_from_rnd' => $bomItem->is_from_rnd ?? true,
+                                            'notes' => $rate->notes,
+                                            'is_from_rnd' => true,
                                         ];
                                     })->toArray();
 
@@ -146,6 +150,7 @@ class MerchandisePlanningResource extends Resource
                             return $project && $project->hasSubProjects();
                         }),
                     Forms\Components\Select::make('design_id')
+                        ->label('R&D Design')
                         ->relationship('design', 'name')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
                         ->allowHtml()
@@ -190,25 +195,49 @@ class MerchandisePlanningResource extends Resource
             Section::make('Materials & Services Planning')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make(),
                     StockPreviewAction::make('form'),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            MaterialFormFilterHelper::categoryFilter()
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
+                            MaterialFormFilterHelper::supplierFilter(
+                                name: 'supplier_id',
+                                label: 'Material Supplier',
+                                categoryFieldName: 'filter_category_id',
+                                dehydrated: true
+                            )
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->relationship(
+                                    'material',
+                                    'name',
+                                    modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters(
+                                        $query,
+                                        $get,
+                                        categoryFieldName: 'filter_category_id',
+                                        supplierFieldName: 'supplier_id'
+                                    )
+                                )
+                                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                                ->allowHtml()
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                 ->nullable()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $material = $state ? Material::with('uomRef')->find($state) : null;
+                                    $material = $state ? Material::with(['uomRef', 'categoryRef', 'supplier'])->find($state) : null;
                                     $set('unit', $material?->uom ?? $material?->uomRef?->name ?? $material?->unit);
                                     $price = $material?->price ?? 0;
                                     $set('unit_price', number_format($price, 2, '.', ','));
                                     $set('supplier_id', $material?->supplier_id);
+                                    if ($material?->category_id && ! $get('filter_category_id')) {
+                                        $set('filter_category_id', $material->category_id);
+                                    }
 
                                     $qty = floatval(str_replace(',', '', $get('planned_qty') ?? '1'));
                                     $set('total_price', number_format($qty * floatval($price), 2, '.', ','));
@@ -254,13 +283,6 @@ class MerchandisePlanningResource extends Resource
                                     return $comp->name;
                                 })
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
-                                ->dehydrated(),
-                            Forms\Components\Select::make('supplier_id')
-                                ->relationship('supplier', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->nullable()
-                                ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('planned_qty')
                                 ->required()
@@ -380,30 +402,61 @@ class MerchandisePlanningResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('project.name')
-                ->label('Project')
-                ->sortable()
-                ->searchable()
-                ->extraAttributes(fn ($record) => [
-                    'title' => $record->project?->project_code,
-                ]),
-            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'preliminary' => 'gray',
-                    'tech_pack' => 'info',
-                    'finalised' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('total_material_cost')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('total_subcon_cost')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['project', 'subProject', 'design']))
+            ->recordUrl(fn (MerchandisePlanning $record): string => self::getUrl('edit', ['record' => $record]))
+            ->recordAction(EditAction::class)
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('project.name')
+                    ->label('Project')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, MerchandisePlanning $record) {
+                        if (! $state || ! $record->project_id) {
+                            return $state ?? '-';
+                        }
+                        $url = ProjectResource::getUrl('edit', ['record' => $record->project_id]);
+                        $tooltip = $record->project ? "Code: {$record->project->project_code}" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (MerchandisePlanning $record) => $record->project ? "Code: {$record->project->project_code}" : null),
+                Tables\Columns\TextColumn::make('subProject.name')
+                    ->label('Sub-Project')
+                    ->sortable()
+                    ->searchable()
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('design.name')
+                    ->label('R&D Design')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, MerchandisePlanning $record) {
+                        if (! $state || ! $record->design_id) {
+                            return $state ?? '-';
+                        }
+                        $url = RdDesignResource::getUrl('edit', ['record' => $record->design_id]);
+                        $tooltip = $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (MerchandisePlanning $record) => $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : null),
+                Tables\Columns\TextColumn::make('planning_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'preliminary' => 'gray',
+                        'tech_pack' => 'info',
+                        'finalised' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('total_material_cost')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('total_subcon_cost')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'preliminary' => 'Preliminary',
@@ -421,6 +474,7 @@ class MerchandisePlanningResource extends Resource
                         ->color('success')
                         ->visible(fn ($record) => $record->status === 'finalised')
                         ->modalHeading('Confirm PO Generation')
+                        ->modalWidth('7xl')
                         ->modalSubmitActionLabel('Generate POs')
                         ->modalContent(function ($record) {
                             $record->load(['items.material', 'items.supplier', 'items.subcon']);
@@ -440,148 +494,105 @@ class MerchandisePlanningResource extends Resource
                             ]);
                         })
                         ->action(function ($record) {
-                            $generatedPoNumbers = [];
+                            $service = app(PoGenerationService::class);
+                            $result = $service->generateFromPlannings($record);
 
-                            // Group items by supplier for supplier POs
-                            $supplierItems = $record->items->where('is_subcon', false)->groupBy('supplier_id');
-                            foreach ($supplierItems as $supplierId => $items) {
-                                if (! $supplierId) {
-                                    continue;
-                                }
-
-                                $poItemsData = [];
-                                $subtotal = 0;
-
-                                foreach ($items as $item) {
-                                    $stock = InventoryStock::where('material_id', $item->material_id)
-                                        ->where('company_id', $record->company_id)
-                                        ->sum('quantity');
-                                    $shortage = max(0, floatval($item->planned_qty) - floatval($stock));
-
-                                    if ($shortage <= 0) {
-                                        continue;
-                                    }
-
-                                    $itemTotalPrice = $shortage * floatval($item->unit_price);
-                                    $poItemsData[] = [
-                                        'material_id' => $item->material_id,
-                                        'component' => $item->component,
-                                        'sub_project_id' => $record->sub_project_id,
-                                        'description' => $item->notes ?? 'Raw material',
-                                        'qty' => $shortage,
-                                        'unit' => $item->unit ?? 'pcs',
-                                        'unit_price' => $item->unit_price,
-                                        'total_price' => $itemTotalPrice,
-                                        'qty_received' => 0,
-                                    ];
-                                    $subtotal += $itemTotalPrice;
-                                }
-
-                                if (empty($poItemsData)) {
-                                    continue;
-                                }
-
-                                // Merge into existing draft PO or create new one
-                                $po = PoSupplier::where('company_id', $record->company_id)
-                                    ->where('project_id', $record->project_id)
-                                    ->where('supplier_id', $supplierId)
-                                    ->where('status', 'draft')
-                                    ->first();
-
-                                if (! $po) {
-                                    $po = PoSupplier::create([
-                                        'company_id' => $record->company_id,
-                                        'po_number' => CodeGenerator::generatePOSupplierNo(),
-                                        'project_id' => $record->project_id,
-                                        'project_ids' => $record->project_id ? [$record->project_id] : null,
-                                        'supplier_id' => $supplierId,
-                                        'po_date' => now()->toDateString(),
-                                        'ppn_percent' => 11,
-                                        'status' => 'draft',
-                                    ]);
-                                    $generatedPoNumbers[] = $po->po_number;
-                                } else {
-                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
-                                }
-
-                                foreach ($poItemsData as $itemData) {
-                                    $itemData['po_supplier_id'] = $po->id;
-                                    PoSupplierItem::create($itemData);
-                                }
-
-                                $po->recalculateTotals();
-                            }
-
-                            // Group items by subcon for subcon POs
-                            $subconItems = $record->items->where('is_subcon', true)->groupBy('subcon_id');
-                            foreach ($subconItems as $subconId => $items) {
-                                if (! $subconId) {
-                                    continue;
-                                }
-
-                                // Merge into existing draft PO or create new one
-                                $po = PoSubcon::where('company_id', $record->company_id)
-                                    ->where('project_id', $record->project_id)
-                                    ->where('subcon_id', $subconId)
-                                    ->where('status', 'draft')
-                                    ->first();
-
-                                if (! $po) {
-                                    $po = PoSubcon::create([
-                                        'company_id' => $record->company_id,
-                                        'po_number' => CodeGenerator::generatePOSubconNo(),
-                                        'project_id' => $record->project_id,
-                                        'project_ids' => $record->project_id ? [$record->project_id] : null,
-                                        'subcon_id' => $subconId,
-                                        'po_date' => now()->toDateString(),
-                                        'status' => 'draft',
-                                    ]);
-                                    $generatedPoNumbers[] = $po->po_number;
-                                } else {
-                                    $generatedPoNumbers[] = $po->po_number.' (updated)';
-                                }
-
-                                foreach ($items as $item) {
-                                    PoSubconItem::create([
-                                        'po_subcon_id' => $po->id,
-                                        'project_id' => $record->project_id,
-                                        'sub_project_id' => $record->sub_project_id,
-                                        'component' => $item->component,
-                                        'description' => $item->notes ?? 'Subcon service',
-                                        'qty' => $item->planned_qty,
-                                        'unit_price' => $item->unit_price,
-                                        'total_price' => $item->total_price,
-                                    ]);
-                                }
-
-                                $totalServiceCost = $po->items()->sum('total_price');
-                                $po->update([
-                                    'service_cost' => $totalServiceCost,
-                                    'total_cost' => $totalServiceCost + ($po->shipping_cost ?? 0) + ($po->shipping_return_cost ?? 0),
-                                ]);
-                            }
-
-                            if (empty($generatedPoNumbers)) {
+                            if (empty($result['po_numbers'])) {
                                 Notification::make()
                                     ->title('No POs generated')
                                     ->body('All planning items are fully stocked or have no supplier/subcon assigned.')
                                     ->warning()
                                     ->send();
                             } else {
-                                $poList = implode(', ', $generatedPoNumbers);
+                                $poList = implode(', ', $result['po_numbers']);
                                 Notification::make()
                                     ->title('POs generated successfully!')
-                                    ->body("Created: {$poList}")
+                                    ->body("Created/Updated: {$poList}")
                                     ->success()
                                     ->send();
                             }
+                        }),
+                    Action::make('resyncFromDesign')
+                        ->label('Re-sync from R&D')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->visible(fn (MerchandisePlanning $record) => in_array($record->status, ['preliminary', 'tech_pack', 'draft']))
+                        ->requiresConfirmation()
+                        ->modalHeading('Re-sync Materials from R&D Design')
+                        ->modalDescription('This will refresh planned quantities and default prices from the current R&D Consumption Rates while preserving any assigned suppliers, subcons, and custom edits.')
+                        ->action(function (MerchandisePlanning $record) {
+                            $count = MerchandisePlanningSyncService::syncFromDesign($record);
+                            Notification::make()
+                                ->title('Synchronized from R&D')
+                                ->body("{$count} material items refreshed from R&D Consumption Rates.")
+                                ->success()
+                                ->send();
                         }),
                     StockPreviewAction::make('table'),
                     EditAction::make(),
                     DeleteAction::make(),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    BulkAction::make('bulkGeneratePO')
+                        ->label('Generate Consolidated POs')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('success')
+                        ->modalHeading('Confirm Consolidated PO Generation')
+                        ->modalWidth('7xl')
+                        ->modalSubmitActionLabel('Generate Consolidated POs')
+                        ->modalContent(function (Collection $records) {
+                            $records->load(['items.material', 'items.supplier', 'items.subcon', 'project', 'subProject']);
+
+                            $materialIds = $records->flatMap(fn ($r) => $r->items->pluck('material_id'))->filter()->unique();
+                            $companyId = CompanyContext::getCompanyId();
+                            $stocks = InventoryStock::whereIn('material_id', $materialIds)
+                                ->where('company_id', $companyId)
+                                ->select('material_id', DB::raw('SUM(quantity) as total_qty'))
+                                ->groupBy('material_id')
+                                ->pluck('total_qty', 'material_id')
+                                ->toArray();
+
+                            return view('filament.components.generate-po-modal', [
+                                'records' => $records,
+                                'stocks' => $stocks,
+                            ]);
+                        })
+                        ->action(function (Collection $records) {
+                            $finalisedRecords = $records->where('status', 'finalised');
+
+                            if ($finalisedRecords->isEmpty()) {
+                                Notification::make()
+                                    ->title('PO Generation Failed')
+                                    ->body('None of the selected Merchandise Plannings are in "Finalised" status.')
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $service = app(PoGenerationService::class);
+                            $result = $service->generateFromPlannings($finalisedRecords);
+
+                            if (empty($result['po_numbers'])) {
+                                Notification::make()
+                                    ->title('No POs generated')
+                                    ->body('All required items are fully stocked or have no supplier/subcon assigned.')
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $poList = implode(', ', $result['po_numbers']);
+                                Notification::make()
+                                    ->title('Consolidated POs Generated Successfully!')
+                                    ->body("Processed {$result['processed_count']} planning(s). Created/Updated: {$poList}")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string

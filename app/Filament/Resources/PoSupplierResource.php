@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\PoSupplierResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\Material;
 use App\Models\PoSupplier;
@@ -28,6 +30,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
@@ -48,8 +51,9 @@ class PoSupplierResource extends Resource
     {
         return $schema->schema([
             Forms\Components\Placeholder::make('approval_status')
-                ->label('Approval status')
+                ->hiddenLabel()
                 ->content(fn (?PoSupplier $record) => $record ? new HtmlString(view('filament.components.po-approval-banner', ['record' => $record])->render()) : '')
+                ->hidden(fn (?PoSupplier $record) => ! $record)
                 ->columnSpanFull(),
 
             Section::make('PO Supplier Details')
@@ -145,6 +149,8 @@ class PoSupplierResource extends Resource
                 ->disabled(fn (?PoSupplier $record) => $record && $record->approval_status !== 'draft')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make()
+                        ->supplierContext(fn (callable $get) => $get('supplier_id')),
                     StockPreviewAction::make('form'),
                 ])
                 ->schema([
@@ -152,15 +158,15 @@ class PoSupplierResource extends Resource
                         ->relationship('items')
                         ->schema([
                             Forms\Components\Select::make('allocation_target')
-                                ->label(new HtmlString('Sub-Project <span title="Selected sub-project or project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->options(function (callable $get) {
+                                ->label(new HtmlString('Project / Sub-Project <span title="Selected project or sub-project allocation for this item" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                                ->options(function (callable $get, $state) {
                                     $projectIds = $get('../../project_ids');
                                     if (empty($projectIds)) {
                                         $legacyId = $get('../../project_id');
                                         if ($legacyId) {
                                             $projectIds = [$legacyId];
                                         } else {
-                                            return [];
+                                            $projectIds = [];
                                         }
                                     }
 
@@ -173,11 +179,29 @@ class PoSupplierResource extends Resource
 
                                     foreach ($projects as $project) {
                                         if ($project->hasSubProjects()) {
+                                            $options["proj_{$project->id}"] = "[{$project->name}] (All / General)";
                                             foreach ($project->subProjects as $sp) {
                                                 $options["sp_{$sp->id}"] = "[{$project->name}] {$sp->name}";
                                             }
                                         } else {
                                             $options["proj_{$project->id}"] = "[{$project->name}]";
+                                        }
+                                    }
+
+                                    // Fallback if current state exists but not in project_ids
+                                    if ($state && ! isset($options[$state])) {
+                                        if (str_starts_with($state, 'sp_')) {
+                                            $spId = (int) str_replace('sp_', '', $state);
+                                            $sp = SubProject::with('project')->find($spId);
+                                            if ($sp) {
+                                                $options[$state] = "[{$sp->project?->name}] {$sp->name}";
+                                            }
+                                        } elseif (str_starts_with($state, 'proj_')) {
+                                            $projId = (int) str_replace('proj_', '', $state);
+                                            $proj = Project::find($projId);
+                                            if ($proj) {
+                                                $options[$state] = "[{$proj->name}]";
+                                            }
                                         }
                                     }
 
@@ -218,21 +242,35 @@ class PoSupplierResource extends Resource
                                 }),
                             Forms\Components\Hidden::make('project_id')->dehydrated(),
                             Forms\Components\Hidden::make('sub_project_id')->dehydrated(),
+                            MaterialFormFilterHelper::categoryFilter(),
                             Forms\Components\Select::make('material_id')
                                 ->label('Material')
-                                ->options(function (callable $get) {
-                                    $supplierId = $get('../../supplier_id');
-                                    if (! $supplierId) {
-                                        return [];
-                                    }
-
-                                    return Material::where('supplier_id', $supplierId)
-                                        ->get()
-                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label]);
-                                })
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable()
                                 ->preload()
+                                ->getSearchResultsUsing(function (string $search, callable $get): array {
+                                    $supplierId = $get('../../supplier_id');
+                                    $categoryId = $get('filter_category_id');
+
+                                    return Material::query()
+                                        ->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId))
+                                        ->when($categoryId, function ($q, $catId) {
+                                            $q->where(function ($sub) use ($catId) {
+                                                $sub->where('category_id', $catId)
+                                                    ->orWhere('category', $catId);
+                                            });
+                                        })
+                                        ->where(function ($q) use ($search) {
+                                            $q->where('code', 'like', "%{$search}%")
+                                                ->orWhere('name', 'like', "%{$search}%")
+                                                ->orWhere('color', 'like', "%{$search}%")
+                                                ->orWhere('size', 'like', "%{$search}%");
+                                        })
+                                        ->limit(30)
+                                        ->get()
+                                        ->mapWithKeys(fn ($m) => [$m->id => $m->formatted_select_label])
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(fn ($value): ?string => Material::find($value)?->formatted_select_label)
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -352,25 +390,46 @@ class PoSupplierResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'ordered' => 'info',
-                    'partial' => 'warning',
-                    'received' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('grand_total')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['supplier', 'project', 'items.project', 'approvals'])->withCount('items'))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('po_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project_names')
+                    ->label('Projects')
+                    ->html()
+                    ->formatStateUsing(function ($state, PoSupplier $record) {
+                        $projects = $record->projects;
+                        if ($projects->isEmpty()) {
+                            return '<span class="text-gray-400">-</span>';
+                        }
+
+                        return $projects->map(function ($proj) {
+                            $url = ProjectResource::getUrl('edit', ['record' => $proj->id]);
+                            $tooltip = $proj->project_code ? "Code: {$proj->project_code}" : '';
+
+                            return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($proj->name).'</a>';
+                        })->implode(', ');
+                    })
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $query->whereHas('project', fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('project_code', 'like', "%{$search}%"))
+                            ->orWhereHas('items.project', fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('project_code', 'like', "%{$search}%"));
+                    }),
+                Tables\Columns\TextColumn::make('supplier.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('po_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'ordered' => 'info',
+                        'partial' => 'warning',
+                        'received' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('grand_total')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -407,16 +466,33 @@ class PoSupplierResource extends Resource
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
-                            $pdf = Pdf::loadView('pdf.po-supplier', [
-                                'po' => $record,
-                                'company' => $record->company,
-                                'supplier' => $record->supplier,
-                            ]);
+                            try {
+                                $record->loadMissing([
+                                    'company',
+                                    'supplier',
+                                    'items.material',
+                                    'items.subProject',
+                                    'items.project',
+                                    'approvals.user',
+                                ]);
 
-                            return response()->streamDownload(
-                                fn () => print ($pdf->output()),
-                                "po-{$record->po_number}.pdf"
-                            );
+                                $pdf = Pdf::loadView('pdf.po-supplier', [
+                                    'po' => $record,
+                                    'company' => $record->company,
+                                    'supplier' => $record->supplier,
+                                ]);
+
+                                return response()->streamDownload(
+                                    fn () => print ($pdf->output()),
+                                    "po-{$record->po_number}.pdf"
+                                );
+                            } catch (\Throwable $e) {
+                                Notification::make()
+                                    ->title('Failed to download Purchase Order PDF')
+                                    ->body('An error occurred while generating the PDF document. Please check the PO data or contact the administrator.')
+                                    ->danger()
+                                    ->send();
+                            }
                         }),
 
                     EditAction::make(),
@@ -456,7 +532,15 @@ class PoSupplierResource extends Resource
             ->label('Submit for Approval')
             ->icon('heroicon-o-paper-airplane')
             ->color('primary')
-            ->visible(fn (PoSupplier $record) => $record->approval_status === 'draft' && $record->items()->count() > 0)
+            ->visible(function (PoSupplier $record): bool {
+                if ($record->approval_status !== 'draft') {
+                    return false;
+                }
+
+                $itemsCount = $record->items_count ?? ($record->relationLoaded('items') ? $record->items->count() : $record->items()->count());
+
+                return $itemsCount > 0;
+            })
             ->action(function (PoSupplier $record) {
                 $record->update([
                     'approval_status' => 'pending_approval',
@@ -493,13 +577,17 @@ class PoSupplierResource extends Resource
                     return false;
                 }
 
-                $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
+                $approvals = $record->relationLoaded('approvals')
+                    ? $record->approvals
+                    : $record->approvals()->get();
+
+                $activeLevel = $approvals->where('status', 'pending')->sortBy('id')->first();
                 if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
-                    $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
+                    $managerApproved = $approvals->where('approval_level', 'manager')->where('status', 'approved')->isNotEmpty();
                     if (! $managerApproved) {
                         return false;
                     }
@@ -596,13 +684,17 @@ class PoSupplierResource extends Resource
                     return false;
                 }
 
-                $activeLevel = $record->approvals()->where('status', 'pending')->orderBy('id', 'asc')->first();
+                $approvals = $record->relationLoaded('approvals')
+                    ? $record->approvals
+                    : $record->approvals()->get();
+
+                $activeLevel = $approvals->where('status', 'pending')->sortBy('id')->first();
                 if (! $activeLevel) {
                     return false;
                 }
 
                 if ($activeLevel->approval_level === 'director') {
-                    $managerApproved = $record->approvals()->where('approval_level', 'manager')->where('status', 'approved')->exists();
+                    $managerApproved = $approvals->where('approval_level', 'manager')->where('status', 'approved')->isNotEmpty();
                     if (! $managerApproved) {
                         return false;
                     }

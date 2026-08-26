@@ -10,35 +10,11 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        <!-- Tailwind CSS CDN -->
-        <script src="https://cdn.tailwindcss.com"></script>
         <script>
-            tailwind.config = {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['Plus Jakarta Sans', 'sans-serif'],
-                            mono: ['Fira Code', 'monospace'],
-                        },
-                        colors: {
-                            amber: {
-                                500: '#f59e0b',
-                                600: '#d97706',
-                            }
-                        }
-                    }
-                }
-            }
-        </script>
-        <script>
-            if (localStorage.theme === 'dark') {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
-                if (!('theme' in localStorage)) {
-                    localStorage.theme = 'light';
-                }
             }
 
             function toggleTheme() {
@@ -56,16 +32,16 @@
     <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-200">
         <!-- Background Glow FX -->
         <div class="fixed inset-0 pointer-events-none z-0">
-            <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 dark:bg-amber-500/10 rounded-full blur-3xl"></div>
-            <div class="absolute top-1/3 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/10 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 dark:bg-amber-500/15 rounded-full blur-3xl"></div>
+            <div class="absolute top-1/3 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/15 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl"></div>
             <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40"></div>
         </div>
 
         <!-- Navigation Bar -->
         <header class="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-slate-950 text-xl tracking-tighter">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 bg-linear-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-slate-950 text-xl tracking-tighter">
                     EK
                 </div>
                 <div>
@@ -94,11 +70,11 @@
 
                     <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
                         Integrated ERP <br>
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-600 dark:from-amber-400 dark:via-amber-200 dark:to-emerald-400">Precision &amp; Control</span>
+                        <span class="text-amber-500 dark:text-amber-400 bg-clip-text text-transparent bg-linear-to-r from-amber-500 via-amber-600 to-emerald-600 dark:from-amber-400 dark:via-amber-300 dark:to-emerald-400">Precision &amp; Control</span>
                     </h1>
 
                     <p class="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl font-normal leading-relaxed">
-                        Sistem manajemen terintegrasi untuk produksi, persediaan bahan baku, manajemen Job Order, laporan keuangan Profit & Loss, serta portal mandiri pengajuan cuti karyawan.
+                        Integrated enterprise management system for manufacturing operations, material inventory, Job Order tracking, Profit &amp; Loss reporting, and employee leave requests.
                     </p>
 
                     <!-- Quick Navigation Badges -->
@@ -108,18 +84,18 @@
                     <div class="pt-4 flex flex-wrap gap-4">
                         @auth
                             <a href="{{ url('/') }}" class="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-base rounded-xl transition shadow-xl shadow-amber-500/20 flex items-center gap-3">
-                                <span>Buka Filament Dashboard</span>
+                                <span>Open Dashboard</span>
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
                         @else
                             <a href="{{ url('/login') }}" class="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-base rounded-xl transition shadow-xl shadow-amber-500/20 flex items-center gap-3">
-                                <span>Masuk Portal Admin</span>
+                                <span>Admin Login</span>
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                             </a>
                         @endauth
 
                         <a href="{{ route('leave-request.lookup', $defaultCompanyCode) }}" class="px-6 py-3.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-semibold text-base rounded-xl transition flex items-center gap-3 shadow-xs">
-                            <span>Form Cuti Karyawan</span>
+                            <span>Employee Leave Portal</span>
                             <svg class="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         </a>
                     </div>
@@ -133,8 +109,8 @@
                         <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         </div>
-                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Manajemen Stok &amp; PO</h3>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Preview kebutuhan bahan baku dan auto-generate Purchase Order (PO).</p>
+                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Inventory &amp; PO Management</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Raw material requirements preview and auto-generated Purchase Orders.</p>
                     </div>
 
                     <!-- Feature Card 2 -->
@@ -142,8 +118,8 @@
                         <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         </div>
-                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Profit &amp; Loss Report</h3>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Laporan keuangan Laba Rugi real-time dengan kalkulasi otomatis.</p>
+                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Profit &amp; Loss Reports</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Real-time Profit and Loss financial statements with automated cost breakdowns.</p>
                     </div>
 
                     <!-- Feature Card 3 -->
@@ -151,8 +127,8 @@
                         <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                         </div>
-                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Job Order &amp; Pekerja</h3>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Alokasi tenaga kerja dan manajemen proses barang (RnD / Produksi).</p>
+                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Job Orders &amp; Workforce</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Labor allocation and production workflow management (R&amp;D / Production).</p>
                     </div>
 
                     <!-- Feature Card 4 -->
@@ -160,8 +136,8 @@
                         <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
-                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Portal Cuti Mandiri</h3>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Pencekan kuota &amp; pengajuan cuti publik secara real-time via NIK.</p>
+                        <h3 class="text-slate-900 dark:text-white font-bold text-base mb-1">Self-Service Leave Portal</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Real-time quota check and leave application via Employee Number.</p>
                     </div>
 
                 </div>

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\ConsumptionRateResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -20,7 +21,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class ConsumptionRateResource extends Resource
 {
@@ -51,11 +54,26 @@ class ConsumptionRateResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required(),
+                    MaterialFormFilterHelper::categoryFilter(),
+                    MaterialFormFilterHelper::supplierFilter(),
                     Forms\Components\Select::make('material_id')
-                        ->relationship('material', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                        ->relationship(
+                            'material',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                        )
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                        ->allowHtml()
                         ->searchable(['code', 'name', 'color', 'size'])
                         ->preload()
+                        ->unique(
+                            table: 'consumption_rates',
+                            column: 'material_id',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule, callable $get) => $rule
+                                ->where('company_id', CompanyContext::getCompanyId())
+                                ->where('design_id', $get('design_id'))
+                        )
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {
@@ -68,7 +86,7 @@ class ConsumptionRateResource extends Resource
                         ->numeric()
                         ->step(0.01)
                         ->required()
-                        ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
+                        ->label(new HtmlString('Actual Consumption <span title="Actual net material requirement per unit (without waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>')),
                     Forms\Components\TextInput::make('unit')
                         ->label('UOM')
                         ->disabled()
@@ -77,7 +95,7 @@ class ConsumptionRateResource extends Resource
                         ->default(config('costing.wastage_pct', 3))
                         ->disabled()
                         ->dehydrated()
-                        ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Yield 3% waste <span title="Production waste tolerance percentage (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->suffix('%'),
                     Forms\Components\Select::make('component')
                         ->label('Component')
@@ -122,22 +140,37 @@ class ConsumptionRateResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('material.name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('unit')->label('UOM'),
-            Tables\Columns\TextColumn::make('standard_rate')
-                ->label('Actual Consumption')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('wastage_rate')
-                ->label('Yield 3% waste')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->suffix('%'),
-            Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['design', 'material']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('material.name')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, ConsumptionRate $record) {
+                        if (! $state || ! $record->material_id) {
+                            return $state ?? 'N/A';
+                        }
+                        $url = MaterialResource::getUrl('edit', ['record' => $record->material_id]);
+                        $tooltip = $record->material?->code ? 'Code: '.$record->material->code : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (ConsumptionRate $record) => $record->material?->code ? 'Code: '.$record->material->code : null),
+                Tables\Columns\TextColumn::make('unit')->label('UOM'),
+                Tables\Columns\TextColumn::make('standard_rate')
+                    ->label('Actual Cons.')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('wastage_rate')
+                    ->label('Yield 3% waste')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->suffix('%'),
+                Tables\Columns\TextColumn::make('component')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
             ->filters([
                 SelectFilter::make('design_id')->relationship('design', 'name'),
                 SelectFilter::make('material_id')

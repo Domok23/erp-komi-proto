@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MaterialReservations\Schemas;
 
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\Project;
@@ -97,19 +98,22 @@ class MaterialReservationForm
                     ->preload()
                     ->required()
                     ->reactive(),
+                MaterialFormFilterHelper::categoryFilter(),
+                MaterialFormFilterHelper::supplierFilter(),
                 Forms\Components\Select::make('material_id')
                     ->relationship(
                         'material',
                         'name',
-                        fn ($query, callable $get) => $query->whereHas('inventoryStocks', function ($q) use ($get) {
-                            $companyId = CompanyContext::getCompanyId();
-                            $warehouseId = $get('warehouse_id');
-                            $q->where('company_id', $companyId);
-                            if ($warehouseId) {
-                                $q->where('warehouse_id', $warehouseId);
-                            }
-                            $q->where('available_qty', '>', 0);
-                        })
+                        fn ($query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                            ->whereHas('inventoryStocks', function ($q) use ($get) {
+                                $companyId = CompanyContext::getCompanyId();
+                                $warehouseId = $get('warehouse_id');
+                                $q->where('company_id', $companyId);
+                                if ($warehouseId) {
+                                    $q->where('warehouse_id', $warehouseId);
+                                }
+                                $q->where('available_qty', '>', 0);
+                            })
                     )
                     ->getOptionLabelFromRecordUsing(function ($record, callable $get) {
                         $companyId = CompanyContext::getCompanyId();

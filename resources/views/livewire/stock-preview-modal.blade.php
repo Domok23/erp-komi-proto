@@ -15,8 +15,8 @@
         }
         .dark .stock-preview-header-bar,
         .fi-theme-dark .stock-preview-header-bar {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
             box-shadow: none !important;
         }
         .stock-preview-qty-group {

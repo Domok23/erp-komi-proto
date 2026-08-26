@@ -200,19 +200,19 @@ class ListMaterials extends ListRecords
 
                         if (empty($errors)) {
                             Notification::make()
-                                ->title('Import Excel Berhasil')
-                                ->body("Berhasil mengimpor {$successCount} data material.")
+                                ->title('Excel Import Successful')
+                                ->body("Successfully imported {$successCount} material records.")
                                 ->success()
                                 ->send();
                         } else {
                             $errorText = implode("\n", array_slice($errors, 0, 5));
                             if (count($errors) > 5) {
-                                $errorText .= "\n...dan ".(count($errors) - 5).' error lainnya.';
+                                $errorText .= "\n...and ".(count($errors) - 5).' more errors.';
                             }
 
                             Notification::make()
-                                ->title('Import Selesai dengan '.count($errors).' Error')
-                                ->body("{$successCount} baris berhasil diimpor.\nError:\n{$errorText}")
+                                ->title('Import Completed with '.count($errors).' Errors')
+                                ->body("{$successCount} rows imported successfully.\nErrors:\n{$errorText}")
                                 ->warning()
                                 ->persistent()
                                 ->send();
@@ -220,7 +220,7 @@ class ListMaterials extends ListRecords
 
                     } catch (\Exception $e) {
                         Notification::make()
-                            ->title('Import Excel Gagal')
+                            ->title('Excel Import Failed')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\RdDesignResource\RelationManagers\ConsumptionRatesRelationManager;
 use App\Models\Bom;
-use App\Models\BomItem;
 use App\Models\Company;
 use App\Models\ConsumptionRate;
 use App\Models\Material;
@@ -249,20 +248,16 @@ class ConsumptionRatesTest extends TestCase
             'wastage_rate' => 5,
         ]);
 
-        // Assert BOM item was automatically created with component
-        $bomItem = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->first();
-        $this->assertNotNull($bomItem);
-        $this->assertEquals('Front Pocket', $bomItem->component);
+        $this->assertEquals('Front Pocket', $rate->component);
 
         // Update consumption rate component
         $rate->update(['component' => 'Back Pocket & Flap']);
 
-        // Assert BOM item component was automatically updated
-        $bomItem->refresh();
-        $this->assertEquals('Back Pocket & Flap', $bomItem->component);
+        $rate->refresh();
+        $this->assertEquals('Back Pocket & Flap', $rate->component);
     }
 
-    public function test_multi_component_rates_create_distinct_bom_items_and_delete_cleanly(): void
+    public function test_multi_component_rates_create_distinct_rates_and_delete_cleanly(): void
     {
         $company = Company::create([
             'name' => 'Multi Comp Co',
@@ -288,15 +283,6 @@ class ConsumptionRatesTest extends TestCase
             'stock' => 100,
         ]);
 
-        $bom = Bom::create([
-            'company_id' => $company->id,
-            'design_id' => $design->id,
-            'bom_number' => 'BOM-MC-01',
-            'name' => 'BOM Multi Test',
-            'version' => '1.0',
-            'status' => 'draft',
-        ]);
-
         // Create 2 rates for the same material with different components
         $rate1 = ConsumptionRate::create([
             'company_id' => $company->id,
@@ -318,16 +304,16 @@ class ConsumptionRatesTest extends TestCase
             'wastage_rate' => 3,
         ]);
 
-        $bomItems = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->get();
-        $this->assertCount(2, $bomItems);
-        $this->assertTrue($bomItems->contains('component', 'Body'));
-        $this->assertTrue($bomItems->contains('component', 'Front Pocket'));
+        $designRates = ConsumptionRate::where('design_id', $design->id)->where('material_id', $material->id)->get();
+        $this->assertCount(2, $designRates);
+        $this->assertTrue($designRates->contains('component', 'Body'));
+        $this->assertTrue($designRates->contains('component', 'Front Pocket'));
 
-        // Deleting rate1 should only delete the 'Body' bom item
+        // Deleting rate1 should only delete the 'Body' item
         $rate1->delete();
 
-        $bomItemsRemaining = BomItem::where('bom_id', $bom->id)->where('material_id', $material->id)->get();
-        $this->assertCount(1, $bomItemsRemaining);
-        $this->assertEquals('Front Pocket', $bomItemsRemaining->first()->component);
+        $designRatesRemaining = ConsumptionRate::where('design_id', $design->id)->where('material_id', $material->id)->get();
+        $this->assertCount(1, $designRatesRemaining);
+        $this->assertEquals('Front Pocket', $designRatesRemaining->first()->component);
     }
 }

@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\PickMaterialsAction;
 use App\Filament\Actions\StockPreviewAction;
 use App\Filament\Resources\BomResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Bom;
 use App\Models\Component;
 use App\Models\ConsumptionRate;
@@ -22,6 +24,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rules\Unique;
 
@@ -63,10 +66,12 @@ class BomResource extends Resource
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set, $get) {
                             if ($state) {
-                                $rates = ConsumptionRate::where('design_id', $state)->get();
+                                $rates = ConsumptionRate::where('design_id', $state)->with('material')->get();
 
                                 $items = $rates->map(function ($rate) {
                                     return [
+                                        'filter_category_id' => $rate->material?->category_id,
+                                        'filter_supplier_id' => $rate->material?->supplier_id,
                                         'material_id' => $rate->material_id,
                                         'component' => $rate->component,
                                         'quantity_per_unit' => $rate->standard_rate,
@@ -120,17 +125,28 @@ class BomResource extends Resource
             Section::make('BOM Items')
                 ->columnSpanFull()
                 ->headerActions([
+                    PickMaterialsAction::make(),
                     StockPreviewAction::make('form', allowReserve: false),
                 ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
+                            MaterialFormFilterHelper::categoryFilter()
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
+                            MaterialFormFilterHelper::supplierFilter()
+                                ->disabled(fn (callable $get) => (bool) $get('is_from_rnd')),
                             Forms\Components\Select::make('material_id')
-                                ->relationship('material', 'name')
-                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                                ->relationship(
+                                    'material',
+                                    'name',
+                                    modifyQueryUsing: fn (Builder $query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                                )
+                                ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.MaterialResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
+                                ->allowHtml()
                                 ->searchable(['code', 'name', 'color', 'size'])
                                 ->preload()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
@@ -142,7 +158,7 @@ class BomResource extends Resource
                                 ->disabled(fn (callable $get) => $get('is_from_rnd'))
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('quantity_per_unit')
-                                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                                ->label(new HtmlString('Actual Consumption <span title="Actual net material requirement per unit (without waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->numeric()
                                 ->step(0.0001)
                                 ->required()
@@ -154,7 +170,7 @@ class BomResource extends Resource
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\TextInput::make('wastage_percent')
-                                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                                ->label(new HtmlString('Yield 3% waste <span title="Production waste tolerance percentage (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                                 ->default(config('costing.wastage_pct', 3))
                                 ->suffix('%')
                                 ->disabled()
@@ -245,6 +261,11 @@ class BomResource extends Resource
                 ]),
             ])
             ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
     }
 
     public static function getNavigationIcon(): ?string

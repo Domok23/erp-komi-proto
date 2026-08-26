@@ -30,6 +30,10 @@ class MerchandisePlanningItem extends Model
         'is_from_rnd' => 'boolean',
     ];
 
+    protected $appends = [
+        'filter_category_id',
+    ];
+
     public function planning(): BelongsTo
     {
         return $this->belongsTo(MerchandisePlanning::class, 'merchandise_planning_id');
@@ -43,6 +47,11 @@ class MerchandisePlanningItem extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    public function getFilterCategoryIdAttribute(): ?int
+    {
+        return $this->material?->category_id;
     }
 
     public function subcon(): BelongsTo

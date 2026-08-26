@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubconMaterialInResource\Pages;
+use App\Filament\Support\MaterialFormFilterHelper;
 use App\Models\Material;
 use App\Models\PoSubcon;
 use App\Models\SubconMaterialIn;
@@ -20,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class SubconMaterialInResource extends Resource
@@ -153,31 +155,36 @@ class SubconMaterialInResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('item_type')
                                 ->options([
-                                    'processed' => 'Barang Hasil Olahan',
-                                    'raw_return' => 'Sisa Bahan Baku/Reject',
+                                    'processed' => 'Processed Output',
+                                    'raw_return' => 'Raw Material Return / Scrap',
                                 ])
                                 ->default('processed')
                                 ->required()
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     $set('material_id', null);
-                                    $set('description', null);
+                                    $set('item_name', null);
                                     $set('unit', null);
                                 }),
-                            Forms\Components\TextInput::make('description')
-                                ->label('Material / Service Description')
+                            Forms\Components\TextInput::make('item_name')
+                                ->label('Processed Item Name / Description')
                                 ->required(fn (callable $get) => $get('item_type') === 'processed')
                                 ->visible(fn (callable $get) => $get('item_type') === 'processed')
                                 ->maxLength(255),
+                            MaterialFormFilterHelper::categoryFilter()
+                                ->visible(fn (callable $get) => $get('item_type') === 'raw_return'),
+                            MaterialFormFilterHelper::supplierFilter()
+                                ->visible(fn (callable $get) => $get('item_type') === 'raw_return'),
                             Forms\Components\Select::make('material_id')
                                 ->relationship(
                                     'material',
                                     'name',
-                                    fn ($query) => $query->whereHas('inventoryStocks', function ($q) {
-                                        $companyId = CompanyContext::getCompanyId();
-                                        $q->where('company_id', $companyId)
-                                            ->where('quantity', '>', 0);
-                                    })
+                                    modifyQueryUsing: fn ($query, callable $get) => MaterialFormFilterHelper::applyFilters($query, $get)
+                                        ->whereHas('inventoryStocks', function ($q) {
+                                            $companyId = CompanyContext::getCompanyId();
+                                            $q->where('company_id', $companyId)
+                                                ->where('quantity', '>', 0);
+                                        })
                                 )
                                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                                 ->searchable(['code', 'name', 'color', 'size'])
@@ -195,7 +202,7 @@ class SubconMaterialInResource extends Resource
                                     }
                                 }),
                             Forms\Components\TextInput::make('qty_received')
-                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Sisa Bahan Baku Kembali' : 'Qty Barang Hasil Diterima')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Returned Raw Material Qty' : 'Accepted Processed Qty')
                                 ->numeric()
                                 ->step(0.01)
                                 ->default(1)
@@ -214,6 +221,7 @@ class SubconMaterialInResource extends Resource
                                         if (! $outId) {
                                             return;
                                         }
+                                        /** @var SubconMaterialOut|null $out */
                                         $out = SubconMaterialOut::with('items')->find($outId);
                                         if (! $out) {
                                             return;
@@ -225,12 +233,12 @@ class SubconMaterialInResource extends Resource
                                         $qtyRejected = floatval($get('qty_rejected') ?? 0);
 
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
-                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                            $fail("Total return quantity ({$qtyReceived}) and reject ({$qtyRejected}) cannot exceed sent quantity ({$maxSent}).");
                                         }
                                     },
                                 ]),
                             Forms\Components\TextInput::make('qty_rejected')
-                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Bahan Baku Rusak/Reject' : 'Qty Barang Hasil Reject')
+                                ->label(fn (callable $get) => $get('item_type') === 'raw_return' ? 'Rejected Raw Material Qty' : 'Rejected Processed Qty')
                                 ->numeric()
                                 ->step(0.01)
                                 ->default(0)
@@ -249,6 +257,7 @@ class SubconMaterialInResource extends Resource
                                         if (! $outId) {
                                             return;
                                         }
+                                        /** @var SubconMaterialOut|null $out */
                                         $out = SubconMaterialOut::with('items')->find($outId);
                                         if (! $out) {
                                             return;
@@ -260,7 +269,7 @@ class SubconMaterialInResource extends Resource
                                         $qtyRejected = floatval($value);
 
                                         if (($qtyReceived + $qtyRejected) > $maxSent) {
-                                            $fail("Total barang sisa ({$qtyReceived}) dan reject ({$qtyRejected}) tidak boleh melebihi jumlah yang dikirim ({$maxSent}).");
+                                            $fail("Total return quantity ({$qtyReceived}) and reject ({$qtyRejected}) cannot exceed sent quantity ({$maxSent}).");
                                         }
                                     },
                                 ]),
@@ -278,21 +287,23 @@ class SubconMaterialInResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
-            Tables\Columns\TextColumn::make('subconMaterialOut.document_number')->label('Material Out Ref'),
-            Tables\Columns\TextColumn::make('subcon.name')->sortable(),
-            Tables\Columns\TextColumn::make('receive_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'received' => 'info',
-                    'verified' => 'success',
-                    default => 'gray',
-                }),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['poSubcon', 'subconMaterialOut', 'subcon']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('document_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('poSubcon.po_number')->label('Subcon PO'),
+                Tables\Columns\TextColumn::make('subconMaterialOut.document_number')->label('Material Out Ref'),
+                Tables\Columns\TextColumn::make('subcon.name')->sortable(),
+                Tables\Columns\TextColumn::make('receive_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'received' => 'info',
+                        'verified' => 'success',
+                        default => 'gray',
+                    }),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',

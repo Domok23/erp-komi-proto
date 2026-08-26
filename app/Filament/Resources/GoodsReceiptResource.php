@@ -22,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
@@ -247,7 +248,7 @@ class GoodsReceiptResource extends Resource
                                                 $maxAllowed = $matchedItem ? floatval($matchedItem['qty_received'] ?? 0) : 0;
 
                                                 if (floatval($value) > $maxAllowed) {
-                                                    $fail("Kuantitas yang diretur ({$value}) tidak boleh melebihi kuantitas yang diterima ({$maxAllowed}).");
+                                                    $fail("Return quantity ({$value}) cannot exceed received quantity ({$maxAllowed}).");
                                                 }
                                             },
                                         ]),
@@ -280,22 +281,24 @@ class GoodsReceiptResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('gr_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('po.po_number')->label('PO Number')->searchable(),
-            Tables\Columns\TextColumn::make('warehouse.name')->sortable(),
-            Tables\Columns\TextColumn::make('receipt_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'received' => 'info',
-                    'partial' => 'warning',
-                    'verified' => 'success',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('received_by'),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['po', 'warehouse']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('gr_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('po.po_number')->label('PO Number')->searchable(),
+                Tables\Columns\TextColumn::make('warehouse.name')->sortable(),
+                Tables\Columns\TextColumn::make('receipt_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'received' => 'info',
+                        'partial' => 'warning',
+                        'verified' => 'success',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('received_by'),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -312,6 +315,7 @@ class GoodsReceiptResource extends Resource
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
+                            $record->loadMissing(['company', 'warehouse', 'po', 'items.material']);
                             $pdf = Pdf::loadView('pdf.goods-receipt', [
                                 'goodsReceipt' => $record,
                                 'company' => $record->company,

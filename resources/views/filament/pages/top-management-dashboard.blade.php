@@ -20,20 +20,20 @@
         <!-- Row 1: Finance Chart (Revenue vs Cost) + Material Reservations Breakdown -->
         <div class="dashboard-row-two-col">
             <div class="chart-container-large">
-                @livewire(\App\Filament\Widgets\ManagementFinanceChart::class)
+                @livewire(\App\Filament\Widgets\ManagementFinanceChart::class, key('top-mgmt-finance-chart'))
             </div>
             <div class="chart-container-small">
-                @livewire(\App\Filament\Widgets\MaterialReservationChart::class)
+                @livewire(\App\Filament\Widgets\MaterialReservationChart::class, key('top-mgmt-res-chart'))
             </div>
         </div>
 
         <!-- Row 2: Sales Order Status Chart + Production Capacity Widget + Top High-Value Sales -->
         <div class="dashboard-row-three-col">
             <div class="widget-box">
-                @livewire(\App\Filament\Widgets\SalesOrderStatusChart::class)
+                @livewire(\App\Filament\Widgets\SalesOrderStatusChart::class, key('top-mgmt-so-chart'))
             </div>
             <div class="widget-box">
-                @livewire(\App\Filament\Widgets\ProductionCapacityWidget::class)
+                @livewire(\App\Filament\Widgets\ProductionCapacityWidget::class, key('top-mgmt-prod-cap'))
             </div>
             <div class="widget-box">
                 <x-filament::section
@@ -141,8 +141,8 @@
 
         /* Dark Mode Overrides */
         .dark .top-mgmt-subbar {
-            background-color: #1f2937 !important;
-            border-color: #374151 !important;
+            background-color: #18181b !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
             box-shadow: none !important;
         }
         .dark .subbar-title,
@@ -157,18 +157,18 @@
             color: #9ca3af !important;
         }
         .dark .subbar-divider {
-            background-color: #374151 !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
         }
         .dark .high-value-item {
-            background-color: rgba(55, 65, 81, 0.5) !important;
-            border-color: #374151 !important;
+            background-color: rgba(255, 255, 255, 0.03) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
         .dark .price-pill {
-            background-color: rgba(16, 185, 129, 0.2) !important;
+            background-color: rgba(16, 185, 129, 0.15) !important;
             color: #34d399 !important;
         }
         .dark .card-footer {
-            border-top-color: #374151 !important;
+            border-top-color: rgba(255, 255, 255, 0.08) !important;
         }
         
         @media (max-width: 1024px) {

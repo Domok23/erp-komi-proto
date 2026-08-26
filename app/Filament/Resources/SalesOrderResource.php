@@ -23,6 +23,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
@@ -329,27 +330,29 @@ class SalesOrderResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('so_number')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('customer.name')->searchable()->sortable(),
-            Tables\Columns\TextColumn::make('order_date')->date()->sortable(),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'draft' => 'gray',
-                    'confirmed' => 'info',
-                    'in_production' => 'warning',
-                    'shipped' => 'primary',
-                    'delivered' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('grand_total')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('currency'),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['project', 'customer']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('so_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('project.name')->label('Project')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('customer.name')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('order_date')->date()->sortable(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'confirmed' => 'info',
+                        'in_production' => 'warning',
+                        'shipped' => 'primary',
+                        'delivered' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('grand_total')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('currency'),
+            ])
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -381,6 +384,7 @@ class SalesOrderResource extends Resource
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('info')
                         ->action(function ($record) {
+                            $record->loadMissing(['company', 'customer', 'items', 'project']);
                             $pdf = Pdf::loadView('pdf.sales-order', [
                                 'salesOrder' => $record,
                                 'company' => $record->company,

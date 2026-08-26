@@ -50,7 +50,7 @@ class SubProjectsRelationManager extends RelationManager
                 ->default(0)
                 ->minValue(0),
             Forms\Components\TextInput::make('produced_qty')
-                ->label(new HtmlString('Produced Qty <span title="Jumlah total aktual yang telah selesai diproduksi (dihitung otomatis dari Production Order)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                ->label(new HtmlString('Produced Qty <span title="Total actual completed quantity produced (calculated automatically from Production Orders)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                 ->integer()
                 ->default(0)
                 ->disabled()

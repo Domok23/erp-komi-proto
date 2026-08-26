@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MerchandisePlanningSyncService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,94 +31,13 @@ class ConsumptionRate extends Model
     {
         static::saved(function (ConsumptionRate $consumptionRate) {
             $consumptionRate->design?->recalculateEstimates();
-            $consumptionRate->syncWithBoms();
+            MerchandisePlanningSyncService::syncConsumptionRate($consumptionRate);
         });
 
         static::deleted(function (ConsumptionRate $consumptionRate) {
             $consumptionRate->design?->recalculateEstimates();
-            $consumptionRate->deleteFromBoms();
+            MerchandisePlanningSyncService::syncConsumptionRate($consumptionRate, true);
         });
-    }
-
-    public function syncWithBoms(): void
-    {
-        if (! $this->design_id) {
-            return;
-        }
-
-        $origComponent = $this->getOriginal('component');
-        $boms = Bom::where('design_id', $this->design_id)
-            ->where('status', '!=', 'discontinued')
-            ->get();
-        foreach ($boms as $bom) {
-            $bomItem = null;
-            if ($this->wasChanged('component') && $origComponent !== null) {
-                $bomItem = BomItem::where('bom_id', $bom->id)
-                    ->where('material_id', $this->material_id)
-                    ->where('component', $origComponent)
-                    ->first();
-            }
-
-            if (! $bomItem) {
-                $bomItem = BomItem::where('bom_id', $bom->id)
-                    ->where('material_id', $this->material_id)
-                    ->where(function ($q) {
-                        if ($this->component) {
-                            $q->where('component', $this->component);
-                        } else {
-                            $q->whereNull('component')->orWhere('component', '');
-                        }
-                    })
-                    ->first();
-            }
-
-            if ($bomItem) {
-                if ($bomItem->is_from_rnd ?? true) {
-                    $bomItem->update([
-                        'component' => $this->component,
-                        'quantity_per_unit' => $this->standard_rate,
-                        'unit' => $this->unit,
-                        'wastage_percent' => config('costing.wastage_pct', 3),
-                        'is_from_rnd' => true,
-                    ]);
-                }
-            } else {
-                BomItem::create([
-                    'bom_id' => $bom->id,
-                    'material_id' => $this->material_id,
-                    'component' => $this->component,
-                    'quantity_per_unit' => $this->standard_rate,
-                    'unit' => $this->unit,
-                    'wastage_percent' => config('costing.wastage_pct', 3),
-                    'notes' => $this->notes,
-                    'is_from_rnd' => true,
-                ]);
-            }
-        }
-    }
-
-    public function deleteFromBoms(): void
-    {
-        if (! $this->design_id) {
-            return;
-        }
-
-        $bomIds = Bom::where('design_id', $this->design_id)
-            ->where('status', '!=', 'discontinued')
-            ->pluck('id');
-        BomItem::whereIn('bom_id', $bomIds)
-            ->where('material_id', $this->material_id)
-            ->where(function ($q) {
-                if ($this->component) {
-                    $q->where('component', $this->component);
-                } else {
-                    $q->whereNull('component')->orWhere('component', '');
-                }
-            })
-            ->where(function ($q) {
-                $q->where('is_from_rnd', true)->orWhereNull('is_from_rnd');
-            })
-            ->delete();
     }
 
     public function design(): BelongsTo

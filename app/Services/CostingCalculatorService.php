@@ -49,24 +49,49 @@ class CostingCalculatorService
     }
 
     /**
-     * Calculate material cost from BOM (supports SubProject effective BOM).
+     * Calculate material cost from Design / BOM (supports SubProject and R&D Design).
      */
     public static function calculateFromBOM(Project $project, ?SubProject $subProject = null): array
     {
+        return self::calculateFromDesignOrBom($project, $subProject);
+    }
+
+    public static function calculateFromDesignOrBom(Project $project, ?SubProject $subProject = null): array
+    {
         $materialCost = 0;
+        $defaultWastage = config('costing.wastage_pct', 3);
+        $importCostPct = config('costing.import_cost_pct', 5);
         $bom = $subProject ? $subProject->effectiveBom() : $project->bom;
 
         if ($bom) {
-            $wastage = config('costing.wastage_pct', 3);
-            $importCostPct = config('costing.import_cost_pct', 5);
+            $bom->loadMissing('items.material');
+            if ($bom->items->isNotEmpty()) {
+                foreach ($bom->items as $item) {
+                    $material = $item->material;
+                    if ($material) {
+                        $wastageRate = $item->wastage_percent !== null ? (float) $item->wastage_percent : (float) $defaultWastage;
+                        $wastageMultiplier = 1 + ($wastageRate / 100);
+                        $qtyAdjusted = (float) $item->quantity_per_unit * $wastageMultiplier;
 
-            foreach ($bom->items as $item) {
-                $material = $item->material;
+                        $effectivePrice = (float) $material->price;
+                        if ($material->is_import) {
+                            $effectivePrice *= (1 + ($importCostPct / 100));
+                        }
+
+                        $materialCost += $qtyAdjusted * $effectivePrice;
+                    }
+                }
+            }
+        } elseif ($project->design) {
+            $project->design->loadMissing('consumptionRates.material');
+            foreach ($project->design->consumptionRates as $rate) {
+                $material = $rate->material;
                 if ($material) {
-                    $wastageMultiplier = 1 + ($wastage / 100);
-                    $qtyAdjusted = $item->quantity_per_unit * $wastageMultiplier;
+                    $wastageRate = $rate->wastage_rate !== null ? (float) $rate->wastage_rate : (float) $defaultWastage;
+                    $wastageMultiplier = 1 + ($wastageRate / 100);
+                    $qtyAdjusted = (float) $rate->standard_rate * $wastageMultiplier;
 
-                    $effectivePrice = $material->price;
+                    $effectivePrice = (float) $material->price;
                     if ($material->is_import) {
                         $effectivePrice *= (1 + ($importCostPct / 100));
                     }

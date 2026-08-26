@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Services\CostingCalculatorService;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RdDesign extends Model
@@ -15,6 +16,8 @@ class RdDesign extends Model
         'company_id',
         'code',
         'name',
+        'version',
+        'parent_design_id',
         'description',
         'product_type',
         'status',
@@ -39,6 +42,39 @@ class RdDesign extends Model
         'estimated_profit_margin_pct' => 'decimal:2',
         'estimated_selling_price' => 'decimal:2',
     ];
+
+    public function parentDesign(): BelongsTo
+    {
+        return $this->belongsTo(RdDesign::class, 'parent_design_id');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(RdDesign::class, 'parent_design_id');
+    }
+
+    public function createRevision(string $newVersion): self
+    {
+        $clone = $this->replicate([
+            'created_at',
+            'updated_at',
+        ]);
+        $clone->version = $newVersion;
+        $clone->parent_design_id = $this->id;
+        $clone->status = 'draft';
+        $clone->code = $this->code.'-v'.str_replace('.', '_', $newVersion);
+        $clone->save();
+
+        foreach ($this->consumptionRates as $rate) {
+            $clonedRate = $rate->replicate(['created_at', 'updated_at']);
+            $clonedRate->design_id = $clone->id;
+            $clonedRate->save();
+        }
+
+        $clone->recalculateEstimates();
+
+        return $clone;
+    }
 
     public function boms(): HasMany
     {

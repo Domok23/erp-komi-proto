@@ -6,6 +6,7 @@ use App\Exceptions\ProjectArchiveException;
 use App\Exceptions\SubProjectException;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
+use App\Livewire\ProjectDesignConsumptionTable;
 use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
@@ -21,6 +22,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -98,41 +100,53 @@ class ProjectResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('customer_id')
                         ->relationship('customer', 'name')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.CustomerResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('sales_order_id')
                         ->relationship('salesOrder', 'so_number')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.SalesOrderResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->so_number.'</a>'))
+                        ->allowHtml()
                         ->searchable()
                         ->preload()
                         ->nullable(),
                     Forms\Components\Select::make('design_id')
+                        ->label('R&D Design')
                         ->relationship('design', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'approved'
-                            ? $record->name
-                            : new HtmlString("{$record->name} <span style='color: #888; font-size: 0.9em; margin-left: 5px;'>[{$record->status}]</span>"))
+                        ->getOptionLabelFromRecordUsing(function ($record) {
+                            $url = RdDesignResource::getUrl('edit', ['record' => $record]);
+                            $labelText = "{$record->code} - {$record->name} (v{$record->version})";
+                            if ($record->status === 'approved') {
+                                return new HtmlString('<a href="'.$url.'" class="ref-link">'.$labelText.'</a>');
+                            }
+
+                            return new HtmlString('<a href="'.$url.'" class="ref-link">'.$labelText.'</a> <span style="color: #888; font-size: 0.9em; margin-left: 5px;">['.$record->status.']</span>');
+                        })
                         ->allowHtml()
                         ->searchable()
                         ->preload()
-                        ->nullable()
-                        ->reactive()
+                        ->required()
+                        ->live()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $design = RdDesign::find($state);
                                 if ($design && $design->status !== 'approved') {
                                     $set('design_id', null);
-                                    $set('bom_id', null);
 
                                     $title = match ($design->status) {
-                                        'draft' => 'Desain Masih Draft',
-                                        'archived' => 'Desain Telah Diarsip',
-                                        default => 'Desain R&D Tidak Valid',
+                                        'draft' => 'Design is Still Draft',
+                                        'under_review' => 'Design is Under Review',
+                                        'archived', 'obsolete' => 'Design Inactive / Archived',
+                                        default => 'Invalid R&D Design',
                                     };
 
                                     $body = match ($design->status) {
-                                        'draft' => 'Desain R&D "'.$design->name.'" masih berstatus draft and belum disetujui.',
-                                        'archived' => 'Desain R&D "'.$design->name.'" sudah diarsip.',
-                                        default => 'Desain R&D "'.$design->name.'" tidak dapat digunakan (status: '.$design->status.').',
+                                        'draft' => 'R&D Design "'.$design->name.'" is still draft and has not been approved yet.',
+                                        'under_review' => 'R&D Design "'.$design->name.'" is currently under review.',
+                                        'archived', 'obsolete' => 'R&D Design "'.$design->name.'" is inactive or archived.',
+                                        default => 'R&D Design "'.$design->name.'" cannot be used (status: '.$design->status.').',
                                     };
 
                                     Notification::make()
@@ -140,11 +154,8 @@ class ProjectResource extends Resource
                                         ->body($body)
                                         ->warning()
                                         ->send();
-
-                                    return;
                                 }
                             }
-                            $set('bom_id', null);
                         })
                         ->rules([
                             function () {
@@ -153,9 +164,10 @@ class ProjectResource extends Resource
                                         $design = RdDesign::find($value);
                                         if ($design && $design->status !== 'approved') {
                                             $errorMessage = match ($design->status) {
-                                                'draft' => 'Desain R&D terpilih masih berstatus draft.',
-                                                'archived' => 'Desain R&D terpilih sudah diarsip.',
-                                                default => 'Desain R&D terpilih tidak dapat digunakan (status: '.$design->status.').',
+                                                'draft' => 'Selected R&D design is still in draft status.',
+                                                'under_review' => 'Selected R&D design is currently under review.',
+                                                'archived', 'obsolete' => 'Selected R&D design is inactive or archived.',
+                                                default => 'Selected R&D design cannot be used (status: '.$design->status.').',
                                             };
                                             $fail($errorMessage);
                                         }
@@ -163,112 +175,13 @@ class ProjectResource extends Resource
                                 };
                             },
                         ]),
-                    Forms\Components\Select::make('bom_id')
-                        ->relationship('bom', 'name', function ($query, callable $get) {
-                            $designId = $get('design_id');
-                            if ($designId) {
-                                return $query->where('design_id', $designId);
-                            }
-
-                            return $query;
-                        })
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->status === 'active'
-                            ? new HtmlString("{$record->name} <span class='bom-number-prefix'>[{$record->bom_number}]</span>")
-                            : new HtmlString("{$record->name} <span class='bom-number-prefix'>[{$record->bom_number}] [{$record->status}]</span>"))
-                        ->allowHtml()
-                        ->searchable()
-                        ->preload()
-                        ->nullable()
-                        ->disabled(fn (callable $get) => empty($get('design_id')))
-                        ->live()
-                        ->afterStateHydrated(function ($state, callable $set) {
-                            self::loadBomItems($state, $set);
-                        })
-                        ->afterStateUpdated(function ($state, callable $set) {
-                            if ($state) {
-                                $bom = Bom::find($state);
-                                if ($bom && $bom->status !== 'active') {
-                                    $set('bom_id', null);
-                                    $set('bom_items', []);
-
-                                    $title = match ($bom->status) {
-                                        'draft' => 'BOM Masih Draft',
-                                        'discontinued' => 'BOM Telah Discontinue',
-                                        default => 'BOM Tidak Valid',
-                                    };
-
-                                    $body = match ($bom->status) {
-                                        'draft' => 'BOM "'.$bom->name.'" masih berstatus draft and belum aktif.',
-                                        'archived', 'discontinued' => 'BOM "'.$bom->name.'" sudah tidak digunakan lagi (discontinued).',
-                                        default => 'BOM "'.$bom->name.'" tidak dapat digunakan (status: '.$bom->status.').',
-                                    };
-
-                                    Notification::make()
-                                        ->title($title)
-                                        ->body($body)
-                                        ->warning()
-                                        ->send();
-                                } else {
-                                    self::loadBomItems($state, $set);
-                                }
-                            } else {
-                                $set('bom_items', []);
-                            }
-                        })
-                        ->rules([
-                            function () {
-                                return function (string $attribute, $value, $fail) {
-                                    if ($value) {
-                                        $bom = Bom::find($value);
-                                        if ($bom && $bom->status !== 'active') {
-                                            $errorMessage = match ($bom->status) {
-                                                'draft' => 'BOM terpilih masih berstatus draft.',
-                                                'archived', 'discontinued' => 'BOM terpilih sudah discontinue.',
-                                                default => 'BOM terpilih tidak dapat digunakan (status: '.$bom->status.').',
-                                            };
-                                            $fail($errorMessage);
-                                        }
-                                    }
-                                };
-                            },
-                        ]),
-                    Forms\Components\Placeholder::make('no_bom_items')
-                        ->label('BOM Items')
-                        ->content('Select a BOM to view its items')
-                        ->visible(fn (callable $get) => ! $get('bom_id'))
-                        ->columnSpanFull(),
-                    Forms\Components\Repeater::make('bom_items')
-                        ->label('BOM Items')
-                        ->dehydrated(false)
-                        ->schema([
-                            Forms\Components\TextInput::make('material_name')
-                                ->label('Material Name')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('category')
-                                ->label('Category')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('quantity_per_unit')
-                                ->label(new HtmlString('Actual Consumption <span title="Jumlah konsumsi aktual/riil kebutuhan bahan per unit barang (tanpa waste)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->disabled()
-                                ->formatStateUsing(fn ($state) => is_numeric($state) ? number_format((float) $state, 4, '.', ',') : $state),
-                            Forms\Components\TextInput::make('unit')
-                                ->label('UOM')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('wastage_percent')
-                                ->label(new HtmlString('Yield 3% waste <span title="Persentase toleransi sisa bahan yang terbuang/rusak saat produksi (Fixed global 3%)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
-                                ->disabled()
-                                ->formatStateUsing(fn ($state) => number_format(config('costing.wastage_pct', 3), 2, '.', ',')),
-                        ])
-                        ->columns(5)
-                        ->itemLabel(fn (array $state): ?string => $state['material_name'] ?? null)
-                        ->reorderable(false)
-                        ->addable(false)
-                        ->deletable(false)
-                        ->default([])
-                        ->visible(fn (callable $get) => $get('bom_id'))
+                    Livewire::make(ProjectDesignConsumptionTable::class, fn (callable $get) => [
+                        'designId' => $get('design_id'),
+                    ])
+                        ->key(fn (callable $get) => 'project-design-consumption-table-'.($get('design_id') ?? 'empty'))
                         ->columnSpanFull(),
                     Forms\Components\Select::make('reference_project_id')
-                        ->label(new HtmlString('Reference Project <span title="Proyek asal (referensi) yang otomatis terisi ketika proyek sampel/massal dibuat melalui approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Reference Project <span title="Originating reference project automatically linked when sample or mass project is created via approval" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->relationship('referenceProject', 'project_code')
                         ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('
                             <style>
@@ -290,7 +203,7 @@ class ProjectResource extends Resource
                         ->default(0)
                         ->minValue(0),
                     Forms\Components\TextInput::make('produced_qty')
-                        ->label(new HtmlString('Produced Qty <span title="Jumlah total aktual yang telah selesai diproduksi (dihitung otomatis dari Production Order)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
+                        ->label(new HtmlString('Produced Qty <span title="Total actual completed quantity produced (calculated automatically from Production Orders)" style="cursor: help; color: #888; font-weight: normal; margin-left: 2px;">ⓘ</span>'))
                         ->integer()
                         ->default(0)
                         ->disabled()
@@ -316,41 +229,60 @@ class ProjectResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('project_code')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\BadgeColumn::make('type')
-                ->color(fn (string $state): string => match ($state) {
-                    'proto' => 'gray',
-                    'sample' => 'info',
-                    'mass' => 'success',
-                    default => 'gray',
-                }),
-            Tables\Columns\BadgeColumn::make('status')
-                ->color(fn (string $state): string => match ($state) {
-                    'planning' => 'gray',
-                    'development' => 'info',
-                    'sampling' => 'warning',
-                    'approved' => 'primary',
-                    'production' => 'warning',
-                    'completed' => 'success',
-                    'cancelled' => 'danger',
-                    default => 'gray',
-                }),
-            Tables\Columns\TextColumn::make('archive_badge')
-                ->label('')
-                ->state(fn (Project $record) => $record->isArchived() ? 'Archived' : null)
-                ->badge()
-                ->color('warning')
-                ->placeholder(''),
-            Tables\Columns\TextColumn::make('customer.name')->searchable(),
-            Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
-            Tables\Columns\TextColumn::make('target_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('produced_qty')
-                ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['design', 'customer']))
+            ->recordUrl(fn (Project $record): string => self::getUrl('edit', ['record' => $record]))
+            ->recordAction(EditAction::class)
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('project_code')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('design.code')
+                    ->label('R&D Design')
+                    ->sortable()
+                    ->searchable()
+                    ->html()
+                    ->formatStateUsing(function ($state, Project $record) {
+                        if (! $state || ! $record->design_id) {
+                            return $state ?? '-';
+                        }
+                        $url = RdDesignResource::getUrl('edit', ['record' => $record->design_id]);
+                        $tooltip = $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : '';
+
+                        return '<a href="'.$url.'" title="'.e($tooltip).'" class="hover:underline text-primary-600 dark:text-primary-400 font-medium cursor-pointer" onclick="event.stopPropagation()">'.e($state).'</a>';
+                    })
+                    ->tooltip(fn (Project $record) => $record->design ? "Code: {$record->design->code} (v{$record->design->version})" : null),
+                Tables\Columns\BadgeColumn::make('type')
+                    ->color(fn (string $state): string => match ($state) {
+                        'proto' => 'gray',
+                        'sample' => 'info',
+                        'mass' => 'success',
+                        default => 'gray',
+                    }),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'planning' => 'gray',
+                        'development' => 'info',
+                        'sampling' => 'warning',
+                        'approved' => 'primary',
+                        'production' => 'warning',
+                        'completed' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('archive_badge')
+                    ->label('')
+                    ->state(fn (Project $record) => $record->isArchived() ? 'Archived' : null)
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder(''),
+                Tables\Columns\TextColumn::make('customer.name')->searchable(),
+                Tables\Columns\TextColumn::make('sub_projects_count')->counts('subProjects')->label('Sub-Projects'),
+                Tables\Columns\TextColumn::make('target_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('produced_qty')
+                    ->numeric(decimalPlaces: 0, decimalSeparator: '.', thousandsSeparator: ','),
+            ])
             ->filters([
                 SelectFilter::make('visibility')
                     ->label('Visibility')
@@ -386,7 +318,7 @@ class ProjectResource extends Resource
                                     ->send();
                             } catch (SubProjectException $e) {
                                 Notification::make()
-                                    ->title('Review Sub-Project Belum Selesai')
+                                    ->title('Sub-Project Review Incomplete')
                                     ->body($e->getMessage())
                                     ->warning()
                                     ->persistent()

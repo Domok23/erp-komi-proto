@@ -1,11 +1,51 @@
 @php
-    $supplierItems = $record->items->where('is_subcon', false)->groupBy('supplier_id');
-    $subconItems = $record->items->where('is_subcon', true)->groupBy('subcon_id');
+    $plannings = isset($records) ? $records : (isset($record) ? collect([$record]) : collect());
+    $finalisedPlannings = $plannings->where('status', 'finalised');
+    $nonFinalisedPlannings = $plannings->where('status', '!=', 'finalised');
+    $isBulk = $plannings->count() > 1;
+
+    // Collect all items from finalised plannings with their parent planning attached
+    $allItemsWithPlanning = collect();
+    foreach ($finalisedPlannings as $p) {
+        foreach ($p->items as $item) {
+            $item->planning_project = $p->project;
+            $item->planning_sub_project = $p->subProject;
+            $allItemsWithPlanning->push($item);
+        }
+    }
+
+    $supplierItems = $allItemsWithPlanning->where('is_subcon', false)->groupBy('supplier_id');
+    $subconItems = $allItemsWithPlanning->where('is_subcon', true)->groupBy('subcon_id');
 
     // Identify skipped items
-    $skippedSupplierItems = $record->items->where('is_subcon', false)->whereNull('supplier_id');
-    $skippedSubconItems = $record->items->where('is_subcon', true)->whereNull('subcon_id');
-    $hasSkipped = $skippedSupplierItems->isNotEmpty() || $skippedSubconItems->isNotEmpty();
+    $skippedSupplierItems = $allItemsWithPlanning->where('is_subcon', false)->whereNull('supplier_id');
+    $skippedSubconItems = $allItemsWithPlanning->where('is_subcon', true)->whereNull('subcon_id');
+    $hasSkipped = $skippedSupplierItems->isNotEmpty() || $skippedSubconItems->isNotEmpty() || $nonFinalisedPlannings->isNotEmpty();
+
+    // Calculate shortage with FIFO running stock
+    $runningStocks = $stocks ?? [];
+    $itemShortages = [];
+
+    foreach ($allItemsWithPlanning->where('is_subcon', false) as $item) {
+        if (! $item->supplier_id || ! $item->material_id) {
+            continue;
+        }
+        $matId = $item->material_id;
+        $plannedQty = floatval($item->planned_qty);
+        $availStock = floatval($runningStocks[$matId] ?? 0);
+
+        if ($availStock >= $plannedQty) {
+            $runningStocks[$matId] = $availStock - $plannedQty;
+            $shortage = 0.0;
+        } else {
+            $shortage = $plannedQty - $availStock;
+            $runningStocks[$matId] = 0.0;
+        }
+        $itemShortages[spl_object_id($item)] = [
+            'shortage' => $shortage,
+            'stock_available_at_time' => $availStock,
+        ];
+    }
 
     // Count actual POs to be generated (suppliers with shortage > 0 + subcons)
     $validSupplierPoCount = 0;
@@ -13,10 +53,8 @@
         if (! $supplierId) {
             continue;
         }
-        $hasShortage = $items->contains(function ($item) use ($stocks) {
-            $stockVal = $stocks[$item->material_id] ?? 0;
-
-            return (floatval($item->planned_qty) - floatval($stockVal)) > 0;
+        $hasShortage = $items->contains(function ($item) use ($itemShortages) {
+            return ($itemShortages[spl_object_id($item)]['shortage'] ?? 0) > 0;
         });
         if ($hasShortage) {
             $validSupplierPoCount++;
@@ -34,7 +72,7 @@
             font-size: 13px;
             line-height: 1.5;
             color: #1f2937;
-            max-height: 65vh;
+            max-height: 75vh;
             overflow-y: auto;
             padding-right: 4px;
         }
@@ -101,8 +139,8 @@
             overflow: hidden;
         }
         .dark .po-card {
-            border-color: #334155;
-            background-color: #0f172a;
+            border-color: rgba(255, 255, 255, 0.1);
+            background-color: #18181b;
             box-shadow: none;
         }
         .po-card-header {
@@ -114,8 +152,8 @@
             align-items: center;
         }
         .dark .po-card-header {
-            background-color: #1e293b;
-            border-color: #334155;
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-card-title {
             font-weight: 700;
@@ -166,9 +204,9 @@
             border-bottom: 1px solid #e2e8f0;
         }
         .dark .po-table th {
-            background-color: #1e293b;
+            background-color: rgba(255, 255, 255, 0.02);
             color: #94a3b8;
-            border-color: #334155;
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-table td {
             padding: 10px 16px;
@@ -177,7 +215,7 @@
             color: #334155;
         }
         .dark .po-table td {
-            border-color: #1e293b;
+            border-color: rgba(255, 255, 255, 0.05);
             color: #cbd5e1;
         }
         .po-table tbody tr:hover {
@@ -227,20 +265,39 @@
             color: #a855f7;
             margin-top: 2px;
         }
+        .project-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background-color: #f1f5f9;
+            color: #3b82f6;
+            margin-top: 4px;
+            width: fit-content;
+            border: 1px solid #e2e8f0;
+        }
+        .dark .project-tag {
+            background-color: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.25);
+        }
         .badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 10px;
-            font-weight: 700;
-            line-height: 1.2;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.4;
         }
         .badge-draft {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fde68a;
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
         .dark .badge-draft {
             background-color: rgba(245, 158, 11, 0.15);
@@ -248,26 +305,26 @@
             border-color: rgba(245, 158, 11, 0.3);
         }
         .badge-shortage {
-            background-color: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #b91c1c;
+            border: 1px solid rgba(239, 68, 68, 0.2);
             padding: 2px 6px;
         }
         .dark .badge-shortage {
             background-color: rgba(239, 68, 68, 0.15);
-            color: #fca5a5;
+            color: #f87171;
             border-color: rgba(239, 68, 68, 0.3);
         }
         .badge-ok {
-            background-color: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.2);
             padding: 2px 6px;
         }
         .dark .badge-ok {
-            background-color: rgba(34, 197, 94, 0.15);
-            color: #86efac;
-            border-color: rgba(34, 197, 94, 0.3);
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
         }
         .fully-stocked-text {
             font-size: 9px;
@@ -305,8 +362,8 @@
             font-size: 12px;
         }
         .dark .po-total-section {
-            background-color: #1e293b;
-            border-color: #334155;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
         }
         .po-total-row {
             display: flex;
@@ -328,7 +385,7 @@
             color: #0f172a;
         }
         .dark .po-total-row-grand {
-            border-color: #475569;
+            border-color: rgba(255, 255, 255, 0.15);
             color: #f8fafc;
         }
         .total-price-supplier {
@@ -377,8 +434,12 @@
 
     @if ($totalPoCount > 0)
         <div class="po-intro">
-            Generating POs will create draft purchase orders based on finalized planning items.
-            A total of <strong>{{ $totalPoCount }}</strong> Purchase Order(s) will be created.
+            @if ($isBulk)
+                Generating consolidated POs from <strong>{{ $finalisedPlannings->count() }}</strong> finalised planning(s) across multiple projects.
+            @else
+                Generating POs will create draft purchase orders based on finalized planning items.
+            @endif
+            A total of <strong>{{ $totalPoCount }}</strong> Purchase Order(s) will be created/updated.
         </div>
     @else
         <div class="po-intro" style="background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); color: #15803d;">
@@ -403,9 +464,8 @@
                 @php
                     $supplier = $items->first()->supplier;
                     $subtotal = 0;
-                    $hasShortage = $items->contains(function ($item) use ($stocks) {
-                        $stockVal = $stocks[$item->material_id] ?? 0;
-                        return (floatval($item->planned_qty) - floatval($stockVal)) > 0;
+                    $hasShortage = $items->contains(function ($item) use ($itemShortages) {
+                        return ($itemShortages[spl_object_id($item)]['shortage'] ?? 0) > 0;
                     });
                 @endphp
                 <div class="po-card">
@@ -436,8 +496,9 @@
                                 @foreach ($items as $item)
                                     @php
                                         $material = $item->material;
-                                        $stockVal = $stocks[$item->material_id] ?? 0;
-                                        $shortage = max(0, floatval($item->planned_qty) - floatval($stockVal));
+                                        $shortageData = $itemShortages[spl_object_id($item)] ?? ['shortage' => 0, 'stock_available_at_time' => 0];
+                                        $shortage = $shortageData['shortage'];
+                                        $stockVal = $shortageData['stock_available_at_time'];
                                         $itemTotalPrice = $shortage * floatval($item->unit_price);
                                         $subtotal += $itemTotalPrice;
                                     @endphp
@@ -448,6 +509,14 @@
                                                 <span class="material-code">{{ $material?->code ?? '' }}</span>
                                                 @if ($item->notes)
                                                     <span class="material-notes">Note: {{ $item->notes }}</span>
+                                                @endif
+                                                @if ($isBulk && $item->planning_project)
+                                                    <span class="project-tag">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                        </svg>
+                                                        {{ $item->planning_project->name }} [{{ $item->planning_project->project_code }}]
+                                                    </span>
                                                 @endif
                                             </div>
                                         </td>
@@ -548,8 +617,23 @@
                                         $totalCost += floatval($item->total_price);
                                     @endphp
                                     <tr>
-                                        <td style="font-weight: 600;" class="material-name">
-                                            {{ $item->notes ?? 'Subcon service' }}
+                                        <td>
+                                            <div class="material-info">
+                                                <span style="font-weight: 600;" class="material-name">
+                                                    {{ $item->notes ?? 'Subcon service' }}
+                                                </span>
+                                                @if ($item->component)
+                                                    <span class="material-code">Component: {{ $item->component }}</span>
+                                                @endif
+                                                @if ($isBulk && $item->planning_project)
+                                                    <span class="project-tag">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                        </svg>
+                                                        {{ $item->planning_project->name }} [{{ $item->planning_project->project_code }}]
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td style="text-align: center; font-weight: 600;">
                                             {{ number_format($item->planned_qty, 2) }} <span style="font-size: 10px; font-weight: 400;" class="material-code">{{ $item->unit ?? 'pcs' }}</span>
@@ -577,7 +661,7 @@
         </div>
     @endif
 
-    {{-- Warning: Missing Supplier/Subcon --}}
+    {{-- Warning: Missing Supplier/Subcon or Non-Finalised Plannings --}}
     @if ($hasSkipped)
         <div class="warning-box">
             <h4 class="warning-title">
@@ -587,17 +671,28 @@
                 Skipped Items (No PO Will Be Generated)
             </h4>
             <div style="font-size: 12px; margin-bottom: 8px;">
-                The following planning items do not have an assigned Supplier or Subcontractor. They will be skipped and no POs will be generated:
+                The following planning items or non-finalised plannings do not have an assigned Supplier/Subcontractor or valid status. They will be skipped and no POs will be generated:
             </div>
             <ul class="warning-list">
+                @foreach ($nonFinalisedPlannings as $np)
+                    <li>
+                        <strong>Non-Finalised Planning:</strong> {{ $np->project?->name ?? 'Planning #' . $np->id }} (Status: <em>{{ ucfirst($np->status) }}</em>) - Only <strong>Finalised</strong> plannings can generate POs.
+                    </li>
+                @endforeach
                 @foreach ($skippedSupplierItems as $item)
                     <li>
                         <strong>Material:</strong> {{ $item->material?->name ?? 'Unknown Material' }} (Code: {{ $item->material?->code ?? '-' }}) - Qty: {{ number_format($item->planned_qty, 2) }} {{ $item->unit }}
+                        @if ($isBulk && $item->planning_project)
+                            <span class="muted-text">in {{ $item->planning_project->name }}</span>
+                        @endif
                     </li>
                 @endforeach
                 @foreach ($skippedSubconItems as $item)
                     <li>
                         <strong>Subcon Service:</strong> {{ $item->notes ?? 'Subcon service' }} - Qty: {{ number_format($item->planned_qty, 2) }}
+                        @if ($isBulk && $item->planning_project)
+                            <span class="muted-text">in {{ $item->planning_project->name }}</span>
+                        @endif
                     </li>
                 @endforeach
             </ul>

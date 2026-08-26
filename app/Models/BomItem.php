@@ -26,6 +26,11 @@ class BomItem extends Model
         'is_from_rnd' => 'boolean',
     ];
 
+    protected $appends = [
+        'filter_category_id',
+        'filter_supplier_id',
+    ];
+
     protected static function booted(): void
     {
         static::saving(function (BomItem $bomItem) {
@@ -52,5 +57,15 @@ class BomItem extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class, 'material_id');
+    }
+
+    public function getFilterCategoryIdAttribute(): ?int
+    {
+        return $this->material?->category_id;
+    }
+
+    public function getFilterSupplierIdAttribute(): ?int
+    {
+        return $this->material?->supplier_id;
     }
 }

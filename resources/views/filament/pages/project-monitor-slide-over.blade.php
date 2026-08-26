@@ -25,6 +25,14 @@
     $salesValue = $project->salesOrder?->total_amount ?? 0;
     $margin = $salesValue > 0 ? $salesValue - $totalCost : 0;
     $marginPercent = $salesValue > 0 ? round(($margin / $salesValue) * 100, 1) : 0;
+
+    // Status pill style config
+    $statusPillStyles = match($project->status) {
+        'production' => 'background-color: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25);',
+        'completed' => 'background-color: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25);',
+        'sampling' => 'background-color: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25);',
+        default => 'background-color: rgba(100, 116, 139, 0.12); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.25);',
+    };
 @endphp
 
 <style>
@@ -34,8 +42,8 @@
         color: #111827;
     }
     .dark .pm-card {
-        background-color: #1f2937 !important;
-        border-color: #374151 !important;
+        background-color: #18181b !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
         color: #f9fafb !important;
     }
 
@@ -44,8 +52,8 @@
         border: 1px solid #e5e7eb;
     }
     .dark .pm-tab-track {
-        background-color: #111827 !important;
-        border-color: #374151 !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
     }
 
     .pm-tab-btn {
@@ -76,9 +84,9 @@
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
     .dark .pm-tab-btn.is-active {
-        background-color: #1f2937 !important;
+        background-color: #27272a !important;
         color: #ffffff !important;
-        border-color: #4b5563 !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
     }
 
     .pm-tab-icon {
@@ -122,20 +130,147 @@
         border-bottom: 1px solid #e5e7eb;
     }
     .dark .pm-table-head {
-        background-color: #374151 !important;
-        color: #f3f4f6 !important;
-        border-color: #4b5563 !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        color: #94a3b8 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
     }
 
     .pm-table-row {
         border-bottom: 1px solid #f3f4f6;
     }
     .dark .pm-table-row {
-        border-color: #374151 !important;
+        border-color: rgba(255, 255, 255, 0.05) !important;
     }
 
     .pm-card-spacer {
         margin-bottom: 12px !important;
+    }
+
+    /* Badges & Custom Elements */
+    .pm-code-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 11px;
+        font-weight: 700;
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+    }
+    .dark .pm-code-badge {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: #e2e8f0 !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    .pm-progress-track {
+        width: 100%;
+        border-radius: 9999px;
+        overflow: hidden;
+        background-color: #e2e8f0;
+    }
+    .dark .pm-progress-track {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .pm-subproject-box {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    .dark .pm-subproject-box {
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .pm-timeline-line {
+        position: absolute;
+        left: 7px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background-color: #e2e8f0;
+    }
+    .dark .pm-timeline-line {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .pm-milestone-circle-done {
+        position: absolute;
+        left: -24px;
+        width: 16px;
+        height: 16px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        background-color: #10b981;
+        color: #ffffff;
+    }
+
+    .pm-milestone-circle-pending {
+        position: absolute;
+        left: -24px;
+        width: 16px;
+        height: 16px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        background-color: #ffffff;
+        border: 2px solid #cbd5e1;
+        color: transparent;
+    }
+    .dark .pm-milestone-circle-pending {
+        background-color: #18181b !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .pm-active-phase-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        background-color: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .dark .pm-active-phase-badge {
+        background-color: rgba(245, 158, 11, 0.15) !important;
+        color: #fbbf24 !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+    }
+
+    .pm-status-pill {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .pm-gross-margin-card {
+        padding: 16px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #ecfdf5;
+        border: 1px solid #a7f3d0;
+    }
+    .dark .pm-gross-margin-card {
+        background-color: rgba(16, 185, 129, 0.08) !important;
+        border-color: rgba(16, 185, 129, 0.25) !important;
     }
 </style>
 
@@ -144,7 +279,7 @@
     <div style="border-radius: 12px; padding: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;" class="pm-card">
         <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-size: 11px; font-weight: 700; background-color: #e5e7eb; color: #374151;" class="dark:bg-gray-700 dark:text-gray-200">
+                <span class="pm-code-badge">
                     {{ $project->project_code }}
                 </span>
                 <span style="font-size: 12px; font-weight: 500;" class="pm-text-muted">
@@ -155,13 +290,7 @@
             <div style="font-size: 12px; margin-top: 2px;" class="pm-text-muted">Customer: <strong class="pm-text-main">{{ $project->customer?->name ?? 'N/A' }}</strong></div>
         </div>
         <div>
-            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-                {{ match($project->status) {
-                    'production' => 'background-color: #fef3c7; color: #92400e;',
-                    'completed' => 'background-color: #d1fae5; color: #065f46;',
-                    'sampling' => 'background-color: #dbeafe; color: #1e40af;',
-                    default => 'background-color: #f3f4f6; color: #374151;',
-                } }}">
+            <span class="pm-status-pill" style="{{ $statusPillStyles }}">
                 {{ ucfirst(str_replace('_', ' ', $project->status)) }}
             </span>
         </div>
@@ -208,7 +337,7 @@
                 <span>Production Output</span>
                 <span style="color: #10b981; font-family: monospace; font-weight: 700;">{{ $percent }}% ({{ number_format($produced) }} / {{ number_format($target) }} pcs)</span>
             </div>
-            <div style="width: 100%; border-radius: 9999px; height: 10px; overflow: hidden; background-color: #e5e7eb;" class="dark:bg-gray-700">
+            <div style="height: 10px;" class="pm-progress-track">
                 <div style="background-color: #10b981; height: 10px; border-radius: 9999px; width: {{ $percent }}%; transition: width 0.3s;"></div>
             </div>
         </div>
@@ -226,10 +355,10 @@
                         $spProduced = $sp->produced_qty ?? 0;
                         $spPct = $spTarget > 0 ? min(100, round(($spProduced / $spTarget) * 100, 1)) : 0;
                     @endphp
-                    <div style="padding: 10px 12px; border-radius: 8px; border: 1px solid #e5e7eb;" class="dark:border-gray-700">
+                    <div class="pm-subproject-box">
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px;">
                             <div>
-                                <span style="font-family: monospace; font-weight: 700; background-color: #f3f4f6; padding: 2px 6px; border-radius: 4px;" class="dark:bg-gray-700 pm-text-main">
+                                <span class="pm-code-badge">
                                     {{ $sp->code }}
                                 </span>
                                 <strong class="pm-text-main" style="margin-left: 6px;">{{ $sp->name }}</strong>
@@ -241,7 +370,7 @@
                                 {{ $spPct }}% ({{ number_format($spProduced) }} / {{ number_format($spTarget) }} pcs)
                             </span>
                         </div>
-                        <div style="width: 100%; border-radius: 9999px; height: 6px; overflow: hidden; background-color: #e5e7eb;" class="dark:bg-gray-700">
+                        <div style="height: 6px;" class="pm-progress-track">
                             <div style="background-color: #3b82f6; height: 6px; border-radius: 9999px; width: {{ $spPct }}%; transition: width 0.3s;"></div>
                         </div>
                     </div>
@@ -254,22 +383,21 @@
         <div style="border-radius: 12px; padding: 16px;" class="pm-card">
             <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;" class="pm-text-main">Milestone Progression</h4>
             <div style="display: flex; flex-direction: column; gap: 16px; position: relative; padding-left: 24px;">
-                <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background-color: #e5e7eb;" class="dark:bg-gray-700"></div>
+                <div class="pm-timeline-line"></div>
 
                 @foreach (['Planning', 'Development', 'Sampling', 'Production', 'Completed'] as $idx => $stg)
                     @php $isPastOrCurrent = $idx <= $currentStatusIndex; @endphp
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="position: absolute; left: -24px; width: 16px; height: 16px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
-                                {{ $isPastOrCurrent ? 'background-color: #10b981; color: #ffffff;' : 'background-color: #ffffff; border: 2px solid #d1d5db; color: transparent;' }}">
-                                ✓
+                            <div class="{{ $isPastOrCurrent ? 'pm-milestone-circle-done' : 'pm-milestone-circle-pending' }}">
+                                {{ $isPastOrCurrent ? '✓' : '' }}
                             </div>
                             <span style="font-size: 13px; {{ $isPastOrCurrent ? 'font-weight: 700;' : 'font-weight: 500;' }}" class="{{ $isPastOrCurrent ? 'pm-text-main' : 'pm-text-muted' }}">
                                 {{ $stg }}
                             </span>
                         </div>
                         @if (strtolower($stg) === $project->status)
-                            <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase; background-color: #fef3c7; color: #92400e;">
+                            <span class="pm-active-phase-badge">
                                 Active Phase
                             </span>
                         @endif
@@ -287,16 +415,16 @@
                 <span class="pm-text-muted" style="font-weight: 500;">Material Readiness:</span>
                 <span style="display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase;
                     {{ match($readiness['overall_status']) {
-                        'Ready' => 'background-color: #d1fae5; color: #065f46;',
-                        'Partial' => 'background-color: #fef3c7; color: #92400e;',
-                        'At Risk' => 'background-color: #ffe4e6; color: #9f1239;',
-                        default => 'background-color: #f3f4f6; color: #374151;',
+                        'Ready' => 'background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);',
+                        'Partial' => 'background-color: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);',
+                        'At Risk' => 'background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);',
+                        default => 'background-color: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);',
                     } }}">
                     {{ $readiness['overall_status'] }}
                 </span>
             </div>
             <div style="font-size: 13px; font-weight: 600;" class="pm-text-main">
-                Ready Items: <strong style="color: #059669;" class="dark:text-emerald-400">{{ $readiness['ready_items'] }} / {{ $readiness['total_items'] }}</strong>
+                Ready Items: <strong style="color: #10b981;">{{ $readiness['ready_items'] }} / {{ $readiness['total_items'] }}</strong>
             </div>
         </div>
 
@@ -330,9 +458,9 @@
                                 <td style="padding: 10px 14px; text-align: center;">
                                     <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase;
                                         {{ match($item['status']) {
-                                            'Ready' => 'background-color: #d1fae5; color: #065f46;',
-                                            'Partial' => 'background-color: #fef3c7; color: #92400e;',
-                                            default => 'background-color: #ffe4e6; color: #9f1239;',
+                                            'Ready' => 'background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);',
+                                            'Partial' => 'background-color: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);',
+                                            default => 'background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);',
                                         } }}">
                                         {{ $item['status'] }}
                                     </span>
@@ -363,19 +491,19 @@
             </div>
             <div style="flex: 1; min-width: 140px; padding: 14px; border-radius: 12px;" class="pm-card">
                 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase;" class="pm-text-muted">Sales Order Value</div>
-                <div style="font-size: 15px; font-weight: 800; font-family: monospace; color: #059669; margin-top: 4px;" class="dark:text-emerald-400">Rp {{ number_format($salesValue, 0, ',', '.') }}</div>
+                <div style="font-size: 15px; font-weight: 800; font-family: monospace; color: #10b981; margin-top: 4px;">Rp {{ number_format($salesValue, 0, ',', '.') }}</div>
             </div>
         </div>
 
         <!-- Card 2: Gross Margin Card -->
-        <div style="padding: 16px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;" class="dark:bg-emerald-950/40 dark:border-emerald-800">
+        <div class="pm-gross-margin-card">
             <div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #065f46;" class="dark:text-emerald-300">Estimated Gross Margin</div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #059669;" class="dark:text-emerald-300">Estimated Gross Margin</div>
                 <div style="font-size: 12px; color: #047857; margin-top: 2px;" class="dark:text-emerald-400">Sales Value minus Total Cost</div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 18px; font-weight: 800; font-family: monospace; color: #065f46;" class="dark:text-emerald-300">Rp {{ number_format($margin, 0, ',', '.') }}</div>
-                <div style="font-size: 12px; font-weight: 700; color: #059669;" class="dark:text-emerald-400">({{ $marginPercent }}%)</div>
+                <div style="font-size: 18px; font-weight: 800; font-family: monospace; color: #059669;" class="dark:text-emerald-300">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                <div style="font-size: 12px; font-weight: 700; color: #10b981;" class="dark:text-emerald-400">({{ $marginPercent }}%)</div>
             </div>
         </div>
     </div>

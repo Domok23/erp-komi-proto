@@ -34,9 +34,17 @@ class ProfitLossReport extends Page
         $this->endDate = now()->endOfMonth()->toDateString();
     }
 
+    public ?float $cachedRevenue = null;
+
+    public ?float $cachedExpense = null;
+
     public function getRevenue(): float
     {
-        return GeneralLedger::whereBetween('entry_date', [$this->startDate, $this->endDate])
+        if ($this->cachedRevenue !== null) {
+            return $this->cachedRevenue;
+        }
+
+        return $this->cachedRevenue = (float) GeneralLedger::whereBetween('entry_date', [$this->startDate, $this->endDate])
             ->whereHas('creditAccount', function ($query) {
                 $query->where('account_type', 'revenue');
             })
@@ -45,11 +53,27 @@ class ProfitLossReport extends Page
 
     public function getExpense(): float
     {
-        return GeneralLedger::whereBetween('entry_date', [$this->startDate, $this->endDate])
+        if ($this->cachedExpense !== null) {
+            return $this->cachedExpense;
+        }
+
+        return $this->cachedExpense = (float) GeneralLedger::whereBetween('entry_date', [$this->startDate, $this->endDate])
             ->whereHas('debitAccount', function ($query) {
                 $query->where('account_type', 'expense');
             })
             ->sum('debit_amount');
+    }
+
+    public function updatedStartDate(): void
+    {
+        $this->cachedRevenue = null;
+        $this->cachedExpense = null;
+    }
+
+    public function updatedEndDate(): void
+    {
+        $this->cachedRevenue = null;
+        $this->cachedExpense = null;
     }
 
     public function getGrossProfit(): float

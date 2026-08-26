@@ -20,7 +20,7 @@ class RecentPurchaseOrders extends BaseWidget
     {
         return $table
             ->query(
-                PoSupplier::query()->latest()
+                PoSupplier::query()->with('supplier')->latest()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('po_number')

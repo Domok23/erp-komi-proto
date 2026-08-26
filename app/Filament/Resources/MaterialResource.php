@@ -21,6 +21,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
 
 class MaterialResource extends Resource
@@ -136,29 +137,31 @@ class MaterialResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->sortable(),
-            Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('color')->label('Color')->placeholder('-')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('size')->label('Size')->placeholder('-')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('categoryRef.name')->label('Category')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('uomRef.name')->label('UOM'),
-            Tables\Columns\TextColumn::make('stock')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('min_stock')
-                ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
-            Tables\Columns\TextColumn::make('price')->numeric()->sortable(),
-            Tables\Columns\TextColumn::make('supplier.name')->searchable(),
-            Tables\Columns\IconColumn::make('is_import')->boolean()->label('Import Status')->toggleable(isToggledHiddenByDefault: true),
-            Tables\Columns\TextColumn::make('is_active')
-                ->label('Status')
-                ->badge()
-                ->color(fn (bool $state): string => $state ? 'success' : 'gray')
-                ->formatStateUsing(fn (bool $state): string => $state ? 'Active' : 'Inactive'),
-            Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['categoryRef', 'uomRef', 'supplier']))
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->sortable(),
+                Tables\Columns\TextColumn::make('code')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('color')->label('Color')->placeholder('-')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('size')->label('Size')->placeholder('-')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('categoryRef.name')->label('Category')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('uomRef.name')->label('UOM'),
+                Tables\Columns\TextColumn::make('stock')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ',')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('min_stock')
+                    ->numeric(decimalPlaces: 2, decimalSeparator: '.', thousandsSeparator: ','),
+                Tables\Columns\TextColumn::make('price')->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('supplier.name')->searchable(),
+                Tables\Columns\IconColumn::make('is_import')->boolean()->label('Import Status')->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('is_active')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (bool $state): string => $state ? 'success' : 'gray')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Active' : 'Inactive'),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
             ->filters([
                 SelectFilter::make('category_id')
                     ->label('Category')
@@ -226,6 +229,32 @@ class MaterialResource extends Resource
         }
 
         return is_numeric($state) ? (float) $state : null;
+    }
+
+    public static function normalizeCategory(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $cleaned = strtolower(trim($value));
+        $cleaned = str_replace(['-', '_'], ' ', $cleaned);
+
+        $allowed = [
+            'fabric' => 'fabric',
+            'zipper' => 'zipper',
+            'thread' => 'thread',
+            'accessories' => 'accessories',
+            'webbing' => 'webbing',
+            'hardware' => 'hardware',
+            'packaging' => 'packaging',
+            'finished' => 'finished',
+            'finished product' => 'finished',
+            'semi finished' => 'semi_finished',
+            'semi finished product' => 'semi_finished',
+        ];
+
+        return $allowed[$cleaned] ?? null;
     }
 
     public static function getRelations(): array

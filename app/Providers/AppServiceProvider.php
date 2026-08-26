@@ -136,6 +136,9 @@ class AppServiceProvider extends ServiceProvider
                         cursor: default !important;
                     }
                 </style>
+                <script>
+                    window.isRecordSelected = window.isRecordSelected || function() { return false; };
+                </script>
             ')
         );
     }

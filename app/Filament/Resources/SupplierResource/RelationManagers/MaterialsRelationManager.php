@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
 
 class MaterialsRelationManager extends RelationManager
@@ -28,8 +29,11 @@ class MaterialsRelationManager extends RelationManager
         return $schema->schema([
             TextInput::make('code')
                 ->required()
+                ->maxLength(50)
                 ->unique(
-                    ignoreRecord: true,
+                    table: 'materials',
+                    column: 'code',
+                    ignorable: fn ($record) => $record,
                     modifyRuleUsing: fn (Unique $rule) => $rule->where('company_id', CompanyContext::getCompanyId())
                 ),
             TextInput::make('name')->required(),
@@ -51,14 +55,16 @@ class MaterialsRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return $table->columns([
-            TextColumn::make('id')->sortable(),
-            TextColumn::make('code')->sortable()->searchable(),
-            TextColumn::make('name')->sortable()->searchable(),
-            TextColumn::make('categoryRef.name')->label('Category'),
-            TextColumn::make('uomRef.name')->label('UOM'),
-            IconColumn::make('is_active')->boolean(),
-        ])
+        return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['categoryRef', 'uomRef']))
+            ->columns([
+                TextColumn::make('id')->sortable(),
+                TextColumn::make('code')->sortable()->searchable(),
+                TextColumn::make('name')->sortable()->searchable(),
+                TextColumn::make('categoryRef.name')->label('Category'),
+                TextColumn::make('uomRef.name')->label('UOM'),
+                IconColumn::make('is_active')->boolean(),
+            ])
             ->filters([])
             ->headerActions([
                 CreateAction::make(),
