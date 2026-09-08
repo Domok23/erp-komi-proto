@@ -14,12 +14,9 @@ class SubProject extends Model
     protected static function booted(): void
     {
         static::deleting(function (SubProject $subProject) {
-            if ($subProject->poSupplierItems()->exists() ||
-                $subProject->poSubconItems()->exists() ||
-                $subProject->productionOrders()->exists() ||
-                $subProject->costings()->exists() ||
-                $subProject->materialReservations()->exists()) {
-                throw new \Exception("Cannot delete SubProject '{$subProject->name}' because active transactions are attached to it.");
+            $blockers = $subProject->getDeletionBlockers();
+            if (! empty($blockers)) {
+                throw new \Exception("Cannot delete SubProject '{$subProject->name}' because active transactions are attached to it: ".implode(', ', $blockers));
             }
         });
     }
@@ -78,6 +75,40 @@ class SubProject extends Model
     public function materialReservations(): HasMany
     {
         return $this->hasMany(MaterialReservation::class, 'sub_project_id');
+    }
+
+    public function merchandisePlannings(): HasMany
+    {
+        return $this->hasMany(MerchandisePlanning::class, 'sub_project_id');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($count = $this->merchandisePlannings()->count()) {
+            $blockers[] = "{$count} Merchandise Planning(s)";
+        }
+        if ($count = $this->costings()->count()) {
+            $blockers[] = "{$count} Costing(s)";
+        }
+        if ($count = $this->productionOrders()->count()) {
+            $blockers[] = "{$count} Production Order(s)";
+        }
+        if ($count = $this->materialReservations()->count()) {
+            $blockers[] = "{$count} Material Reservation(s)";
+        }
+        if ($count = $this->poSupplierItems()->count()) {
+            $blockers[] = "{$count} PO Supplier Item(s)";
+        }
+        if ($count = $this->poSubconItems()->count()) {
+            $blockers[] = "{$count} PO Subcon Item(s)";
+        }
+
+        return $blockers;
     }
 
     public function effectiveBom(): ?Bom

@@ -31,6 +31,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Saade\FilamentAutograph\Forms\Components\SignaturePad;
@@ -496,10 +497,46 @@ class PoSupplierResource extends Resource
                         }),
 
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->before(function (PoSupplier $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Purchase Order')
+                                    ->body("Purchase Order '{$record->po_number}' cannot be deleted because: ".implode(', ', $blockers).'. Please resolve them first.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            $blocked = [];
+                            foreach ($records as $record) {
+                                $blockers = $record->getDeletionBlockers();
+                                if (! empty($blockers)) {
+                                    $blocked[] = "{$record->po_number} (".implode(', ', $blockers).')';
+                                }
+                            }
+                            if (! empty($blocked)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Selected Purchase Orders')
+                                    ->body('Some purchase orders cannot be deleted: '.implode('; ', $blocked).'.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string

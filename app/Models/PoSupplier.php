@@ -124,6 +124,41 @@ class PoSupplier extends Model
         return $this->hasMany(PoSupplier::class, 'parent_id');
     }
 
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if (in_array($this->status, ['ordered', 'partially_received', 'received'])) {
+            $blockers[] = "status is '{$this->status}' (active or received orders cannot be deleted)";
+        }
+
+        if ($this->approval_status === 'approved') {
+            $blockers[] = "approval status is 'approved' (approved POs cannot be deleted; cancel or revise instead)";
+        }
+
+        $grCount = $this->goodsReceipts()->count();
+        if ($grCount > 0) {
+            $blockers[] = "{$grCount} linked Goods Receipt(s)";
+        }
+
+        $shipmentCount = $this->purchaseShipments()->count();
+        if ($shipmentCount > 0) {
+            $blockers[] = "{$shipmentCount} linked Purchase Shipment(s)";
+        }
+
+        $invCount = $this->invoices()->count();
+        if ($invCount > 0) {
+            $blockers[] = "{$invCount} linked Purchase Invoice(s)";
+        }
+
+        $revCount = $this->revisions()->count();
+        if ($revCount > 0) {
+            $blockers[] = "{$revCount} linked Revision(s)";
+        }
+
+        return $blockers;
+    }
+
     public function syncReceivedQty(): void
     {
         $poSupplierId = $this->id;

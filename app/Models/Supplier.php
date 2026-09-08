@@ -55,4 +55,24 @@ class Supplier extends Model
     {
         return $this->hasMany(InvoicePurchase::class, 'reference_id')->where('purchase_type', 'po_supplier');
     }
+
+    /**
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($count = $this->poSuppliers()->count()) {
+            $blockers[] = "{$count} Purchase Order(s)";
+        }
+        if ($count = $this->materials()->count()) {
+            $blockers[] = "{$count} Material(s)";
+        }
+        if ($count = $this->invoicePurchases()->count()) {
+            $blockers[] = "{$count} Purchase Invoice(s)";
+        }
+
+        return $blockers;
+    }
 }

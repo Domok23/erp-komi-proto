@@ -80,4 +80,25 @@ class SalesOrder extends Model
     {
         return $this->hasMany(InvoiceSales::class, 'sales_order_id');
     }
+
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if (! in_array($this->status, ['draft', 'cancelled'])) {
+            $blockers[] = "status is '{$this->status}' (only Draft or Cancelled orders can be deleted)";
+        }
+
+        $invoicesCount = $this->invoiceSales()->count();
+        if ($invoicesCount > 0) {
+            $blockers[] = "{$invoicesCount} linked Sales Invoice(s)";
+        }
+
+        $shipmentsCount = $this->shipments()->count();
+        if ($shipmentsCount > 0) {
+            $blockers[] = "{$shipmentsCount} linked Shipment(s)";
+        }
+
+        return $blockers;
+    }
 }

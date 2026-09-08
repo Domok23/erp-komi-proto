@@ -25,6 +25,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
 
 class PoSubconResource extends Resource
@@ -383,10 +384,46 @@ class PoSubconResource extends Resource
                         })
                         ->requiresConfirmation(),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->before(function (PoSubcon $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Subcon PO')
+                                    ->body("Subcon PO '{$record->po_number}' cannot be deleted because: ".implode(', ', $blockers).'. Please resolve them first.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            $blocked = [];
+                            foreach ($records as $record) {
+                                $blockers = $record->getDeletionBlockers();
+                                if (! empty($blockers)) {
+                                    $blocked[] = "{$record->po_number} (".implode(', ', $blockers).')';
+                                }
+                            }
+                            if (! empty($blocked)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Selected Subcon POs')
+                                    ->body('Some subcon POs cannot be deleted: '.implode('; ', $blocked).'.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string

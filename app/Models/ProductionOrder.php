@@ -85,4 +85,20 @@ class ProductionOrder extends Model
     {
         return $this->hasMany(HrEmployeePlacement::class, 'project_id', 'project_id');
     }
+
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if (! in_array($this->status, ['planned', 'cancelled'])) {
+            $blockers[] = "status is '{$this->status}' (only Planned or Cancelled production orders can be deleted)";
+        }
+
+        $jobOrdersCount = $this->jobOrders()->count();
+        if ($jobOrdersCount > 0) {
+            $blockers[] = "{$jobOrdersCount} linked Job Order(s)";
+        }
+
+        return $blockers;
+    }
 }

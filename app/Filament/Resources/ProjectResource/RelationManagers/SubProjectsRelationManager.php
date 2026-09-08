@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
+use App\Models\SubProject;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -102,7 +104,20 @@ class SubProjectsRelationManager extends RelationManager
                 ActionGroup::make([
                     EditAction::make(),
                     DeleteAction::make()
-                        ->hidden(fn ($record) => $record->project?->type === 'mass'),
+                        ->hidden(fn ($record) => $record->project?->type === 'mass')
+                        ->before(function (SubProject $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Sub-Project')
+                                    ->body("Sub-Project '{$record->name}' cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please remove the related records first.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ]);
     }

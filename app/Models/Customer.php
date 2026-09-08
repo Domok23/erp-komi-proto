@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Customer extends Model
 {
@@ -39,8 +40,28 @@ class Customer extends Model
         return $this->hasMany(Project::class);
     }
 
-    public function invoiceSales(): HasMany
+    public function invoiceSales(): HasManyThrough
     {
-        return $this->hasMany(InvoiceSales::class);
+        return $this->hasManyThrough(InvoiceSales::class, SalesOrder::class);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($count = $this->salesOrders()->count()) {
+            $blockers[] = "{$count} Sales Order(s)";
+        }
+        if ($count = $this->projects()->count()) {
+            $blockers[] = "{$count} Project(s)";
+        }
+        if ($count = $this->invoiceSales()->count()) {
+            $blockers[] = "{$count} Sales Invoice(s)";
+        }
+
+        return $blockers;
     }
 }

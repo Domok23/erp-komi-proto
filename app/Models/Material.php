@@ -163,4 +163,30 @@ class Material extends Model
     {
         return $this->hasMany(GoodsReceiptItem::class);
     }
+
+    /**
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ((float) $this->stock > 0 || $this->inventoryStocks()->where('quantity', '>', 0)->exists()) {
+            $blockers[] = 'Stock exists in inventory ('.number_format((float) $this->stock, 2).' '.($this->uom ?? '').')';
+        }
+        if ($count = $this->bomItems()->count()) {
+            $blockers[] = "{$count} BOM item(s)";
+        }
+        if ($count = $this->consumptionRates()->count()) {
+            $blockers[] = "{$count} R&D Consumption Rate(s)";
+        }
+        if ($count = $this->poSupplierItems()->count()) {
+            $blockers[] = "{$count} PO Supplier item(s)";
+        }
+        if ($count = $this->goodsReceiptItems()->count()) {
+            $blockers[] = "{$count} Goods Receipt item(s)";
+        }
+
+        return $blockers;
+    }
 }

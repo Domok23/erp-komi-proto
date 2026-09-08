@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\ProductionOrderResource\Pages;
 
+use App\Models\ProductionOrder;
 use App\Models\ProductionOrderMaterial;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditProductionOrder extends EditRecord
@@ -13,7 +15,22 @@ class EditProductionOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->before(function (Actions\DeleteAction $action) {
+                    /** @var ProductionOrder $record */
+                    $record = $this->getRecord();
+                    $blockers = $record->getDeletionBlockers();
+                    if (! empty($blockers)) {
+                        Notification::make()
+                            ->title('Cannot Delete Production Order')
+                            ->body("Production Order '{$record->production_number}' cannot be deleted because: ".implode(', ', $blockers).'. Please resolve them first.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        $action->halt();
+                    }
+                }),
         ];
     }
 

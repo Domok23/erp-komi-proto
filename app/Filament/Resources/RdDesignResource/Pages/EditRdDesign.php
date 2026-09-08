@@ -57,7 +57,22 @@ class EditRdDesign extends EditRecord
 
                     $this->refreshFormData(['status']);
                 }),
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->before(function (Actions\DeleteAction $action) {
+                    /** @var RdDesign $record */
+                    $record = $this->getRecord();
+                    $blockers = $record->getDeletionBlockers();
+                    if (! empty($blockers)) {
+                        Notification::make()
+                            ->title('Cannot Delete Design')
+                            ->body("Design '{$record->name}' [{$record->code}] cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please reassign or archive first.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        $action->halt();
+                    }
+                }),
         ];
     }
 }

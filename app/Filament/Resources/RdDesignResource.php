@@ -21,6 +21,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rules\Unique;
 
@@ -226,10 +227,46 @@ class RdDesignResource extends Resource
                                 ->send();
                         }),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->before(function (RdDesign $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Design')
+                                    ->body("Design '{$record->name}' [{$record->code}] cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please reassign or archive first.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            $blocked = [];
+                            foreach ($records as $record) {
+                                $blockers = $record->getDeletionBlockers();
+                                if (! empty($blockers)) {
+                                    $blocked[] = "{$record->code} (".implode(', ', $blockers).')';
+                                }
+                            }
+                            if (! empty($blocked)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Selected Designs')
+                                    ->body('Some designs cannot be deleted: '.implode('; ', $blocked).'.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string

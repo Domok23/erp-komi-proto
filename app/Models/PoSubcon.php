@@ -109,4 +109,30 @@ class PoSubcon extends Model
             'total_cost' => $totalServiceCost + (float) ($this->shipping_cost ?? 0) + (float) ($this->shipping_return_cost ?? 0),
         ]);
     }
+
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if (! in_array($this->status, ['draft', 'cancelled'])) {
+            $blockers[] = "status is '{$this->status}' (only Draft or Cancelled subcon POs can be deleted)";
+        }
+
+        $grCount = $this->goodsReceipts()->count();
+        if ($grCount > 0) {
+            $blockers[] = "{$grCount} linked Goods Receipt(s)";
+        }
+
+        $shipmentCount = $this->purchaseShipments()->count();
+        if ($shipmentCount > 0) {
+            $blockers[] = "{$shipmentCount} linked Subcon Shipment(s)";
+        }
+
+        $invCount = $this->invoices()->count();
+        if ($invCount > 0) {
+            $blockers[] = "{$invCount} linked Purchase Invoice(s)";
+        }
+
+        return $blockers;
+    }
 }

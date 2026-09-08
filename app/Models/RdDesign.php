@@ -101,6 +101,32 @@ class RdDesign extends Model
         return $this->hasMany(Costing::class, 'design_id');
     }
 
+    /**
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($count = $this->projects()->count()) {
+            $blockers[] = "{$count} Project(s)";
+        }
+        if ($count = $this->revisions()->count()) {
+            $blockers[] = "{$count} Revision(s)";
+        }
+        if ($count = $this->merchandisePlannings()->count()) {
+            $blockers[] = "{$count} Merchandise Planning(s)";
+        }
+        if ($count = $this->costings()->count()) {
+            $blockers[] = "{$count} Costing(s)";
+        }
+        if ($count = $this->boms()->count()) {
+            $blockers[] = "{$count} BOM(s)";
+        }
+
+        return $blockers;
+    }
+
     public function recalculateEstimates(): void
     {
         $materialCost = 0;

@@ -11,12 +11,14 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\Rules\Unique;
 
 class SubconResource extends Resource
@@ -108,10 +110,46 @@ class SubconResource extends Resource
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->before(function (Subcon $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Subcontractor')
+                                    ->body("Subcontractor '{$record->name}' [{$record->code}] cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please remove or reassign them first.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            $blocked = [];
+                            foreach ($records as $record) {
+                                $blockers = $record->getDeletionBlockers();
+                                if (! empty($blockers)) {
+                                    $blocked[] = "{$record->code} (".implode(', ', $blockers).')';
+                                }
+                            }
+                            if (! empty($blocked)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Selected Subcontractors')
+                                    ->body('Some subcontractors cannot be deleted: '.implode('; ', $blocked).'.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string
