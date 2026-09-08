@@ -26,6 +26,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -195,6 +196,26 @@ class MerchandisePlanningResource extends Resource
             Section::make('Materials & Services Planning')
                 ->columnSpanFull()
                 ->headerActions([
+                    Action::make('resyncFromRnd')
+                        ->label('Re-sync from R&D')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record instanceof MerchandisePlanning && in_array($record->status, ['preliminary', 'tech_pack', 'draft']))
+                        ->requiresConfirmation()
+                        ->modalHeading('Re-sync Materials from R&D Design')
+                        ->modalDescription('This will refresh planned quantities and default prices from the current R&D Consumption Rates while preserving any assigned suppliers, subcons, and custom edits.')
+                        ->action(function (MerchandisePlanning $record, $livewire) {
+                            $count = MerchandisePlanningSyncService::syncFromDesign($record);
+                            Notification::make()
+                                ->title('Synchronized from R&D')
+                                ->body("{$count} material items refreshed from R&D Consumption Rates.")
+                                ->success()
+                                ->send();
+
+                            if (method_exists($livewire, 'refreshFormData')) {
+                                $livewire->refreshFormData(['items', 'total_material_cost', 'total_subcon_cost']);
+                            }
+                        }),
                     PickMaterialsAction::make(),
                     StockPreviewAction::make('form'),
                 ])
@@ -539,6 +560,27 @@ class MerchandisePlanningResource extends Resource
                         ->label('Generate Consolidated POs')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('success')
+                        ->mountUsing(function (BulkAction $action, Collection $records) {
+                            $records->loadMissing('project');
+                            $nonFinalised = $records->filter(fn ($r) => $r->status !== 'finalised');
+
+                            if ($nonFinalised->isNotEmpty()) {
+                                $invalidList = $nonFinalised->map(function ($r) {
+                                    $projectName = $r->project?->name ?? 'Planning #'.$r->id;
+                                    $status = ucfirst(str_replace('_', ' ', $r->status));
+
+                                    return "{$projectName} ({$status})";
+                                })->implode(', ');
+
+                                Notification::make()
+                                    ->title('PO Generation Blocked')
+                                    ->body("Cannot generate POs. The following planning(s) are not in 'Finalised' status: {$invalidList}. Please deselect them or finalize them first.")
+                                    ->warning()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        })
                         ->modalHeading('Confirm Consolidated PO Generation')
                         ->modalWidth('7xl')
                         ->modalSubmitActionLabel('Generate Consolidated POs')
@@ -559,7 +601,29 @@ class MerchandisePlanningResource extends Resource
                                 'stocks' => $stocks,
                             ]);
                         })
-                        ->action(function (Collection $records) {
+                        ->action(function (Collection $records, BulkAction $action) {
+                            $records->loadMissing('project');
+                            $nonFinalised = $records->filter(fn ($r) => $r->status !== 'finalised');
+
+                            if ($nonFinalised->isNotEmpty()) {
+                                $invalidList = $nonFinalised->map(function ($r) {
+                                    $projectName = $r->project?->name ?? 'Planning #'.$r->id;
+                                    $status = ucfirst(str_replace('_', ' ', $r->status));
+
+                                    return "{$projectName} ({$status})";
+                                })->implode(', ');
+
+                                Notification::make()
+                                    ->title('PO Generation Blocked')
+                                    ->body("Cannot generate POs. The following planning(s) are not in 'Finalised' status: {$invalidList}. Please deselect them or finalize them first.")
+                                    ->warning()
+                                    ->send();
+
+                                $action->halt();
+
+                                return;
+                            }
+
                             $finalisedRecords = $records->where('status', 'finalised');
 
                             if ($finalisedRecords->isEmpty()) {
@@ -591,7 +655,8 @@ class MerchandisePlanningResource extends Resource
                             }
                         }),
                     DeleteBulkAction::make(),
-                ]),
+                ])
+                    ->dropdownWidth(Width::ExtraSmall),
             ]);
     }
 

@@ -359,7 +359,7 @@ class MerchandisePlanningBulkPoTest extends TestCase
         $this->assertCount(2, $poSubcon->items);
     }
 
-    public function test_filament_table_bulk_action_skips_non_finalised_plannings(): void
+    public function test_filament_table_bulk_action_blocks_when_non_finalised_plannings_selected(): void
     {
         $planningFinalised = MerchandisePlanning::create([
             'company_id' => $this->company->id,
@@ -401,9 +401,17 @@ class MerchandisePlanningBulkPoTest extends TestCase
             'is_subcon' => false,
         ]);
 
-        // Call bulk action via Livewire
+        // Attempt bulk action with non-finalised record selected - should be blocked
         Livewire::test(ListMerchandisePlannings::class)
-            ->callTableBulkAction('bulkGeneratePO', [$planningFinalised, $planningPreliminary]);
+            ->callTableBulkAction('bulkGeneratePO', [$planningFinalised, $planningPreliminary])
+            ->assertNotified('PO Generation Blocked');
+
+        $poSupplier = PoSupplier::where('supplier_id', $this->supplier->id)->first();
+        $this->assertNull($poSupplier);
+
+        // When only finalised plannings are selected, it succeeds
+        Livewire::test(ListMerchandisePlannings::class)
+            ->callTableBulkAction('bulkGeneratePO', [$planningFinalised]);
 
         $poSupplier = PoSupplier::where('supplier_id', $this->supplier->id)->first();
         $this->assertNotNull($poSupplier);
