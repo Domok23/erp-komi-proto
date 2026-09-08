@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Services\MerchandisePlanningSyncService;
 use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Project extends Model
 {
@@ -65,12 +67,12 @@ class Project extends Model
         return $this->archived_at !== null;
     }
 
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
     }
 
-    public function scopeArchived($query)
+    public function scopeArchived(Builder $query): Builder
     {
         return $query->whereNotNull('archived_at');
     }
@@ -161,5 +163,62 @@ class Project extends Model
     public function activePlacements(): HasMany
     {
         return $this->hasMany(HrEmployeePlacement::class, 'project_id')->where('status', 'active');
+    }
+
+    /**
+     * Get a list of reasons/relations that block this project from being deleted.
+     *
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($count = $this->merchandisePlannings()->count()) {
+            $blockers[] = "{$count} Merchandise Planning(s)";
+        }
+        if ($count = $this->costings()->count()) {
+            $blockers[] = "{$count} Costing(s)";
+        }
+        if ($count = $this->productionOrders()->count()) {
+            $blockers[] = "{$count} Production Order(s)";
+        }
+        if ($this->sales_order_id || SalesOrder::where('project_id', $this->id)->exists()) {
+            $blockers[] = 'Sales Order(s)';
+        }
+        if ($count = $this->placements()->count()) {
+            $blockers[] = "{$count} Employee Placement(s)";
+        }
+
+        $subProjectIds = $this->subProjects()->pluck('id');
+        if ($subProjectIds->isNotEmpty()) {
+            $subPlans = MerchandisePlanning::whereIn('sub_project_id', $subProjectIds)
+                ->where('project_id', '!=', $this->id)
+                ->count();
+            if ($subPlans) {
+                $blockers[] = "{$subPlans} Sub-Project Merchandise Planning(s)";
+            }
+
+            $resCount = MaterialReservation::whereIn('sub_project_id', $subProjectIds)->count();
+            if ($resCount) {
+                $blockers[] = "{$resCount} Material Reservation(s)";
+            }
+
+            $poSupplierCount = DB::table('po_supplier_items')
+                ->whereIn('sub_project_id', $subProjectIds)
+                ->count();
+            if ($poSupplierCount) {
+                $blockers[] = "{$poSupplierCount} PO Supplier Item(s)";
+            }
+
+            $poSubconCount = DB::table('po_subcon_items')
+                ->whereIn('sub_project_id', $subProjectIds)
+                ->count();
+            if ($poSubconCount) {
+                $blockers[] = "{$poSubconCount} PO Subcon Item(s)";
+            }
+        }
+
+        return $blockers;
     }
 }

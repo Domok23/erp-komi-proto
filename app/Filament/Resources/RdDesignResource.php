@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rules\Unique;
 
@@ -62,11 +63,31 @@ class RdDesignResource extends Resource
                         ->maxLength(20),
                     Forms\Components\Select::make('parent_design_id')
                         ->label('Parent Design Revision')
-                        ->relationship('parentDesign', 'name')
+                        ->relationship(
+                            'parentDesign',
+                            'name',
+                            modifyQueryUsing: fn (Builder $query, ?RdDesign $record) => $query
+                                ->where('company_id', CompanyContext::getCompanyId())
+                                ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                        )
                         ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name} (v{$record->version})")
                         ->searchable()
                         ->preload()
-                        ->nullable(),
+                        ->nullable()
+                        ->placeholder('None (Original Design)')
+                        ->disabled()
+                        ->dehydrated()
+                        ->hintAction(
+                            Action::make('openParent')
+                                ->icon('heroicon-m-arrow-top-right-on-square')
+                                ->iconButton()
+                                ->hiddenLabel()
+                                ->tooltip('Open Parent Design')
+                                ->color('primary')
+                                ->visible(fn (?RdDesign $record) => filled($record?->parent_design_id))
+                                ->url(fn (?RdDesign $record) => $record?->parent_design_id ? static::getUrl('edit', ['record' => $record->parent_design_id]) : null)
+                                ->openUrlInNewTab()
+                        ),
                     Forms\Components\Select::make('product_type')
                         ->label('Bag Type')
                         ->options(self::getProductTypeOptions())

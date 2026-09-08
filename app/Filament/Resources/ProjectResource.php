@@ -29,6 +29,7 @@ use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -459,10 +460,48 @@ class ProjectResource extends Resource
                                 Notification::make()->title('Restore failed')->body($e->getMessage())->danger()->send();
                             }
                         }),
-                    DeleteAction::make()->visible(fn ($record) => ! $record->isArchived()),
+                    DeleteAction::make()
+                        ->visible(fn ($record) => ! $record->isArchived())
+                        ->before(function (Project $record, DeleteAction $action) {
+                            $blockers = $record->getDeletionBlockers();
+                            if (! empty($blockers)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Project')
+                                    ->body("Project {$record->project_code} cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please archive the project instead or remove the related records.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->bulkActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            $blocked = [];
+                            foreach ($records as $record) {
+                                $blockers = $record->getDeletionBlockers();
+                                if (! empty($blockers)) {
+                                    $blocked[] = "{$record->project_code} (".implode(', ', $blockers).')';
+                                }
+                            }
+
+                            if (! empty($blocked)) {
+                                Notification::make()
+                                    ->title('Cannot Delete Selected Projects')
+                                    ->body('Some projects have linked records and cannot be deleted: '.implode('; ', $blocked).'. Please archive them instead or remove the related records.')
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
+                ]),
+            ]);
     }
 
     public static function getNavigationIcon(): ?string
@@ -496,7 +535,7 @@ class ProjectResource extends Resource
         ];
     }
 
-    public static function loadBomItems($state, callable $set): void
+    public static function loadBomItems(mixed $state, callable $set): void
     {
         if ($state) {
             $bom = Bom::with('items.material.categoryRef')->find($state);

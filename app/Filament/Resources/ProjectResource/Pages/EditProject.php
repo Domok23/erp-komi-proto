@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Exceptions\ProjectArchiveException;
+use App\Models\Project;
 use App\Services\ProjectArchiveService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -42,7 +43,23 @@ class EditProject extends EditRecord
                     }
                 }),
             Actions\DeleteAction::make()
-                ->visible(fn () => ! $this->getRecord()->isArchived()),
+                ->visible(fn () => ! $this->getRecord()->isArchived())
+                ->before(function (Actions\DeleteAction $action) {
+                    /** @var Project $record */
+                    $record = $this->getRecord();
+                    $blockers = $record->getDeletionBlockers();
+
+                    if (! empty($blockers)) {
+                        Notification::make()
+                            ->title('Cannot Delete Project')
+                            ->body("Project {$record->project_code} cannot be deleted because it is linked to: ".implode(', ', $blockers).'. Please archive the project instead or remove the related records.')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        $action->halt();
+                    }
+                }),
         ];
     }
 
