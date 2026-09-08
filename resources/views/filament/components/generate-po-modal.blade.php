@@ -265,6 +265,48 @@
             color: #a855f7;
             margin-top: 2px;
         }
+        .project-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .project-cell-name {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 12px;
+            line-height: 1.3;
+        }
+        .dark .project-cell-name {
+            color: #f8fafc;
+        }
+        .project-cell-code {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .dark .project-cell-code {
+            color: #60a5fa;
+        }
+        .subproject-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background-color: #faf5ff;
+            color: #7c3aed;
+            margin-top: 2px;
+            width: fit-content;
+            border: 1px solid #e9d5ff;
+        }
+        .dark .subproject-badge {
+            background-color: rgba(168, 85, 247, 0.12);
+            color: #d8b4fe;
+            border-color: rgba(168, 85, 247, 0.25);
+        }
         .project-tag {
             display: inline-flex;
             align-items: center;
@@ -437,7 +479,14 @@
             @if ($isBulk)
                 Generating consolidated POs from <strong>{{ $finalisedPlannings->count() }}</strong> finalised planning(s) across multiple projects.
             @else
-                Generating POs will create draft purchase orders based on finalized planning items.
+                @php
+                    $singlePlanning = $plannings->first();
+                @endphp
+                Generating POs for project <strong>{{ $singlePlanning?->project?->name }}</strong>
+                @if ($singlePlanning?->subProject)
+                    (Sub-Project: <strong>{{ $singlePlanning->subProject->name }}</strong>)
+                @endif
+                based on finalized planning items.
             @endif
             A total of <strong>{{ $totalPoCount }}</strong> Purchase Order(s) will be created/updated.
         </div>
@@ -485,11 +534,12 @@
                         <table class="po-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 35%;">Material</th>
-                                    <th style="width: 20%; text-align: center;">Stock Status</th>
-                                    <th style="width: 15%; text-align: center;">Order Qty</th>
-                                    <th style="width: 15%; text-align: right;">Unit Price</th>
-                                    <th style="width: 15%; text-align: right;">Total Price</th>
+                                    <th style="width: 25%;">Project</th>
+                                    <th style="width: 25%;">Material</th>
+                                    <th style="width: 16%; text-align: center;">Stock Status</th>
+                                    <th style="width: 10%; text-align: center;">Order Qty</th>
+                                    <th style="width: 12%; text-align: right;">Unit Price</th>
+                                    <th style="width: 12%; text-align: right;">Total Price</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -504,19 +554,24 @@
                                     @endphp
                                     <tr class="{{ $shortage <= 0 ? 'po-row-disabled' : '' }}">
                                         <td>
+                                            <div class="project-cell">
+                                                <span class="project-cell-name">{{ $item->planning_project?->name ?? '-' }}</span>
+                                                @if ($item->planning_sub_project)
+                                                    <span class="subproject-badge">
+                                                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                        {{ $item->planning_sub_project->name }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>
                                             <div class="material-info">
                                                 <span class="material-name {{ $shortage <= 0 ? 'material-name-disabled' : '' }}">{{ $material?->name ?? 'Unknown' }}</span>
                                                 <span class="material-code">{{ $material?->code ?? '' }}</span>
                                                 @if ($item->notes)
                                                     <span class="material-notes">Note: {{ $item->notes }}</span>
-                                                @endif
-                                                @if ($isBulk && $item->planning_project)
-                                                    <span class="project-tag">
-                                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                                        </svg>
-                                                        {{ $item->planning_project->name }} [{{ $item->planning_project->project_code }}]
-                                                    </span>
                                                 @endif
                                             </div>
                                         </td>
@@ -605,10 +660,11 @@
                         <table class="po-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 50%;">Description</th>
-                                    <th style="width: 15%; text-align: center;">Service Qty</th>
-                                    <th style="width: 15%; text-align: right;">Unit Price</th>
-                                    <th style="width: 20%; text-align: right;">Total Price</th>
+                                    <th style="width: 30%;">Project</th>
+                                    <th style="width: 30%;">Description</th>
+                                    <th style="width: 12%; text-align: center;">Service Qty</th>
+                                    <th style="width: 14%; text-align: right;">Unit Price</th>
+                                    <th style="width: 14%; text-align: right;">Total Price</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -618,20 +674,25 @@
                                     @endphp
                                     <tr>
                                         <td>
+                                            <div class="project-cell">
+                                                <span class="project-cell-name">{{ $item->planning_project?->name ?? '-' }}</span>
+                                                @if ($item->planning_sub_project)
+                                                    <span class="subproject-badge">
+                                                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                        {{ $item->planning_sub_project->name }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>
                                             <div class="material-info">
                                                 <span style="font-weight: 600;" class="material-name">
                                                     {{ $item->notes ?? 'Subcon service' }}
                                                 </span>
                                                 @if ($item->component)
                                                     <span class="material-code">Component: {{ $item->component }}</span>
-                                                @endif
-                                                @if ($isBulk && $item->planning_project)
-                                                    <span class="project-tag">
-                                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                                        </svg>
-                                                        {{ $item->planning_project->name }} [{{ $item->planning_project->project_code }}]
-                                                    </span>
                                                 @endif
                                             </div>
                                         </td>
@@ -676,22 +737,34 @@
             <ul class="warning-list">
                 @foreach ($nonFinalisedPlannings as $np)
                     <li>
-                        <strong>Non-Finalised Planning:</strong> {{ $np->project?->name ?? 'Planning #' . $np->id }} (Status: <em>{{ ucfirst($np->status) }}</em>) - Only <strong>Finalised</strong> plannings can generate POs.
+                        <strong>Non-Finalised Planning:</strong> {{ $np->project?->name ?? 'Planning #' . $np->id }}
+                        @if ($np->subProject)
+                            (Sub-Project: <em>{{ $np->subProject->name }}</em>)
+                        @endif
+                        (Status: <em>{{ ucfirst($np->status) }}</em>) - Only <strong>Finalised</strong> plannings can generate POs.
                     </li>
                 @endforeach
                 @foreach ($skippedSupplierItems as $item)
                     <li>
                         <strong>Material:</strong> {{ $item->material?->name ?? 'Unknown Material' }} (Code: {{ $item->material?->code ?? '-' }}) - Qty: {{ number_format($item->planned_qty, 2) }} {{ $item->unit }}
-                        @if ($isBulk && $item->planning_project)
-                            <span class="muted-text">in {{ $item->planning_project->name }}</span>
+                        @if ($item->planning_project)
+                            <span class="muted-text">in {{ $item->planning_project->name }}
+                                @if ($item->planning_sub_project)
+                                    / {{ $item->planning_sub_project->name }}
+                                @endif
+                            </span>
                         @endif
                     </li>
                 @endforeach
                 @foreach ($skippedSubconItems as $item)
                     <li>
                         <strong>Subcon Service:</strong> {{ $item->notes ?? 'Subcon service' }} - Qty: {{ number_format($item->planned_qty, 2) }}
-                        @if ($isBulk && $item->planning_project)
-                            <span class="muted-text">in {{ $item->planning_project->name }}</span>
+                        @if ($item->planning_project)
+                            <span class="muted-text">in {{ $item->planning_project->name }}
+                                @if ($item->planning_sub_project)
+                                    / {{ $item->planning_sub_project->name }}
+                                @endif
+                            </span>
                         @endif
                     </li>
                 @endforeach

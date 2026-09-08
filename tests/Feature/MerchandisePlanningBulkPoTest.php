@@ -12,6 +12,7 @@ use App\Models\PoSubcon;
 use App\Models\PoSupplier;
 use App\Models\Project;
 use App\Models\Subcon;
+use App\Models\SubProject;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\CompanyContext;
@@ -424,9 +425,17 @@ class MerchandisePlanningBulkPoTest extends TestCase
 
     public function test_bulk_generate_po_confirmation_modal_renders_detailed_table_for_multiple_projects(): void
     {
+        $subProjectA = SubProject::create([
+            'company_id' => $this->company->id,
+            'project_id' => $this->projectA->id,
+            'name' => 'Front Panel Assembly',
+            'code' => 'SP-001',
+        ]);
+
         $planningA = MerchandisePlanning::create([
             'company_id' => $this->company->id,
             'project_id' => $this->projectA->id,
+            'sub_project_id' => $subProjectA->id,
             'planning_date' => now()->toDateString(),
             'status' => 'finalised',
             'total_material_cost' => 100000,
@@ -498,11 +507,10 @@ class MerchandisePlanningBulkPoTest extends TestCase
         $view->assertSee('Supplier Purchase Orders');
         $view->assertSee('Supplier Textile Corp');
 
-        // Assert Project Tags for both projects
+        // Assert Project & Sub-Project for both projects
         $view->assertSee('Project Alpha');
-        $view->assertSee('PRJ-2026-001');
+        $view->assertSee('Front Panel Assembly');
         $view->assertSee('Project Beta');
-        $view->assertSee('PRJ-2026-002');
 
         // Assert Subcon Section
         $view->assertSee('Subcontractor Services');

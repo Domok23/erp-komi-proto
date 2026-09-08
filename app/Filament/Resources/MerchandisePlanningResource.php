@@ -498,7 +498,7 @@ class MerchandisePlanningResource extends Resource
                         ->modalWidth('7xl')
                         ->modalSubmitActionLabel('Generate POs')
                         ->modalContent(function ($record) {
-                            $record->load(['items.material', 'items.supplier', 'items.subcon']);
+                            $record->load(['items.material', 'items.supplier', 'items.subcon', 'project', 'subProject']);
 
                             $materialIds = $record->items->pluck('material_id')->filter()->unique();
                             $companyId = CompanyContext::getCompanyId();
