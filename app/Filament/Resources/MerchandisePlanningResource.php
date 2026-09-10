@@ -11,6 +11,7 @@ use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\MerchandisePlanning;
 use App\Models\Project;
+use App\Models\SubProject;
 use App\Services\CompanyContext;
 use App\Services\MerchandisePlanningSyncService;
 use App\Services\PoGenerationService;
@@ -149,11 +150,53 @@ class MerchandisePlanningResource extends Resource
                             $project = Project::find($projectId);
 
                             return $project && $project->hasSubProjects();
+                        })
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $projectId = $get('project_id');
+                            $project = $projectId ? Project::find($projectId) : null;
+                            if (! $project) {
+                                return;
+                            }
+
+                            $subProject = $state ? SubProject::find($state) : null;
+                            $design = $subProject?->effectiveDesign() ?? $project->design;
+
+                            if ($design) {
+                                $set('design_id', $design->id);
+                                $targetQty = max(1, (int) ($subProject?->target_qty ?: $project->target_qty ?: 1));
+
+                                $items = $design->consumptionRates->map(function ($rate) use ($targetQty) {
+                                    $unitPrice = (float) ($rate->material?->price ?? 0);
+                                    $wastageRate = (float) ($rate->wastage_rate ?? config('costing.wastage_pct', 3));
+                                    $wastageMultiplier = 1 + ($wastageRate / 100);
+                                    $plannedQty = floatval($rate->standard_rate) * $targetQty * $wastageMultiplier;
+
+                                    return [
+                                        'filter_category_id' => $rate->material?->category_id,
+                                        'material_id' => $rate->material_id,
+                                        'component' => $rate->component,
+                                        'supplier_id' => $rate->material?->supplier_id,
+                                        'planned_qty' => $plannedQty,
+                                        'unit' => $rate->unit ?? $rate->material?->uom ?? 'pcs',
+                                        'unit_price' => number_format($unitPrice, 2, '.', ','),
+                                        'total_price' => number_format($plannedQty * $unitPrice, 2, '.', ','),
+                                        'is_subcon' => false,
+                                        'notes' => $rate->notes,
+                                        'is_from_rnd' => true,
+                                    ];
+                                })->toArray();
+
+                                $set('items', $items);
+
+                                $totalMat = array_sum(array_map(fn ($i) => floatval(str_replace(',', '', $i['total_price'])), $items));
+                                $set('total_material_cost', number_format($totalMat, 2, '.', ','));
+                                $set('total_subcon_cost', number_format(0, 2, '.', ','));
+                            }
                         }),
                     Forms\Components\Select::make('design_id')
                         ->label('R&D Design')
                         ->relationship('design', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
                         ->allowHtml()
                         ->disabled()
                         ->dehydrated()

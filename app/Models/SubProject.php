@@ -27,6 +27,7 @@ class SubProject extends Model
         'name',
         'code',
         'category',
+        'design_id',
         'bom_id',
         'target_qty',
         'produced_qty',
@@ -45,6 +46,11 @@ class SubProject extends Model
     public function bom(): BelongsTo
     {
         return $this->belongsTo(Bom::class);
+    }
+
+    public function design(): BelongsTo
+    {
+        return $this->belongsTo(RdDesign::class, 'design_id');
     }
 
     public function getStatusAttribute(): ?string
@@ -118,6 +124,6 @@ class SubProject extends Model
 
     public function effectiveDesign(): ?RdDesign
     {
-        return $this->project?->design;
+        return $this->design ?? $this->project?->design;
     }
 }

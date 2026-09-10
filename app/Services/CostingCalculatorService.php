@@ -45,7 +45,9 @@ class CostingCalculatorService
      */
     public static function getShippingCostPerUnit(string $destination): int
     {
-        return (int) config("costing.shipping.{$destination}", 0);
+        $rates = config('costing.shipping', []);
+
+        return (int) ($rates[$destination] ?? 0);
     }
 
     /**
@@ -61,9 +63,30 @@ class CostingCalculatorService
         $materialCost = 0;
         $defaultWastage = config('costing.wastage_pct', 3);
         $importCostPct = config('costing.import_cost_pct', 5);
-        $bom = $subProject ? $subProject->effectiveBom() : $project->bom;
+        $design = $subProject ? $subProject->effectiveDesign() : $project->design;
+        $bom = $subProject ? $subProject->effectiveBom() : ($project->bom ?? $project->referenceProject?->bom);
 
-        if ($bom) {
+        if ($design) {
+            $design->loadMissing('consumptionRates.material');
+        }
+
+        if ($design && $design->consumptionRates->isNotEmpty()) {
+            foreach ($design->consumptionRates as $rate) {
+                $material = $rate->material;
+                if ($material) {
+                    $wastageRate = $rate->wastage_rate !== null ? (float) $rate->wastage_rate : (float) $defaultWastage;
+                    $wastageMultiplier = 1 + ($wastageRate / 100);
+                    $qtyAdjusted = (float) $rate->standard_rate * $wastageMultiplier;
+
+                    $effectivePrice = (float) $material->price;
+                    if ($material->is_import) {
+                        $effectivePrice *= (1 + ($importCostPct / 100));
+                    }
+
+                    $materialCost += $qtyAdjusted * $effectivePrice;
+                }
+            }
+        } elseif ($bom) {
             $bom->loadMissing('items.material');
             if ($bom->items->isNotEmpty()) {
                 foreach ($bom->items as $item) {
@@ -80,23 +103,6 @@ class CostingCalculatorService
 
                         $materialCost += $qtyAdjusted * $effectivePrice;
                     }
-                }
-            }
-        } elseif ($project->design) {
-            $project->design->loadMissing('consumptionRates.material');
-            foreach ($project->design->consumptionRates as $rate) {
-                $material = $rate->material;
-                if ($material) {
-                    $wastageRate = $rate->wastage_rate !== null ? (float) $rate->wastage_rate : (float) $defaultWastage;
-                    $wastageMultiplier = 1 + ($wastageRate / 100);
-                    $qtyAdjusted = (float) $rate->standard_rate * $wastageMultiplier;
-
-                    $effectivePrice = (float) $material->price;
-                    if ($material->is_import) {
-                        $effectivePrice *= (1 + ($importCostPct / 100));
-                    }
-
-                    $materialCost += $qtyAdjusted * $effectivePrice;
                 }
             }
         }

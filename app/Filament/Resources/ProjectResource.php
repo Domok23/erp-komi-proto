@@ -7,7 +7,6 @@ use App\Exceptions\SubProjectException;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers\SubProjectsRelationManager;
 use App\Livewire\ProjectDesignConsumptionTable;
-use App\Models\Bom;
 use App\Models\Project;
 use App\Models\RdDesign;
 use App\Services\CodeGenerator;
@@ -126,7 +125,7 @@ class ProjectResource extends Resource
                             return new HtmlString('<a href="'.$url.'" class="ref-link">'.$labelText.'</a> <span style="color: #888; font-size: 0.9em; margin-left: 5px;">['.$record->status.']</span>');
                         })
                         ->allowHtml()
-                        ->searchable()
+                        ->searchable(['name', 'code'])
                         ->preload()
                         ->required()
                         ->live()
@@ -533,33 +532,5 @@ class ProjectResource extends Resource
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
         ];
-    }
-
-    public static function loadBomItems(mixed $state, callable $set): void
-    {
-        if ($state) {
-            $bom = Bom::with('items.material.categoryRef')->find($state);
-            if ($bom) {
-                $items = [];
-                foreach ($bom->items as $item) {
-                    $categoryName = $item->category
-                        ?: $item->material?->categoryRef?->name
-                        ?: $item->material?->category
-                        ?: '-';
-
-                    $items[] = [
-                        'material_name' => $item->material?->name ?? 'N/A',
-                        'category' => $categoryName,
-                        'quantity_per_unit' => $item->quantity_per_unit,
-                        'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
-                        'wastage_percent' => $item->wastage_percent,
-                    ];
-                }
-                $set('bom_items', $items);
-
-                return;
-            }
-        }
-        $set('bom_items', []);
     }
 }

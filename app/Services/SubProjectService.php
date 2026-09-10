@@ -18,7 +18,7 @@ class SubProjectService
                 'name' => $sp->name,
                 'code' => $sp->code,
                 'category' => $sp->category,
-                'bom_id' => $sp->bom_id,
+                'design_id' => $sp->design_id,
                 'target_qty' => $sp->target_qty,
                 'produced_qty' => 0,
             ]);

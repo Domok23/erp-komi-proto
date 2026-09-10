@@ -32,6 +32,8 @@ class BomResource extends Resource
 {
     protected static ?string $model = Bom::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'BOM';
 
     protected static ?string $recordTitleAttribute = 'bom_number';

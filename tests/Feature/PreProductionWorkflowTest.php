@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
+use App\Models\ConsumptionRate;
 use App\Models\Costing;
 use App\Models\Customer;
 use App\Models\GoodsReceipt;
@@ -123,6 +124,16 @@ class PreProductionWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('boms', ['id' => $bom->id]);
         $this->assertDatabaseHas('bom_items', ['id' => $bomItem->id]);
+
+        ConsumptionRate::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'material_id' => $material->id,
+            'category' => 'main_material',
+            'standard_rate' => 2.5,
+            'unit' => 'yard',
+            'wastage_rate' => 10,
+        ]);
 
         // 3. Project Initiation: Proto -> Approve -> Sample Auto-Created
         $projectProto = Project::create([

@@ -6,6 +6,7 @@ use App\Filament\Pages\ProjectMonitor;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Company;
+use App\Models\ConsumptionRate;
 use App\Models\InventoryStock;
 use App\Models\Material;
 use App\Models\Project;
@@ -161,5 +162,78 @@ class ProjectMonitorTest extends TestCase
         $status = $service->getProjectStatus($project);
 
         $this->assertEquals('Ready', $status);
+    }
+
+    public function test_material_readiness_using_rnd_consumption_rates(): void
+    {
+        $company = Company::create([
+            'name' => 'PT Komitrando Cons Test',
+            'code' => 'KMT-CONS',
+            'address' => 'Jogja',
+        ]);
+        session(['selected_company_id' => $company->id]);
+
+        $material = Material::create([
+            'company_id' => $company->id,
+            'code' => 'MAT-ZIPPER-01',
+            'material_code' => 'MAT-ZIPPER-01',
+            'name' => 'Nylon Zipper',
+            'category' => 'accessories',
+            'unit' => 'pcs',
+            'total_stock' => 1000,
+        ]);
+
+        $design = RdDesign::create([
+            'company_id' => $company->id,
+            'code' => 'DSG-CONS-01',
+            'name' => 'Zipper Bag Design',
+            'product_type' => 'backpack',
+            'status' => 'approved',
+        ]);
+
+        ConsumptionRate::create([
+            'company_id' => $company->id,
+            'design_id' => $design->id,
+            'material_id' => $material->id,
+            'category' => 'accessories',
+            'standard_rate' => 2.0,
+            'unit' => 'pcs',
+            'wastage_rate' => 0.0,
+        ]);
+
+        $project = Project::create([
+            'company_id' => $company->id,
+            'project_code' => 'PRJ-CONS-01',
+            'name' => 'R&D Readiness Project',
+            'target_qty' => 50,
+            'design_id' => $design->id,
+            'status' => 'production',
+        ]);
+
+        $warehouse = Warehouse::create([
+            'company_id' => $company->id,
+            'code' => 'WH-CONS',
+            'name' => 'Accessory Warehouse',
+        ]);
+
+        InventoryStock::create([
+            'company_id' => $company->id,
+            'warehouse_id' => $warehouse->id,
+            'material_id' => $material->id,
+            'available_qty' => 100, // 50 * 2 = 100 needed, exactly 100 available -> Ready
+            'quantity' => 100,
+            'unit' => 'pcs',
+        ]);
+
+        $service = new ProjectMaterialReadiness;
+        $status = $service->getProjectStatus($project);
+        $details = $service->getDetails($project);
+
+        $this->assertEquals('Ready', $status);
+        $this->assertCount(1, $details['items']);
+        $this->assertEquals('Nylon Zipper', $details['items'][0]['material_name']);
+        $this->assertEquals(100.0, $details['items'][0]['qty_needed']);
+        $this->assertEquals(100.0, $details['items'][0]['qty_available']);
+        $this->assertEquals('Ready', $details['items'][0]['status']);
     }
 }

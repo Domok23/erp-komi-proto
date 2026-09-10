@@ -71,7 +71,7 @@ class RdDesignResource extends Resource
                                 ->where('company_id', CompanyContext::getCompanyId())
                                 ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
                         )
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name} (v{$record->version})")
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
                         ->searchable()
                         ->preload()
                         ->nullable()

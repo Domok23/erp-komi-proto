@@ -431,7 +431,7 @@
         <!-- Card 2: Materials Table -->
         @if (empty($readiness['items']))
             <div style="padding: 24px; text-align: center; font-size: 13px; font-style: italic; border-radius: 12px;" class="pm-card pm-text-muted">
-                No active BOM items assigned or target quantity is zero.
+                No active R&D consumption rates assigned or target quantity is zero.
             </div>
         @else
             <div style="border-radius: 12px; overflow-x: auto;" class="pm-card">

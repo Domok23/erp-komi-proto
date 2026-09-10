@@ -466,6 +466,84 @@ class DataSeeder extends Seeder
             ]);
         }
 
+        $designTote = RdDesign::firstOrCreate(
+            ['code' => 'DSN-TOT-001'],
+            [
+                'company_id' => $kei->id,
+                'name' => 'Adidas Tote Performance',
+                'description' => 'Lightweight durable tote bag design',
+                'product_type' => 'tote_bag',
+                'version' => '1.0',
+                'status' => 'approved',
+                'brand' => 'Adidas',
+                'size_range' => '20L',
+                'notes' => 'Approved R&D tote model',
+            ]
+        );
+
+        if ($designTote->consumptionRates()->count() === 0) {
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designTote->id,
+                'material_id' => $matFabric->id,
+                'component' => 'Tote Shell Canvas',
+                'standard_rate' => 0.8,
+                'unit' => 'kg',
+                'wastage_rate' => 3,
+                'notes' => 'Tote canvas fabric',
+            ]);
+
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designTote->id,
+                'material_id' => $matWebbing->id,
+                'component' => 'Handle Webbing',
+                'standard_rate' => 2,
+                'unit' => 'pcs',
+                'wastage_rate' => 1,
+                'notes' => 'Shoulder handles',
+            ]);
+        }
+
+        $designLavaGray = RdDesign::firstOrCreate(
+            ['code' => 'DSN-LSG-002'],
+            [
+                'company_id' => $kei->id,
+                'name' => 'Racket Cover - Lava Gray Spec',
+                'description' => 'Variant spec with reinforced webbing',
+                'product_type' => 'backpack',
+                'version' => '1.1',
+                'status' => 'approved',
+                'brand' => 'Wilson',
+                'size_range' => 'Standard',
+                'notes' => 'R&D override spec for colorway',
+            ]
+        );
+
+        if ($designLavaGray->consumptionRates()->count() === 0) {
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designLavaGray->id,
+                'material_id' => $matFabric->id,
+                'component' => 'Lava Gray Fabric Body',
+                'standard_rate' => 1.2,
+                'unit' => 'kg',
+                'wastage_rate' => 4,
+                'notes' => 'Gray tone fabric',
+            ]);
+
+            ConsumptionRate::create([
+                'company_id' => $kei->id,
+                'design_id' => $designLavaGray->id,
+                'material_id' => $matZipper->id,
+                'component' => 'Side Pocket Zipper',
+                'standard_rate' => 2,
+                'unit' => 'pcs',
+                'wastage_rate' => 2,
+                'notes' => 'YKK standard zipper',
+            ]);
+        }
+
         // 7. Seed BOMs and BOM Items (Historical DB Retention)
         $bomBackpack = Bom::firstOrCreate(
             ['design_id' => $designBackpack->id],
@@ -520,7 +598,6 @@ class DataSeeder extends Seeder
             'status' => 'production',
             'customer_id' => $customerVera->id,
             'design_id' => $designBackpack->id,
-            'bom_id' => $bomBackpack->id,
             'target_qty' => 1000,
         ]);
 
@@ -530,7 +607,7 @@ class DataSeeder extends Seeder
             'code' => 'SUB-PRJ-001',
             'name' => 'Front & Sleeve Panel Assembly',
             'category' => 'sub_assembly',
-            'bom_id' => $bomBackpack->id,
+            'design_id' => null,
             'target_qty' => 1000,
             'produced_qty' => 750,
         ]);
@@ -541,7 +618,7 @@ class DataSeeder extends Seeder
             'code' => 'SUB-PRJ-002',
             'name' => 'Main Body Sewing & Finishing',
             'category' => 'assembly',
-            'bom_id' => $bomBackpack->id,
+            'design_id' => null,
             'target_qty' => 1000,
             'produced_qty' => 500,
         ]);
@@ -555,7 +632,6 @@ class DataSeeder extends Seeder
             'status' => 'approved',
             'customer_id' => $customerVera->id,
             'design_id' => $designBackpack->id,
-            'bom_id' => $bomBackpack->id,
             'target_qty' => 200,
         ]);
 
@@ -565,7 +641,7 @@ class DataSeeder extends Seeder
             'code' => 'LSG-10',
             'name' => 'LAVA SMOKE GRAY (NO POCKET)',
             'category' => 'colorway',
-            'bom_id' => null,
+            'design_id' => $designLavaGray->id,
             'target_qty' => 100,
             'produced_qty' => 50,
         ]);
@@ -576,7 +652,7 @@ class DataSeeder extends Seeder
             'code' => 'STWB-01',
             'name' => 'SURF THE WEB BLUE (NO POCKET)',
             'category' => 'colorway',
-            'bom_id' => null,
+            'design_id' => null,
             'target_qty' => 100,
             'produced_qty' => 30,
         ]);
@@ -589,8 +665,7 @@ class DataSeeder extends Seeder
             'type' => 'proto',
             'status' => 'planning',
             'customer_id' => $customerVera->id,
-            'design_id' => $designBackpack->id,
-            'bom_id' => $bomBackpack->id,
+            'design_id' => $designTote->id,
             'target_qty' => 50,
         ]);
 
@@ -676,7 +751,7 @@ class DataSeeder extends Seeder
             'company_id' => $kei->id,
             'project_id' => $project2->id,
             'sub_project_id' => $subProject2_1->id,
-            'design_id' => $designBackpack->id,
+            'design_id' => $designLavaGray->id,
             'planning_date' => now()->toDateString(),
             'status' => 'finalised',
             'total_material_cost' => 16500000,
@@ -723,7 +798,7 @@ class DataSeeder extends Seeder
         $planning3 = MerchandisePlanning::create([
             'company_id' => $kei->id,
             'project_id' => $project3->id,
-            'design_id' => $designBackpack->id,
+            'design_id' => $designTote->id,
             'planning_date' => now()->toDateString(),
             'status' => 'preliminary',
             'total_material_cost' => 3800000,

@@ -128,8 +128,9 @@ class CostingResource extends Resource
                         })
                         ->disabled($isLocked),
                     Forms\Components\Select::make('design_id')
+                        ->label('R&D Design')
                         ->relationship('design', 'name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->name.'</a>'))
+                        ->getOptionLabelFromRecordUsing(fn ($record) => new HtmlString('<a href="'.RdDesignResource::getUrl('edit', ['record' => $record]).'" class="ref-link">'.$record->formatted_select_label.'</a>'))
                         ->allowHtml()
                         ->disabled()
                         ->dehydrated()

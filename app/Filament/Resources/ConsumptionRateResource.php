@@ -50,8 +50,10 @@ class ConsumptionRateResource extends Resource
                 ])
                 ->schema([
                     Forms\Components\Select::make('design_id')
+                        ->label('R&D Design')
                         ->relationship('design', 'name')
-                        ->searchable()
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                        ->searchable(['name', 'code'])
                         ->preload()
                         ->required(),
                     MaterialFormFilterHelper::categoryFilter(),
@@ -144,7 +146,7 @@ class ConsumptionRateResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['design', 'material']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable(),
-                Tables\Columns\TextColumn::make('design.name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('design.name')->label('R&D Design')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('material.name')
                     ->sortable()
                     ->searchable()
@@ -172,7 +174,7 @@ class ConsumptionRateResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('design_id')->relationship('design', 'name'),
+                SelectFilter::make('design_id')->label('R&D Design')->relationship('design', 'name'),
                 SelectFilter::make('material_id')
                     ->relationship('material', 'name')
                     ->searchable(['code', 'name', 'color', 'size'])

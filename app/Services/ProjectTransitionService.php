@@ -32,7 +32,6 @@ class ProjectTransitionService
                     'status' => 'planning',
                     'customer_id' => $project->customer_id,
                     'design_id' => $project->design_id,
-                    'bom_id' => $project->bom_id,
                     'reference_project_id' => $project->id,
                     'target_qty' => 1,
                 ]);
@@ -51,7 +50,6 @@ class ProjectTransitionService
                     'status' => 'planning',
                     'customer_id' => $project->customer_id,
                     'design_id' => $project->design_id,
-                    'bom_id' => $project->bom_id,
                     'reference_project_id' => $project->id,
                     'target_qty' => $project->target_qty > 1 ? $project->target_qty : 100,
                 ]);
@@ -75,7 +73,6 @@ class ProjectTransitionService
                 'status' => 'planning',
                 'customer_id' => $project->customer_id,
                 'design_id' => $project->design_id,
-                'bom_id' => $project->bom_id,
                 'reference_project_id' => $project->reference_project_id,
                 'target_qty' => $project->target_qty,
             ]);

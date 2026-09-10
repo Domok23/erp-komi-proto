@@ -29,13 +29,13 @@ class MerchandisePlanningSyncService
             return 0;
         }
 
-        $design = $project->design ?? $planning->design;
+        $design = $planning->subProject?->effectiveDesign() ?? $project->design ?? $planning->design;
         if (! $design) {
             return 0;
         }
 
         $rates = $design->consumptionRates()->with('material')->get();
-        $targetQty = max(1, (int) ($project->target_qty ?? 1));
+        $targetQty = max(1, (int) ($planning->subProject?->target_qty ?: $project->target_qty ?: 1));
 
         return DB::transaction(function () use ($planning, $rates, $targetQty) {
             $activePairs = [];

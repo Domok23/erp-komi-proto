@@ -43,6 +43,11 @@ class RdDesign extends Model
         'estimated_selling_price' => 'decimal:2',
     ];
 
+    public function getFormattedSelectLabelAttribute(): string
+    {
+        return $this->version ? "{$this->name} (v{$this->version})" : $this->name;
+    }
+
     public function parentDesign(): BelongsTo
     {
         return $this->belongsTo(RdDesign::class, 'parent_design_id');

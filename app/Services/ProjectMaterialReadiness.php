@@ -23,9 +23,7 @@ class ProjectMaterialReadiness
      */
     public function getDetails(Project $project): array
     {
-        $bom = $project->bom;
-
-        if (! $bom || ! $project->target_qty || $project->target_qty <= 0) {
+        if (! $project->target_qty || $project->target_qty <= 0) {
             return [
                 'overall_status' => 'N/A',
                 'total_items' => 0,
@@ -34,9 +32,21 @@ class ProjectMaterialReadiness
             ];
         }
 
-        $items = $bom->relationLoaded('items')
-            ? $bom->items
-            : $bom->items()->with(['material.supplier'])->get();
+        $design = $project->design;
+        $items = collect();
+        $sourceType = null;
+
+        if ($design && $design->consumptionRates()->exists()) {
+            $sourceType = 'design';
+            $items = $design->relationLoaded('consumptionRates')
+                ? $design->consumptionRates
+                : $design->consumptionRates()->with(['material.supplier', 'material.categoryRef'])->get();
+        } elseif ($project->bom) {
+            $sourceType = 'bom';
+            $items = $project->bom->relationLoaded('items')
+                ? $project->bom->items
+                : $project->bom->items()->with(['material.supplier'])->get();
+        }
 
         if ($items->isEmpty()) {
             return [
@@ -62,15 +72,28 @@ class ProjectMaterialReadiness
         $atRiskCount = 0;
 
         foreach ($items as $item) {
-            $wastage = config('costing.wastage_pct', 3);
-            $qtyNeeded = (float) $item->quantity_per_unit * (1 + ($wastage / 100)) * (float) $project->target_qty;
+            $defaultWastage = config('costing.wastage_pct', 3);
+
+            if ($sourceType === 'design') {
+                $material = $item->material;
+                $wastage = $item->wastage_rate !== null ? (float) $item->wastage_rate : (float) $defaultWastage;
+                $qtyNeeded = (float) $item->standard_rate * (1 + ($wastage / 100)) * (float) $project->target_qty;
+                $category = $material?->categoryRef?->name ?? $material?->category ?? 'raw';
+                $unit = $item->unit ?? $material?->uom ?? 'pcs';
+            } else {
+                $material = $item->material;
+                $wastage = $item->wastage_percent !== null ? (float) $item->wastage_percent : (float) $defaultWastage;
+                $qtyNeeded = (float) $item->quantity_per_unit * (1 + ($wastage / 100)) * (float) $project->target_qty;
+                $category = $item->category ?? 'raw';
+                $unit = $item->unit ?? $material?->uom ?? 'pcs';
+            }
 
             // Fetch available stock for this material in the project's company
             $qtyAvailable = (float) ($stockMap[$item->material_id] ?? 0);
 
-            if ($qtyAvailable == 0 && $item->material) {
+            if ($qtyAvailable == 0 && $material) {
                 // Fallback to total_stock on material if InventoryStock record is not explicitly created
-                $qtyAvailable = (float) ($item->material->total_stock ?? $item->material->stock ?? 0);
+                $qtyAvailable = (float) ($material->total_stock ?? $material->stock ?? 0);
             }
 
             if ($qtyAvailable >= ($qtyNeeded * 1.1)) {
@@ -87,15 +110,14 @@ class ProjectMaterialReadiness
             }
 
             $resultItems[] = [
-                'material_name' => $item->material?->name ?? 'Unknown Material',
-                'material_code' => $item->material?->material_code ?? $item->material?->code ?? '-',
-                'category' => $item->category ?? 'raw',
+                'material_name' => $material?->name ?? 'Unknown Material',
+                'material_code' => $material?->material_code ?? $material?->code ?? '-',
+                'category' => $category,
                 'qty_needed' => round($qtyNeeded, 2),
                 'qty_available' => round($qtyAvailable, 2),
-                // Note: bom_items table retains 'unit' column for UOM snapshots
-                'unit' => $item->unit ?? $item->material?->uom ?? 'pcs',
+                'unit' => $unit,
                 'status' => $status,
-                'supplier_name' => $item->material?->supplier?->name ?? 'N/A',
+                'supplier_name' => $material?->supplier?->name ?? 'N/A',
             ];
         }
 

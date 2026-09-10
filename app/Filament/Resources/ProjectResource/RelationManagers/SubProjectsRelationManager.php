@@ -41,10 +41,11 @@ class SubProjectsRelationManager extends RelationManager
                 ])
                 ->default(null)
                 ->nullable(),
-            Forms\Components\Select::make('bom_id')
-                ->label('BOM Override (Optional)')
-                ->relationship('bom', 'name')
-                ->searchable()
+            Forms\Components\Select::make('design_id')
+                ->label('R&D Override (Optional)')
+                ->relationship('design', 'name')
+                ->getOptionLabelFromRecordUsing(fn ($record) => $record->formatted_select_label)
+                ->searchable(['name', 'code'])
                 ->preload()
                 ->nullable(),
             Forms\Components\TextInput::make('target_qty')
@@ -74,6 +75,11 @@ class SubProjectsRelationManager extends RelationManager
                         'success' => 'component',
                         'gray' => 'other',
                     ]),
+                Tables\Columns\TextColumn::make('design.name')
+                    ->label('R&D Override')
+                    ->formatStateUsing(fn ($record) => $record->design?->formatted_select_label ?? 'Inherited')
+                    ->badge()
+                    ->color(fn ($record) => $record->design_id ? 'primary' : 'gray'),
                 Tables\Columns\TextColumn::make('target_qty')->numeric(),
                 Tables\Columns\TextColumn::make('produced_qty')->numeric(),
                 Tables\Columns\TextColumn::make('status')
