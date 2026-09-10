@@ -18,6 +18,7 @@ use App\Models\InvoiceSales;
 use App\Models\JobOrder;
 use App\Models\JobOrderMaterial;
 use App\Models\Material;
+use App\Models\MaterialLeftover;
 use App\Models\MaterialReservation;
 use App\Models\MaterialUsage;
 use App\Models\MerchandisePlanning;
@@ -185,6 +186,19 @@ class DataSeeder extends Seeder
                 'service_type' => 'embroidery',
                 'contact_person' => fake()->name(),
                 'address' => fake()->address(),
+                'is_active' => true,
+            ]);
+        }
+
+        $subconSablon = Subcon::where('code', 'SUB-002')->where('company_id', $kei->id)->first();
+        if (! $subconSablon) {
+            $subconSablon = Subcon::create([
+                'company_id' => $kei->id,
+                'code' => 'SUB-002',
+                'name' => 'PT Sablon Citra Mandiri',
+                'service_type' => 'printing',
+                'contact_person' => fake()->name(),
+                'address' => 'Kawasan Industri Cimahi, Bandung',
                 'is_active' => true,
             ]);
         }
@@ -843,6 +857,29 @@ class DataSeeder extends Seeder
             'approved_at' => now(),
         ]);
 
+        $costingTote = Costing::create([
+            'company_id' => $kei->id,
+            'project_id' => $project3->id,
+            'design_id' => $designTote->id,
+            'costing_date' => now()->subDays(5)->toDateString(),
+            'version' => '1.0',
+            'status' => 'draft',
+            'material_cost' => 76000,
+            'mp_cost' => 33000,
+            'overhead_pct' => 15,
+            'shipping_cost' => 5000,
+            'profit_margin_pct' => 20,
+            'currency' => 'IDR',
+        ]);
+        CostingCalculatorService::recalculateCosting($costingTote);
+        $costingTote->update([
+            'status' => 'approved',
+            'submitted_by' => $admin->id,
+            'submitted_at' => now()->subDays(4),
+            'approved_by' => $admin->id,
+            'approved_at' => now()->subDays(3),
+        ]);
+
         // 11. Seed Sales Orders
         $salesOrder = SalesOrder::create([
             'company_id' => $kei->id,
@@ -878,6 +915,71 @@ class DataSeeder extends Seeder
 
         // Update Project Sales Order link
         $project->update(['sales_order_id' => $salesOrder->id]);
+
+        $salesOrder2 = SalesOrder::create([
+            'company_id' => $kei->id,
+            'so_number' => 'SO-2026-002',
+            'project_id' => $project3->id,
+            'costing_id' => $costingTote->id,
+            'customer_id' => $customerVera->id,
+            'order_date' => now()->startOfMonth()->addDays(2)->toDateString(),
+            'delivery_date' => now()->addDays(45)->toDateString(),
+            'quantity' => 500,
+            'unit_price' => $costingTote->selling_price,
+            'status' => 'confirmed',
+            'currency' => 'IDR',
+            'exchange_rate' => 1,
+            'subtotal' => 500 * $costingTote->selling_price,
+            'ppn_percent' => 11,
+            'ppn_amount' => (500 * $costingTote->selling_price) * 0.11,
+            'shipping_cost' => 1500000,
+            'grand_total' => (500 * $costingTote->selling_price) * 1.11 + 1500000,
+            'down_payment_pct' => 30,
+            'down_payment_amount' => ((500 * $costingTote->selling_price) * 1.11 + 1500000) * 0.30,
+            'payment_terms' => 'dp_30',
+        ]);
+
+        SalesOrderItem::create([
+            'sales_order_id' => $salesOrder2->id,
+            'description' => 'Adidas Performance Tote Bag',
+            'quantity' => 500,
+            'unit' => 'pcs',
+            'unit_price' => $costingTote->selling_price,
+            'total_price' => 500 * $costingTote->selling_price,
+        ]);
+        $project3->update(['sales_order_id' => $salesOrder2->id]);
+
+        $salesOrder3 = SalesOrder::create([
+            'company_id' => $kei->id,
+            'so_number' => 'SO-2026-003',
+            'project_id' => $project->id,
+            'costing_id' => $costing->id,
+            'customer_id' => $customerVera->id,
+            'order_date' => now()->subMonth()->subDays(5)->toDateString(),
+            'delivery_date' => now()->addDays(15)->toDateString(),
+            'quantity' => 800,
+            'unit_price' => $costing->selling_price,
+            'status' => 'in_production',
+            'currency' => 'IDR',
+            'exchange_rate' => 1,
+            'subtotal' => 800 * $costing->selling_price,
+            'ppn_percent' => 11,
+            'ppn_amount' => (800 * $costing->selling_price) * 0.11,
+            'shipping_cost' => 2000000,
+            'grand_total' => (800 * $costing->selling_price) * 1.11 + 2000000,
+            'down_payment_pct' => 30,
+            'down_payment_amount' => ((800 * $costing->selling_price) * 1.11 + 2000000) * 0.30,
+            'payment_terms' => 'dp_30',
+        ]);
+
+        SalesOrderItem::create([
+            'sales_order_id' => $salesOrder3->id,
+            'description' => 'Nike Backpack Elite (Batch 2)',
+            'quantity' => 800,
+            'unit' => 'pcs',
+            'unit_price' => $costing->selling_price,
+            'total_price' => 800 * $costing->selling_price,
+        ]);
 
         // 12. Seed PO Suppliers (Multi-Project Consolidated PO)
         $poSupplier = PoSupplier::create([
@@ -1046,6 +1148,8 @@ class DataSeeder extends Seeder
             'received_condition' => 'good',
         ]);
 
+        $goodsReceipt->update(['status' => 'verified']);
+
         // 16. Seed Subcon Material OUT
         $subconOut = SubconMaterialOut::create([
             'company_id' => $kei->id,
@@ -1115,34 +1219,37 @@ class DataSeeder extends Seeder
         ]);
 
         // 19. Seed Inventory Stock details
-        InventoryStock::create([
+        InventoryStock::updateOrCreate([
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matFabric->id,
-            'quantity' => 500,
+        ], [
+            'quantity' => 2000,
             'reserved_qty' => 0,
-            'available_qty' => 500,
+            'available_qty' => 2000,
             'unit' => 'kg',
             'min_stock' => 100,
             'location' => 'Aisle A-1',
         ]);
 
-        InventoryStock::create([
+        InventoryStock::updateOrCreate([
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matZipper->id,
-            'quantity' => 0,
+        ], [
+            'quantity' => 3000,
             'reserved_qty' => 0,
-            'available_qty' => 0,
+            'available_qty' => 3000,
             'unit' => 'pcs',
             'min_stock' => 500,
             'location' => 'Bin B-12',
         ]);
 
-        InventoryStock::create([
+        InventoryStock::updateOrCreate([
             'company_id' => $kei->id,
             'warehouse_id' => $whMain->id,
             'material_id' => $matWebbing->id,
+        ], [
             'quantity' => 5000,
             'reserved_qty' => 0,
             'available_qty' => 5000,
@@ -1160,10 +1267,10 @@ class DataSeeder extends Seeder
             'project_id' => $project->id,
             'merchandising_planning_id' => $merchandisingPlanning ? $merchandisingPlanning->id : null,
             'planned_qty' => 1000,
-            'completed_qty' => 0,
-            'status' => 'planned',
-            'start_date' => now()->addDays(5)->toDateString(),
-            'end_date' => now()->addDays(45)->toDateString(),
+            'completed_qty' => 1000,
+            'status' => 'completed',
+            'start_date' => now()->subDays(10)->toDateString(),
+            'end_date' => now()->subDays(2)->toDateString(),
             'notes' => 'Mass production for Nike order',
         ]);
 
@@ -1383,5 +1490,30 @@ class DataSeeder extends Seeder
                 'notes' => 'Manual stock count adjustment (+50 pcs)',
             ]);
         }
+
+        // 28. Seed Material Leftovers (Factory Scraps & Remnants)
+        MaterialLeftover::create([
+            'company_id' => $kei->id,
+            'job_order_id' => $jobOrderCutting->id,
+            'material_id' => $matFabric->id,
+            'leftover_date' => now()->subDays(2)->toDateString(),
+            'qty' => 15.50,
+            'unit' => 'yard',
+            'condition' => 'usable',
+            'status' => 'available',
+            'notes' => 'Reusable fabric remnants from cutting batch #1, suitable for pocket pouches',
+        ]);
+
+        MaterialLeftover::create([
+            'company_id' => $kei->id,
+            'job_order_id' => $jobOrderCutting->id,
+            'material_id' => $matZipper->id,
+            'leftover_date' => now()->subDays(2)->toDateString(),
+            'qty' => 25.00,
+            'unit' => 'pcs',
+            'condition' => 'scrap',
+            'status' => 'disposed',
+            'notes' => 'Damaged zipper sliders and end cutoffs discarded after quality inspection',
+        ]);
     }
 }

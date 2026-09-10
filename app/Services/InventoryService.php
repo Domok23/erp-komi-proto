@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\InsufficientStockException;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptRetur;
 use App\Models\InventoryMovement;
@@ -91,30 +92,34 @@ class InventoryService
                 ->where('material_id', $item->material_id)
                 ->first();
 
-            if ($stock) {
-                $beforeQty = $stock->quantity;
-                $afterQty = $beforeQty - $item->qty_sent;
-
-                $stock->update([
-                    'quantity' => $afterQty,
-                    'available_qty' => $stock->available_qty - $item->qty_sent,
-                ]);
-
-                InventoryMovement::create([
-                    'company_id' => $out->company_id,
-                    'inventory_stock_id' => $stock->id,
-                    'material_id' => $item->material_id,
-                    'type' => 'production_out',
-                    'reference_type' => SubconMaterialOut::class,
-                    'reference_id' => $out->id,
-                    'quantity' => $item->qty_sent,
-                    'before_qty' => $beforeQty,
-                    'after_qty' => $afterQty,
-                    'notes' => 'Sent to Subcon via Document '.$out->document_number,
-                ]);
-
-                self::syncMaterialTotalStock($item->material_id);
+            $available = (float) ($stock?->quantity ?? 0);
+            if (! $stock || $available < (float) $item->qty_sent) {
+                $materialName = $item->material?->name ?? 'Material #'.$item->material_id;
+                throw InsufficientStockException::forMaterial($materialName, $available, (float) $item->qty_sent);
             }
+
+            $beforeQty = $stock->quantity;
+            $afterQty = $beforeQty - $item->qty_sent;
+
+            $stock->update([
+                'quantity' => $afterQty,
+                'available_qty' => $stock->available_qty - $item->qty_sent,
+            ]);
+
+            InventoryMovement::create([
+                'company_id' => $out->company_id,
+                'inventory_stock_id' => $stock->id,
+                'material_id' => $item->material_id,
+                'type' => 'production_out',
+                'reference_type' => SubconMaterialOut::class,
+                'reference_id' => $out->id,
+                'quantity' => $item->qty_sent,
+                'before_qty' => $beforeQty,
+                'after_qty' => $afterQty,
+                'notes' => 'Sent to Subcon via Document '.$out->document_number,
+            ]);
+
+            self::syncMaterialTotalStock($item->material_id);
         }
     }
 
@@ -240,30 +245,34 @@ class InventoryService
                 ->where('material_id', $item->material_id)
                 ->first();
 
-            if ($stock) {
-                $beforeQty = $stock->quantity;
-                $afterQty = $beforeQty - $item->qty_transferred;
-
-                $stock->update([
-                    'quantity' => $afterQty,
-                    'available_qty' => $stock->available_qty - $item->qty_transferred,
-                ]);
-
-                InventoryMovement::create([
-                    'company_id' => $transfer->from_company_id,
-                    'inventory_stock_id' => $stock->id,
-                    'material_id' => $item->material_id,
-                    'type' => 'transfer_out',
-                    'reference_type' => StockTransfer::class,
-                    'reference_id' => $transfer->id,
-                    'quantity' => $item->qty_transferred,
-                    'before_qty' => $beforeQty,
-                    'after_qty' => $afterQty,
-                    'notes' => 'Transferred out via Stock Transfer '.$transfer->transfer_number,
-                ]);
-
-                self::syncMaterialTotalStock($item->material_id);
+            $available = (float) ($stock?->quantity ?? 0);
+            if (! $stock || $available < (float) $item->qty_transferred) {
+                $materialName = $item->material?->name ?? 'Material #'.$item->material_id;
+                throw InsufficientStockException::forMaterial($materialName, $available, (float) $item->qty_transferred);
             }
+
+            $beforeQty = $stock->quantity;
+            $afterQty = $beforeQty - $item->qty_transferred;
+
+            $stock->update([
+                'quantity' => $afterQty,
+                'available_qty' => $stock->available_qty - $item->qty_transferred,
+            ]);
+
+            InventoryMovement::create([
+                'company_id' => $transfer->from_company_id,
+                'inventory_stock_id' => $stock->id,
+                'material_id' => $item->material_id,
+                'type' => 'transfer_out',
+                'reference_type' => StockTransfer::class,
+                'reference_id' => $transfer->id,
+                'quantity' => $item->qty_transferred,
+                'before_qty' => $beforeQty,
+                'after_qty' => $afterQty,
+                'notes' => 'Transferred out via Stock Transfer '.$transfer->transfer_number,
+            ]);
+
+            self::syncMaterialTotalStock($item->material_id);
         }
     }
 
@@ -374,6 +383,11 @@ class InventoryService
             'min_stock' => 0,
         ]);
 
+        $available = (float) $stock->quantity;
+        if ($available < (float) $so->quantity) {
+            throw InsufficientStockException::forMaterial($material->name, $available, (float) $so->quantity);
+        }
+
         $beforeQty = $stock->quantity;
         $afterQty = $beforeQty - $so->quantity;
 
@@ -444,30 +458,34 @@ class InventoryService
                 ->where('material_id', $item->material_id)
                 ->first();
 
-            if ($stock) {
-                $beforeQty = $stock->quantity;
-                $afterQty = $beforeQty - $item->qty_returned;
-
-                $stock->update([
-                    'quantity' => $afterQty,
-                    'available_qty' => $stock->available_qty - $item->qty_returned,
-                ]);
-
-                InventoryMovement::create([
-                    'company_id' => $companyId,
-                    'inventory_stock_id' => $stock->id,
-                    'material_id' => $item->material_id,
-                    'type' => 'return_out',
-                    'reference_type' => GoodsReceiptRetur::class,
-                    'reference_id' => $retur->id,
-                    'quantity' => $item->qty_returned,
-                    'before_qty' => $beforeQty,
-                    'after_qty' => $afterQty,
-                    'notes' => 'Returned to supplier via Retur '.$retur->retur_number,
-                ]);
-
-                self::syncMaterialTotalStock($item->material_id);
+            $available = (float) ($stock?->quantity ?? 0);
+            if (! $stock || $available < (float) $item->qty_returned) {
+                $materialName = $item->material?->name ?? 'Material #'.$item->material_id;
+                throw InsufficientStockException::forMaterial($materialName, $available, (float) $item->qty_returned);
             }
+
+            $beforeQty = $stock->quantity;
+            $afterQty = $beforeQty - $item->qty_returned;
+
+            $stock->update([
+                'quantity' => $afterQty,
+                'available_qty' => $stock->available_qty - $item->qty_returned,
+            ]);
+
+            InventoryMovement::create([
+                'company_id' => $companyId,
+                'inventory_stock_id' => $stock->id,
+                'material_id' => $item->material_id,
+                'type' => 'return_out',
+                'reference_type' => GoodsReceiptRetur::class,
+                'reference_id' => $retur->id,
+                'quantity' => $item->qty_returned,
+                'before_qty' => $beforeQty,
+                'after_qty' => $afterQty,
+                'notes' => 'Returned to supplier via Retur '.$retur->retur_number,
+            ]);
+
+            self::syncMaterialTotalStock($item->material_id);
         }
     }
 
@@ -517,32 +535,36 @@ class InventoryService
             ->where('material_id', $usage->material_id)
             ->first();
 
-        if ($stock) {
-            $beforeQty = $stock->quantity;
-            $afterQty = $beforeQty - $usage->actual_qty;
-
-            $stock->update([
-                'quantity' => $afterQty,
-                'available_qty' => $stock->available_qty - $usage->actual_qty,
-            ]);
-
-            $jobOrderNo = $usage->jobOrder?->job_order_number ?? '';
-
-            InventoryMovement::create([
-                'company_id' => $companyId,
-                'inventory_stock_id' => $stock->id,
-                'material_id' => $usage->material_id,
-                'type' => 'production_out',
-                'reference_type' => MaterialUsage::class,
-                'reference_id' => $usage->id,
-                'quantity' => $usage->actual_qty,
-                'before_qty' => $beforeQty,
-                'after_qty' => $afterQty,
-                'notes' => 'Consumed for production in Job Order '.$jobOrderNo,
-            ]);
-
-            self::syncMaterialTotalStock($usage->material_id);
+        $available = (float) ($stock?->quantity ?? 0);
+        if (! $stock || $available < (float) $usage->actual_qty) {
+            $materialName = $usage->material?->name ?? 'Material #'.$usage->material_id;
+            throw InsufficientStockException::forMaterial($materialName, $available, (float) $usage->actual_qty);
         }
+
+        $beforeQty = $stock->quantity;
+        $afterQty = $beforeQty - $usage->actual_qty;
+
+        $stock->update([
+            'quantity' => $afterQty,
+            'available_qty' => $stock->available_qty - $usage->actual_qty,
+        ]);
+
+        $jobOrderNo = $usage->jobOrder?->job_order_number ?? '';
+
+        InventoryMovement::create([
+            'company_id' => $companyId,
+            'inventory_stock_id' => $stock->id,
+            'material_id' => $usage->material_id,
+            'type' => 'production_out',
+            'reference_type' => MaterialUsage::class,
+            'reference_id' => $usage->id,
+            'quantity' => $usage->actual_qty,
+            'before_qty' => $beforeQty,
+            'after_qty' => $afterQty,
+            'notes' => 'Consumed for production in Job Order '.$jobOrderNo,
+        ]);
+
+        self::syncMaterialTotalStock($usage->material_id);
     }
 
     public static function reverseMaterialUsage(MaterialUsage $usage): void
@@ -653,6 +675,12 @@ class InventoryService
         foreach ($movements as $movement) {
             $stock = $movement->inventoryStock;
             if ($stock) {
+                $available = (float) $stock->quantity;
+                if ($available < (float) $movement->quantity) {
+                    $materialName = $stock->material?->name ?? 'Material #'.$stock->material_id;
+                    throw InsufficientStockException::forMaterial($materialName, $available, (float) $movement->quantity);
+                }
+
                 $newQty = $stock->quantity - $movement->quantity;
                 $stock->update([
                     'quantity' => $newQty,
